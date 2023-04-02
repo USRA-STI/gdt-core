@@ -1,0 +1,146 @@
+#! python
+# CONTAINS TECHNICAL DATA/COMPUTER SOFTWARE DELIVERED TO THE U.S. GOVERNMENT WITH UNLIMITED RIGHTS
+#
+# Contract No.: CA 80MSFC17M0022
+# Contractor Name: Universities Space Research Association
+# Contractor Address: 7178 Columbia Gateway Drive, Columbia, MD 21046
+#
+# Copyright 2017-2022 by Universities Space Research Association (USRA). All rights reserved.
+#
+# Developed by: William Cleveland and Adam Goldstein
+#               Universities Space Research Association
+#               Science and Technology Institute
+#               https://sti.usra.edu
+#
+# Developed by: Daniel Kocevski
+#               National Aeronautics and Space Administration (NASA)
+#               Marshall Space Flight Center
+#               Astrophysics Branch (ST-12)
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and limitations under the
+# License.
+#
+import argparse
+from urllib.parse import urlparse
+
+import os
+from pathlib import Path
+from typing import List
+from gdt.core import data_path
+from gdt.core.heasarc import FileDownloader
+
+
+def get_missions() -> List[str]:
+    retval = []
+    with os.scandir(data_path) as entries:
+        for entry in entries:
+            if entry.is_dir():
+                t_file = Path(entry.path) / 'test_files.urls'
+                if t_file.exists():
+                    retval.append(entry.name)
+    return retval
+
+
+installed_missions = get_missions()
+
+
+def validate_missions(mission_list: List[str], all_missions: bool = False) -> List[str]:
+    # validate the use of arguments
+    if (mission_list is None or mission_list == []) and not all_missions:
+        print('Must specify one or more missions, or use --all')
+        exit(1)
+    if (mission_list is not None and mission_list != []) and all_missions:
+        print('Can not specify mission(s) with --all')
+        exit(1)
+
+    # If all missions is specified then return the list of missions
+    if all_missions:
+        return installed_missions
+
+    # validate the mission in the given list.
+    for mis in mission_list:
+        if mis not in installed_missions:
+            raise ValueError(f'{m} is not an installed mission')
+
+    return mission_list
+
+
+def get_mission_urls(mission: str) -> List[str]:
+    ufile = data_path.joinpath(mission, 'test_files.urls')
+    if not ufile.exists():
+        raise ValueError(f'ERROR: {mission} does not have test data information.')
+    urls = []
+    with ufile.open('r') as fp:
+        while True:
+            line = fp.readline()
+            if line == '':
+                break
+            line = line.strip()
+            if line.startswith('#'):
+                continue
+            urls.append(line)
+    return sorted(urls)
+
+
+def download_mission(mission: str):
+    urls = get_mission_urls(mission)
+    dest_dir = data_path.joinpath(mission)
+    with FileDownloader() as dload:
+        dload.bulk_download(urls, dest_dir)
+
+
+def clean_mission(mission: str):
+    urls = get_mission_urls(mission)
+    dest_dir = data_path.joinpath(mission)
+    for u in urls:
+        url = urlparse(u)
+        f_name = dest_dir.joinpath(Path(url.path).name)
+        if f_name.exists() and f_name.is_file():
+            f_name.unlink()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest='command', metavar='command', required=True)
+
+    # list command
+    subparsers.add_parser('list', help='List the missions that have test data available.')
+
+    # download command
+    cmd_parser = subparsers.add_parser('download', help='Download the test files for the given mission')
+    cmd_parser.add_argument('mission', nargs='*', default=[], help='name of mission')
+    cmd_parser.add_argument('-a', '--all', dest='all_missions', action='store_true', default=False,
+                            help='Download data for all missions')
+    # clean command
+    cmd_parser = subparsers.add_parser('clean', help='Remove the test files for a given mission.')
+    cmd_parser.add_argument('mission', nargs='*', default=[], help='name of mission')
+    cmd_parser.add_argument('-a', '--all', dest='all_missions', action='store_true', default=False,
+                            help='Remove data for all missions')
+
+    args = parser.parse_args()
+
+    if args.command == 'list':
+        for m in installed_missions:
+            print(m)
+    else:
+        try:
+            missions = validate_missions(args.mission, args.all_missions)
+        except ValueError as e:
+            print(f'Error: {str(e)}')
+            exit(1)
+        if args.command == 'download':
+            for m in missions:
+                download_mission(m)
+        elif args.command == 'clean':
+            for m in missions:
+                clean_mission(m)
+        else:
+            print('Unknown command')
+            exit(1)

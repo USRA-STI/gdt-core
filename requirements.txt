@@ -1,0 +1,17 @@
+pyproj>=1.9.6
+numpy
+scipy
+matplotlib
+astropy
+healpy
+cartopy
+pytest
+
+Sphinx
+astropy-sphinx-theme
+nbsphinx
+ipython
+sphinx-automodapi
+
+setuptools
+rich
