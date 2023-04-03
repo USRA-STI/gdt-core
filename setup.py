@@ -22,7 +22,8 @@ if __name__ == '__main__':
             'matplotlib',
             'astropy>=3.1',
             'healpy>=1.12.4',
-            'cartopy'
+            'cartopy',
+            'rich'
         ],
         extras_require={
             'docs': [
