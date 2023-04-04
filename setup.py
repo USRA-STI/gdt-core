@@ -27,15 +27,57 @@
 # License.
 #
 import sys
-from setuptools import setup
+from setuptools import setup, find_namespace_packages
 
 sys.path.append('src')
 
 if __name__ == '__main__':
     import gdt.core as core
 
-    # For backward compatibility
-    setup()
+    setup(
+        name="gdt-core",
+        version=core.__version__,
+        description="Gamma-ray Data Tools: Core Components",
+        author='Cleveland, Goldstein, Kocevski',
+        url='https://github.com/USRA-STI/gdt-core',
+        packages=find_namespace_packages(where='src', include=["*"]),
+        scripts=[
+            "scripts/gdt-data"
+        ],
+        classifiers=[
+            "Development Status :: 5 - Production/Stable",
+            "Programming Language :: Python :: 3",
+            "License :: OSI Approved :: Apache Software License",
+            "Operating System :: MacOS",
+            "Operating System :: POSIX :: Linux",
+            "Topic :: Scientific/Engineering :: Astronomy",
+            "Topic :: Software Development :: Libraries",
+        ],
+        license_files=['license.txt'],
+        keywords=['astronomy', 'gammaray', 'gamma-ray', 'usra'],
+        package_dir={"": "src"},
+        python_requires='>=3.8',
+        install_requires=[
+            'pyproj>=1.9.6',
+            'numpy>=1.17.3',
+            'scipy>=1.1.0',
+            'matplotlib>=3.7.1',
+            'astropy>=3.1',
+            'healpy>=1.12.4',
+            'cartopy>=0.21.1',
+            'rich>=13.3.3'
+        ],
+        extras_require={
+            'docs': [
+                'Sphinx',
+                'astropy_sphinx_theme',
+                'nbsphinx',
+                'ipython',
+                'sphinx_automodapi',
+                'notebook'
+            ]
+        }
+    )
 
     # create library data directory
     core.data_path.mkdir(parents=True, exist_ok=True)
