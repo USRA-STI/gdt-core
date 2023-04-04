@@ -29,6 +29,8 @@ addition of new cards.  These restrictions are important for maintaining high
 quality of header information when creating and modifying file headers for 
 production and public use.
 
+For Developers:
+---------------
 To use the |Header| class, it should be sub-classed with two class variables:
   * ``name`` (str): The extension name for the header
   * ``keywords`` (list): A list of header cards, which are 3-tuples containing
@@ -40,9 +42,6 @@ header is instantiated.  The default value for each card defines the data type
 of the value. For example, a string value requires that if the value is updated,
 it must be a string.
 
-
-Examples
---------
 We will make a header definition called ``MyHeader`` by sub-classing |Header|:
 
   >>> from gdt.core.headers import Header
@@ -56,6 +55,9 @@ We will make a header definition called ``MyHeader`` by sub-classing |Header|:
 This is our definition for our new header, which is the primary header.  We 
 have defined four cards, the first one with keyword 'STRING', that has a default
 value of 'hello,' and a brief comment describing the value.
+
+Examples
+--------
 
 Here is what it looks like when we instantiate ``MyHeader``:
 
@@ -108,6 +110,8 @@ create a default set of headers for a file, manage the update of values across
 multiple headers in a file, and acting as a type of verification for headers
 read from a file.
 
+For Developers:
+---------------
 The FileHeaders class should not be instantiated directly but instead should
 be sub-classed with one required class variable:
 
@@ -117,8 +121,6 @@ This class variable is used to build the expected default set of headers and
 use the header definitions as a verification against headers that are read in
 from a file.
 
-Examples
---------
 Let us use our primary header from the example in the previous section and add
 another header:
 
@@ -140,6 +142,8 @@ That's it.  And now we create the object:
   >>> file_headers
   <MyFileHeaders: 2 headers>
 
+Examples
+--------
 You can retrieve the list of extension names and extract the headers by index
 or extension name:
 

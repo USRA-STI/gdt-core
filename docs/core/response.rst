@@ -17,7 +17,6 @@
 ***********************************************
 Instrument Responses (:mod:`gdt.core.response`)
 ***********************************************
-    
 
 Introduction
 ============
@@ -215,6 +214,9 @@ The plot of the second resampled DRM is shown below:
 
 .. image:: response_figs/drmfig2.png
 
+
+For Developers:
+===============
 
 Subclassing
 -----------

@@ -17,8 +17,8 @@ observing energy range.  The |SouthAtlanticAnomaly| class is a container with
 some convenience functions for an instrument's SAA boundary definition, 
 although, in general, it can be used to define any other exclusionary region.
 
-Examples
---------
+For Developers:
+===============
 To use the SouthAtlanticAnomaly class, we need to subclass it and 
 define the latitude and longitude vertices of the boundary within the class.
 

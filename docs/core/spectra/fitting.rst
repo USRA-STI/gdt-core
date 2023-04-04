@@ -51,9 +51,11 @@ example of how to construct a likelihood function:
     >>>     # log_likelihood is summed over all bins
     >>>     return -log_likelihood
 
+For Developers:
+===============
 
 Creating a Fitter
-=================
+-----------------
 For each likelihood, there is an associated fitter class.  This is because
 some likelihoods may need more specialized inputs that what is generally 
 provided by the |SpectralFitter| base class.  In general, a fitter must accept

@@ -11,13 +11,16 @@ Plot Element Classes (:mod:`~gdt.core.plot.plot`)
 In the ``gdt.core.plot.plot`` module, there are two important base classes to be
 aware of.  
 
-*  |GdtPlot| is the base class for all plots in the GDT.  It 
-   contains the basic functionality to instantiate plots and provide ways to 
-   dynamically update them.
+*  |GdtPlot| is the base class for all plots in the GDT.  It contains the basic 
+   functionality to instantiate plots and provide ways to dynamically update 
+   them.
 *  |PlotElement| is the base class representing a single plot element, such as
    a lightcurve histogram or a polygon plotted on the sky. These are generally
    wrappers around the lower-level |lib| functions with additional functions to 
    enable dynamic updating.
+
+For Developers:
+===============
 
 For the PlotElement base class, the basic plot attributes provided are the 
 ``alpha``, ``color``, ``visible``, and ``zorder``.  These attributes can be

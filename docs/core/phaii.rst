@@ -271,6 +271,9 @@ long as they do not overlap in time:
     <Gti: 2 intervals; range (0.0, 0.32)>
 
 
+For Developers:
+===============
+
 Subclassing
 -----------
 To read and write PHAII FITS files, the |Phaii| class needs to be subclassed. 

@@ -196,8 +196,11 @@ And as an example, we can create a SuperFunction via multiplication:
                HighEnergyCutoff: EF = 100.0 keV>
 
 
+For Developers:
+===============
+
 Defining a new Function
-=======================
+-----------------------
 To illustrate how to define a new spectral function, we will follow the 
 design of the GDT-provided |PowerLaw| spectral function:
 

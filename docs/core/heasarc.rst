@@ -30,8 +30,8 @@ the directory structure may be organized such that navigating it manually is
 a nuisance. By inheriting the FtpFinder and defining one function, we can 
 immediately access the data we need and download it for a given mission.
 
-Examples
---------
+For Developers:
+---------------
 In this example, we will make a data finder for Fermi GBM trigger data.  To
 do so, we will inherit |FtpFinder|, define the root directory for the data 
 archive on the FTP server, and define a private function called 
@@ -52,6 +52,8 @@ In the ``_construct_path()`` method, we defined our input argument to be the
 GBM trigger number (in string form), we have logic that constructs the proper
 path to the data for the given trigger number, and it returns that path.
 
+Examples
+--------
 Now we can create an instance of ``MyFtpFinder`` and initialize it with a 
 trigger number:
 
@@ -120,8 +122,8 @@ choose to perform future reads from your local disk rather than re-querying
 HEASARC.  You can choose to directly use the BrowseCatalog class or sub-class it
 to add your own specialized functionality.
 
-Examples
---------
+For Developers:
+---------------
 In this example, we will sub-class |BrowseCatalog| to create our own catalog
 class for the GBM trigger catalog: 
 
@@ -132,8 +134,11 @@ class for the GBM trigger catalog:
 
 The ``cache_path`` is the path where the cached catalog file will be saved, and
 we have set it to our current directory by default.  The `table` argument is 
-set to the HEASARC unique catalog identifier for the GBM trigger catalog.  Now
-we can create an instance of the catalog:
+set to the HEASARC unique catalog identifier for the GBM trigger catalog.  
+
+Examples
+--------
+Now we can create an instance of the catalog:
 
   >>> cat = MyCatalog(verbose=True)
   Sending request and awaiting response from HEASARC...

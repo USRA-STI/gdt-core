@@ -6,7 +6,11 @@ Binning Algorithms for Binned Data (:mod:`~gdt.core.binning.binned`)
 
 A collection of algorithms are provided to perform binning/rebinning on binned
 (histogram) data.  Each algorithm is packaged in a function with the same
-general inputs and outputs.  Users can define their own binning algorithm to be
+general inputs and outputs.  
+
+For Developers:
+===============
+Users can define their own binning algorithm to be
 used to bin data within the data tools by following these rules:
 
 *  The function must take as arguments:

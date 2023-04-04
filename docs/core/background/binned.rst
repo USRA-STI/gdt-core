@@ -109,8 +109,11 @@ Finally, we can interpolate the rate and rate uncertainty at any point:
 
 .. _background_binned_plugins:
 
+For Developers:
+===============
+
 Designing Plug-ins
-==================
+------------------
 You can design your own custom algorithm to be used to fit binned data.  In 
 order for the algorithm to work with the fitter interface, the custom algorithm
 must be a class and satisfy the following:

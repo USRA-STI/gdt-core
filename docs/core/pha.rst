@@ -208,6 +208,9 @@ the latter, we can read the file we just wrote to disk with the following:
     time range (5.0, 5.256);
     energy range (4.32, 2000.0)>
 
+
+For Developers:
+---------------
 As mentioned previously, if your needs only require the basic standard 
 PHA data formatting and metadata, then you can use the |Pha| class directly.
 If your data have extra metadata that need to be saved to the headers or are in

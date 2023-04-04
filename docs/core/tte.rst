@@ -247,6 +247,9 @@ quite large, so make sure you have sufficient memory to perform such a merge.
   <Gti: 2 intervals; range (1.2671749481077967, 29.060934691909935)>
 
 
+For Developers:
+===============
+
 Subclassing
 -----------
 To read and write PhotonList/TTE FITS files, the |PhotonList| class needs to be 

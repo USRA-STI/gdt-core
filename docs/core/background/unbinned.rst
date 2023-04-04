@@ -106,8 +106,12 @@ fast approximation:
 
 .. _background_unbinned_plugins:
 
+
+For Developers:
+===============
+
 Designing Plug-ins
-==================
+------------------
 You can design your own custom algorithm to be used to fit unbinned data.  In 
 order for the algorithm to work with the fitter interface, the custom algorithm
 must be a class and satisfy the following:

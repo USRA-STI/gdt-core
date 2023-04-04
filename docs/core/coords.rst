@@ -318,8 +318,11 @@ like in our example, you can interpolate and retrieve a frame at a given time:
      quaternion=[(x, y, z, w) [ 0.41797605,  0.8815903 , -0.01721894, -0.2186277 ]]>
 
 
+For Developers:
+===============
+
 Designing a Class to Read From File
-===================================
+-----------------------------------
 Most missions provide auxiliary data such as the spacecraft position and 
 orientation along with other state information (whether the instruments were
 observing, if the sun is visible, etc.).  It is then useful to be able to read

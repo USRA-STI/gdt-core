@@ -12,8 +12,8 @@ those detectors may have different viewing directions.  The |Detectors| class
 provides a simple way to store the detector names, indexing, and pointings so
 that they can be retrieved for a variety of uses.
 
-Examples
---------
+For Developers:
+===============
 The |Detectors| class cannot be used directly; it must be sub-classed with 
 the relevant information for each detector.  As an example, we will create a
 new class called ``MyDetectors`` that inherits the Detectors class, and we
@@ -32,6 +32,9 @@ detector should be a short-hand name of the detector.  In each definition, there
 are four values: the full name of the detector, the index of the detector, 
 the azimuth angle of the detector normal in spacecraft coordinates, and the
 zenith angle of the detector normal in spacecraft coordinates.
+
+Examples
+--------
 
 Based on the use case, you may want to retrieve the detector information using
 the short name, full name, or index number.  There are four distinct ways to

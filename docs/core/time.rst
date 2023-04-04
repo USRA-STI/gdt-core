@@ -8,8 +8,11 @@ Time Epochs and Utilities  (:mod:`gdt.core.time`)
 The GDT relies heavily on Astropy's infrastructure for time definitions and 
 conversions.
 
+For Developers:
+===============
+
 Custom Time Epochs
-==================
+------------------
 Missions often define a *Mission Elapsed Time* (MET), which is essentially a 
 time epoch that serves as a reference for all observations and data produced
 during the lifetime of the mission.  METs can be defined in different ways, 
@@ -40,6 +43,8 @@ For example, if we expect the unit of time to be 1 second, then ``unit`` is
 defined as it is in the example above.  The other variables define the reference
 point and scale for the custom epoch.
 
+Examples
+--------
 The custom epoch can be used in the following way.  For example, let us create
 a UTC time in an ISO format:
 

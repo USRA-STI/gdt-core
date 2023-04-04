@@ -9,7 +9,11 @@ Binning Algorithms for Unbinned Data (:mod:`~gdt.core.binning.unbinned`)
 
 A collection of algorithms are provided to perform binning on unbinned
 (event) data.  Each algorithm is packaged in a function with the same
-general inputs and outputs.  Users can define their own binning algorithm to be
+general inputs and outputs.  
+
+For Developers:
+===============
+Users can define their own binning algorithm to be
 used to bin event data within the data tools by following these rules:
 
 *  The function must take as an argument ``times``, An array of event arrival times
