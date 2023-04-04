@@ -3,7 +3,6 @@
 *.pyc
 temp
 dist
-<<<<<<< HEAD
+build
+.pytest_cache
 .DS_Store
-=======
->>>>>>> ec114d3 (moved the package details to pyproject.toml)
