@@ -35,7 +35,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 docs = [
-    'Sphinx',
+    'Sphinx==4.5.0',
     'astropy-sphinx-theme',
     'nbsphinx',
     'ipython',
