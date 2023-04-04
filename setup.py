@@ -32,49 +32,7 @@ from setuptools import setup
 sys.path.append('src')
 
 if __name__ == '__main__':
-<<<<<<< HEAD
-    setup(
-        name='gdt-core',
-        version=gdt_c.__version__,
-        scripts=[
-            "scripts/gdt-data"
-        ],
-        packages=find_packages(where='src'),
-        package_dir={'': 'src'},
-        url='github.com/USRA-STI/gdt',
-        license='Apache 2.0',
-        author='Cleveland, Goldstein, Kocevski',
-        description='The Gamma-ray Data Tools (Core functions)',
-        python_requires='>=3.8',
-        install_requires=[
-            'pyproj>=1.9.6',
-            'numpy>=1.17.3',
-            'scipy>=1.1.0',
-            'matplotlib',
-            'astropy>=3.1',
-            'healpy>=1.12.4',
-            'cartopy',
-            'rich'
-        ],
-        extras_require={
-            'docs': [
-                'Sphinx==4.5.0', # for some reason newer versions break API docs
-                'astropy_sphinx_theme',
-                'nbsphinx',
-                'ipython',
-                'sphinx_automodapi',
-                'notebook'
-            ],
-            'test': [
-                'pytest'
-            ]
-        }
-    )
-    # Create the GDT data directory, if it doesn't exist
-    gdt_c.data_path.mkdir(parents=True, exist_ok=True)
-=======
     import gdt.core as core
->>>>>>> ec114d3 (moved the package details to pyproject.toml)
 
     # For backward compatibility
     setup()
