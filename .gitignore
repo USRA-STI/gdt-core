@@ -3,3 +3,4 @@
 *.pyc
 temp
 dist
+.DS_Store
