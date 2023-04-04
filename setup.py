@@ -27,7 +27,7 @@ if __name__ == '__main__':
         ],
         extras_require={
             'docs': [
-                'Sphinx',
+                'Sphinx==4.5.0', # for some reason newer versions break API docs
                 'astropy_sphinx_theme',
                 'nbsphinx',
                 'ipython',
