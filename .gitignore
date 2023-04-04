@@ -3,3 +3,6 @@
 *.pyc
 temp
 dist
+build
+.pytest_cache
+
