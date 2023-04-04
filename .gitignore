@@ -3,4 +3,7 @@
 *.pyc
 temp
 dist
+<<<<<<< HEAD
 .DS_Store
+=======
+>>>>>>> ec114d3 (moved the package details to pyproject.toml)
