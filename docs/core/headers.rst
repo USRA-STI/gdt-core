@@ -110,6 +110,7 @@ read from a file.
 
 The FileHeaders class should not be instantiated directly but instead should
 be sub-classed with one required class variable:
+
   * ``_header_templates`` (list): A list of |Header| objects that belong to the file.
 
 This class variable is used to build the expected default set of headers and

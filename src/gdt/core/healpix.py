@@ -69,9 +69,10 @@ class HealPix():
         """Convolve the map with a model kernel.  The model can be a Gaussian
         kernel or any mixture of Gaussian kernels. Uses `healpy.smoothing 
         <https://healpy.readthedocs.io/en/latest/generated/healpy.sphtfunc.smoothing.html>`_.
-
+        
         An example of a model kernel with a 50%/50% mixture of two Gaussians,
         one with a 1-deg width, and the other with a 3-deg width::
+            
             def gauss_mix_example():
                 sigma1 = np.deg2rad(1.0)
                 sigma2 = np.deg2rad(3.0)

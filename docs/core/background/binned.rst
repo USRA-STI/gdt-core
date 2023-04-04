@@ -108,6 +108,7 @@ Finally, we can interpolate the rate and rate uncertainty at any point:
 
 
 .. _background_binned_plugins:
+
 Designing Plug-ins
 ==================
 You can design your own custom algorithm to be used to fit binned data.  In 
@@ -115,16 +116,20 @@ order for the algorithm to work with the fitter interface, the custom algorithm
 must be a class and satisfy the following:
 
 *  ``__init__()`` must take the following as arguments:
+
   #.  A 2D array of counts with shape (``num_times``, ``num_chans``);
   #.  A 1D array of time bin start times, shape (``num_times``,); 
   #.  A 1D array of time bin end times, shape (``num_times``,);
   #.  A 1D array of exposures for each time bin, shape (``num_times``,).
+  
 *  A ``fit()`` method that takes no arguments but may have keywords to specify
    algorithm parameters.
+   
 *  An ``interpolate()`` method that must take the following arguments:
 
    #.  A 1D array of time bin start times, shape (``num_times``,);
    #.  A 1D array of time bin end times, shape (``num_times``,).
+   
 *  The ``interpolate()`` method must return the following:
 
    #.  A 2D rates array, shape (``num_times``, ``num_chans``);

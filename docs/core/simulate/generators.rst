@@ -10,7 +10,7 @@
 .. |VariableSourceSpectrumGenerator| replace:: :class:`~gdt.core.simulate.generators.VariableSourceSpectrumGenerator`
 .. |EventSpectrumGenerator| replace:: :class:`~gdt.core.simulate.generators.EventSpectrumGenerator`
 .. |bkgd| replace:: :ref:`Background Primitives<background_primitives>`
-.. |rsp| replace:: :ref:`The Rsp Class`
+.. |rsp| replace:: :ref:`The Rsp Class<core-response>`
 .. |functions| replace:: :ref:`Spectral Functions<spectra-functions>`
 
 

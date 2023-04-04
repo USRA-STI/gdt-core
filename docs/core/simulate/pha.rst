@@ -10,7 +10,7 @@
 .. |Pha| replace:: :class:`~gdt.core.pha.Pha`
 .. |Phaii| replace:: :class:`~gdt.core.phaii.Phaii`
 .. |Lightcurve| replace:: :class:`~gdt.core.plot.lightcurve.Lightcurve`
-.. |rsp| replace:: :ref:`The Rsp Class`
+.. |rsp| replace:: :ref:`The Rsp Class<core-response>`
 .. |functions| replace:: :ref:`Spectral Functions<spectra-functions>`
 .. |plot-spectrum| replace:: :ref:`Plotting Count Spectras<plot-spectrum>`
 .. |set_background| replace:: :meth:`~gdt.core.simulate.pha.PhaSimulator.set_background`

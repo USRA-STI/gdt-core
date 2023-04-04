@@ -35,8 +35,8 @@ For development, we recommend the following::
 
 
 If you want to test your development, note that there are a number of data files
-that are used in testing.  See :ref:`Downloading Test/Tutorial Data` for 
-downloading the test data.
+that are used in testing.  See :ref:`Downloading Test/Tutorial Data<download_test_data>` 
+for downloading the test data.
 
 To test your development::
 
@@ -74,6 +74,7 @@ See the next section on downloading this data.
 
 
 .. _download_test_data:
+
 Downloading Test/Tutorial Data
 ------------------------------
 To download the data files used in the documentation and for testing, you need

@@ -19,14 +19,15 @@ Photon List and Time-Tagged Event Files  (:mod:`gdt.core.tte`)
 
 Introduction
 ============
-While :ref:`phaii` describe a *binned* time-series of spectra, Photon List or
-Time-Tagged Event (TTE) data represent an *unbinned* time series.  In practice,
-this type of data is only semi-unbinned in the sense that while the time axis
-of the data are unbinned (hence the time tags), the energy axis is necessarily 
-binned. This is because the energy resolution and response of an instrument does 
-not allow the relative precision that is easily achievable for the time axis.  
-Therefore, the model for Photon List/TTE data is a series of photons/counts, 
-each with at least two attributes: a time and an energy channel.
+While the :ref:`PHAII Documentation<core-phaii>` describe a *binned* time-series 
+of spectra, Photon List or Time-Tagged Event (TTE) data represent an *unbinned* 
+time series.  In practice, this type of data is only semi-unbinned in the sense 
+that while the time axis of the data are unbinned (hence the time tags), the 
+energy axis is necessarily binned. This is because the energy resolution and 
+response of an instrument does not allow the relative precision that is easily 
+achievable for the time axis.  Therefore, the model for Photon List/TTE data is 
+a series of photons/counts, each with at least two attributes: a time and an 
+energy channel.
 
 The PhotonList Class
 ====================

@@ -133,6 +133,7 @@ energy spectrum:
     >>> pl.integrate(params, (50.0, 300.0), energy=True)
     1.5436256788927548e-06
 
+.. _spectra-functions-superfunction:
 
 The SuperFunction Class
 =======================

@@ -105,6 +105,7 @@ fast approximation:
            [0.33336566]])
 
 .. _background_unbinned_plugins:
+
 Designing Plug-ins
 ==================
 You can design your own custom algorithm to be used to fit unbinned data.  In 
@@ -112,17 +113,23 @@ order for the algorithm to work with the fitter interface, the custom algorithm
 must be a class and satisfy the following:
 
 *  ``__init__()`` must take the following as an argument:
+
   #.  A list, of length ``num_chans``, where each item is a numpy.ndarray 
       of event times.
+      
 *  A ``fit()`` method that takes no arguments but may have keywords to specify
    algorithm parameters.
+   
 *  An ``interpolate()`` method that must take the following arguments:
 
    #.  A 1D array of time bin start times, shape (``num_times``,);
+   
    #.  A 1D array of time bin end times, shape (``num_times``,).
+   
 *  The ``interpolate()`` method must return the following:
 
    #.  A 2D rates array, shape (``num_times``, ``num_chans``);
+   
    #.  A 2D rate uncertainty array, shape (``num_times``, ``num_chans``).
 
 Additionally, the class can provide the following public attributes to be 

@@ -5,7 +5,7 @@
 .. |NaivePoisson| replace:: :class:`~gdt.core.background.unbinned.NaivePoisson`
 .. |unbinned| replace:: :ref:`unbinned<background_unbinned_plugins>`
 .. |binned| replace:: :ref:`binned<background_binned_plugins>`
-.. |phaii| replace:: :ref:`Phaii example<phaii>`
+.. |phaii| replace:: :ref:`Phaii example<core-phaii>`
 .. |tte| replace:: :ref:`PhotonList example<core-tte>`
 .. |Phaii| replace:: :class:`~gdt.core.phaii.Phaii`
 .. |Lightcurve| replace:: :class:`~gdt.core.plot.lightcurve.Lightcurve`
@@ -16,14 +16,14 @@ The Background Fitter (:mod:`~gdt.core.background.fitter`)
 **********************************************************
 
 Introduction
-------------
+============
 The |BackgroundFitter| class is an interface to binned and unbinned background
 fitting/estimation algorithms.  Along with |Polynomial| and |NaivePoisson|, any
 fitting algorithm can be designed to be used with this interface by following
 the instructions for designing the classes for |binned| and |unbinned| data.
 
 Examples
---------
+========
 The first example is to fit a polynomial to some binned data.  We can create
 and example |Phaii| object (see the |phaii| for more details):
 
@@ -149,5 +149,4 @@ Reference/API
 
 .. automodapi:: gdt.core.background.fitter
    :inherited-members:
-   :no-inheritance-diagram:
 

@@ -23,11 +23,11 @@ PHAII Files (:mod:`gdt.core.phaii`)
 
 Introduction
 ============
-As discussed in :ref:`pha`, gamma-ray spectra are typically recorded PHA files.  
-PHA Type-I files (usually just called PHA) contain a single spectrum, while PHA 
-Type-II (PHAII) files contain a time series of spectra. While the internal 
-organization of the PHAII FITS file is a little bit different than the PHA file, 
-the concept is similar.
+As discussed in the :ref:`PHA Documentation<core-pha>`, gamma-ray spectra are 
+typically recorded PHA files.  PHA Type-I files (usually just called PHA) 
+contain a single spectrum, while PHA Type-II (PHAII) files contain a time series 
+of spectra. While the internal organization of the PHAII FITS file is a little 
+bit different than the PHA file, the concept is similar.
 
 
 The Phaii Class

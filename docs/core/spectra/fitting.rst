@@ -6,11 +6,11 @@
 .. |ModelFit| replace:: :class:`~gdt.core.plot.model.ModelFit`
 .. |scipy.optimize.minimize| replace:: scipy.optimize.minimize
 .. _scipy.optimize.minimize: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
-.. |rsp| replace:: :ref:`The Rsp Class`
+.. |rsp| replace:: :ref:`The Rsp Class<core-response>`
 .. |sim-pha| replace:: :ref:`Simulating PHA Spectral Data<sim-pha>`
 .. |plot-model| replace:: :ref:`Plotting of Spectral Fits and Models<plot-model>`
 .. |spectra-functions| replace:: :ref:`Spectral Functions<spectra-functions>`
-.. |SuperFunction| replace:: :ref:`The SuperFunction Class`
+.. |SuperFunction| replace:: :ref:`The SuperFunction Class<spectra-functions-superfunction>`
 
 ***************************************************
 Spectral Fitting (:mod:`~gdt.core.spectra.fitting`)

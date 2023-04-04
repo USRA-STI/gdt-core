@@ -9,7 +9,7 @@
 .. |Band| replace:: :class:`~gdt.core.spectra.functions.Band`
 .. |Norris| replace:: :class:`~gdt.core.simulate.profiles.norris`
 .. |sim-pha| replace:: :ref:`Simulating PHA Spectral Data<sim-pha>`
-.. |rsp| replace:: :ref:`The Rsp Class`
+.. |rsp| replace:: :ref:`The Rsp Class<core-response>`
 .. |functions| replace:: :ref:`Spectral Functions<spectra-functions>`
 
 

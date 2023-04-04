@@ -36,7 +36,7 @@ release = __version__
 extensions = ['sphinx.ext.viewcode', 'sphinx.ext.inheritance_diagram',
               'sphinx.ext.mathjax', 'sphinx.ext.napoleon', 'nbsphinx',
               'IPython.sphinxext.ipython_console_highlighting',
-              'sphinx_automodapi.automodapi', 'sphinx.ext.autosectionlabel']
+              'sphinx_automodapi.automodapi']
 napoleon_google_docstring = True
 napoleon_use_ivar = False
 napoleon_use_rtype = False
@@ -81,32 +81,3 @@ html_theme_options = {
 # -- PDF options -------------------------------------------------------------
 latex_documents = [('index', 'gammaray-data-tools.tex', project, author, 'manual')]
 
-# -- Extension configuration -------------------------------------------------
-# Extensions to theme docs
-
-# Fix issue with Napoleon RTD that displays "Variables" instead of "Attributes"
-# credit - https://michaelgoerz.net/notes/extending-sphinx-napoleon-docstring-sections.html
-
-from sphinx.ext.napoleon.docstring import GoogleDocstring
-
-# first, we define new methods for any new sections and add them to the class
-def parse_keys_section(self, section):
-    return self._format_fields('Keys', self._consume_fields())
-GoogleDocstring._parse_keys_section = parse_keys_section
-
-def parse_attributes_section(self, section):
-    return self._format_fields('Attributes', self._consume_fields())
-GoogleDocstring._parse_attributes_section = parse_attributes_section
-
-def parse_class_attributes_section(self, section):
-    return self._format_fields('Class Attributes', self._consume_fields())
-GoogleDocstring._parse_class_attributes_section = parse_class_attributes_section
-
-# we now patch the parse method to guarantee that the above methods are
-# assigned to the _section dict
-def patched_parse(self):
-    self._sections['keys'] = self._parse_keys_section
-    self._sections['class attributes'] = self._parse_class_attributes_section
-    self._unpatched_parse()
-GoogleDocstring._unpatched_parse = GoogleDocstring._parse
-GoogleDocstring._parse = patched_parse

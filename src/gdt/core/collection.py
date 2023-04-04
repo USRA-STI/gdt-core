@@ -45,6 +45,7 @@ class DataCollection():
     
     The number of items in the collection can be retrieved by ``len()`` and
     one can iterate over the items:: 
+        
         [data_item for data_item in DataCollection]
     
     In addition to the DataCollection methods, all of the individual object 

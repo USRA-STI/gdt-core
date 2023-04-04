@@ -4,7 +4,7 @@
 .. |HistoErrorbars| replace:: :class:`~gdt.core.plot.plot.HistoErrorbars`
 .. |HistoFilled| replace:: :class:`~gdt.core.plot.plot.HistoFilled`
 .. |LightcurveBackground| replace:: :class:`~gdt.core.plot.plot.LightcurveBackground`
-.. |BackgroundRate| replace:: :class:`~gdt.core.background.primitives.BackgroundRate`
+.. |BackgroundRates| replace:: :class:`~gdt.core.background.primitives.BackgroundRates`
 .. |core-phaii| replace:: :ref:`PHAII Data<core-phaii>`
 .. |background_fitter| replace:: :ref:`Background Fitter<background_fitter>`
 
