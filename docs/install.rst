@@ -1,76 +1,53 @@
 .. _install:
 
+
 Installation
 ============
 
-..  Note:: Requires: Python >=3.7
+..  Note:: Requires: Python >=3.8
             
            Tested on:
            
-           * macOS High Sierra (10.12.0) - Ventura (13.2.1)
-           
-           * Ubuntu 16.04 - 18.04
-           
-           * Windows 10 Subsystem for Linux
-
+           * macOS Monterey (12.6.4) - Ventura (13.2.1)
 
 How to Install
 --------------
 
-The GDT can be installed from its tarfile gammaray_data_tools-2.0.0.tar.gz.
+The GDT Core package can be installed from its tarfile gdt-core.tar.gz.
 
 To install::
 
-    $ pip install gammaray_data_tools-2.0.0.tar.gz
+    $ pip install gdt-core.tar.gz
 
-or to include requirments to build documentation::
+or to include requirements to build documentation::
 
-    $ pip install gammaray_data_tools-2.0.0.tar.gz[docs]
+    $ pip install gdt-core.tar.gz[docs]
 
-For development, we recommend the following::
 
-    $ tar -xvzf gammaray_data_tools-2.0.0.tar.gz
-    $ cd gdt-2.0.0
-    $ pip install -e ".[docs]"
+Development
+-----------
+For development, we recommend the following, including installing the extra
+dependencies for compiling the documentation and running unit tests::
 
+    $ tar -xvzf gdt-core.tar.gz
+    $ cd gdt-core
+    $ pip install -e ".[docs,test]"
 
 If you want to test your development, note that there are a number of data files
 that are used in testing.  See :ref:`Downloading Test/Tutorial Data<download_test_data>` 
 for downloading the test data.
 
-To test your development::
+To test your development, navigate to the gdt-core root directory and execute ::
 
-    $ pytest test
+    $ pytest
 
-If you installed the documentation requirements (with [docs]), then you can go 
-ahead and install the documentation and tutorial within your home directory with::
-
-    $ install-gdt-docs
-
-----
-
-How to Uninstall
-----------------
-
-To uninstall::
-
-    $ pip3 uninstall gdt
-
-There are also a number of files (documentation, notebooks, etc.) for the tools
-that are copied into your ``$HOME/.gammaray_data_tools`` directory.  You can 
-delete these files if you wish.
 
 Documentation 
 -------------
-On successful installation, you can launch the local HTML documentation by
-calling::
+If installed using the ``docs`` option, the documentation can be compiled by
+navigating to the gdt-core/docs directory and
 
-    $ gdt-docs
-
-from the command line.
-
-Some of the documentation uses real data files to demonstrate functionality. 
-See the next section on downloading this data.
+    $ make html
 
 
 .. _download_test_data:
@@ -103,21 +80,41 @@ mission.  To access the Fermi GBM test data directory:
 
 Quickstart
 ----------
-To load the GDT within your python environment, simply::
+To load the GDT Core package within your python environment, simply::
     
-    import gdt
-    
+    import gdt.core
+
+
+How to Uninstall
+----------------
+
+To uninstall::
+
+    $ pip3 uninstall gdt-core
+
+There are also a number of files for the tools that are copied into your 
+``$HOME/.gammaray_data_tools`` directory.  You can delete these files if you 
+wish.
+
 
 Known Issues
 ------------
-* **When running a notebook in Linux, you observe a similar error**::
-    
-    %matplotlib notebook                                                               
-    Warning: Cannot change to a different GUI toolkit: notebook. Using osx 
-    instead. This is due to some backend plotting issue with Jupyter notebook 
-    on Linux. Remove the ``%matplotlib inline`` in the notebook cell and 
-    re-evaluate the cell *twice* to see the plot.
-
+* **There appears to be some differences arising between installations on Mac ARM 
+  processors (M1 and M2 chips) and other Mac or Linux processors.** As of now, 
+  this only shows up when using some of the minimizers provided through 
+  scipy.optimize.minimize for spectral fitting. Users can test for the presence
+  of these differences by running the unit tests.  The known failures on Mac ARM
+  processors are:
+  
+  * test_fitting.py::TestSpectralFitterOne::test_hessian
+  * test_fitting.py::TestSpectralFitterOne::test_jacobian
+  * test_fitting.py::TestSpectralFitterOne::test_residuals
+  
+  The current understanding is that differences arise in spectral fit values
+  above machine precision, but represent < 1% relative errors on the fit values
+  themselves. The exact origin of these differences is unclear, but may be 
+  related to the underlying C or FORTRAN libraries and compilers that are used
+  to compile scipy. Further investigation is ongoing.
 
 * **The virtual environment is using your system ipython (or other package) 
   install.**  This can sometimes happen if you didn't install ipython (or other
