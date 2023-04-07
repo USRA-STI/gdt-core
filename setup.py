@@ -75,7 +75,7 @@ if __name__ == '__main__':
                 'ipython',
                 'sphinx_automodapi',
                 'notebook'
-                ],
+            ],
             'all': [
                 'gdt-fermi',
             ]
