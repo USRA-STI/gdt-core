@@ -35,7 +35,7 @@ if __name__ == '__main__':
     import gdt.core as core
 
     setup(
-        name="gdt-core",
+        name="astro-gdt",
         version=core.__version__,
         description="Gamma-ray Data Tools: Core Components",
         author='Cleveland, Goldstein, Kocevski',
@@ -75,6 +75,9 @@ if __name__ == '__main__':
                 'ipython',
                 'sphinx_automodapi',
                 'notebook'
+                ],
+            'all': [
+                'gdt-fermi',
             ]
         }
     )
