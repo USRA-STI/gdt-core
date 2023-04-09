@@ -123,6 +123,8 @@ Finally, the we can perform the intersection of two intervals:
     [<TimeRange: (4.0, 5.0)>, <TimeRange: (10.0, 12.0)>]
 
 
+.. _core-data_primitives-1d:
+
 1D Binned Data
 ==============
 A set of intervals with a corresponding value for each interval, such as the
@@ -236,6 +238,8 @@ associated uncertainty:
     array([0.01    , 0.01    , 0.0075  , 0.0025  , 0.000625, 0.      ])
     
 
+.. _core-data_primitives-2d:
+
 2D Binned Data
 ==============
 We extend the philosophy of 1D time *or* energy data to 2D time *and* energy 
@@ -290,6 +294,8 @@ can integrate along either axis, as well:
      range (10.0, 80.0);
      1 contiguous segments>
 
+
+.. _core-data_primitives-event:
 
 Event Data
 ==========

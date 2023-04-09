@@ -18,6 +18,8 @@ The GDT provides a base class for accessing and navigating the FTP directories
 of mission data, as well as a base class for interfacing with catalogs on 
 HEASARC.
 
+.. _core-heasarc-finder:
+
 The FtpFinder Class
 ===================
 The |FtpFinder| in the GDT provides functionality for accessing, navigating, 
@@ -111,6 +113,7 @@ different directory, you can do that too:
    'glg_cspec_b1_bn090510016_v00.rsp2',
    ...]
 
+.. _core-heasarc-browse:
 
 The BrowseCatalog Class
 =======================
