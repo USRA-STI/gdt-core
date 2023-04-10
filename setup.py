@@ -68,16 +68,8 @@ if __name__ == '__main__':
             'rich>=13.3.3'
         ],
         extras_require={
-            'docs': [
-                'Sphinx==4.5.0',
-                'astropy_sphinx_theme',
-                'nbsphinx',
-                'ipython',
-                'sphinx_automodapi',
-                'notebook'
-            ],
             'all': [
-                'gdt-fermi',
+                'astro-gdt-fermi',
             ]
         }
     )

@@ -12,6 +12,6 @@ astropy-sphinx-theme
 nbsphinx
 ipython
 sphinx-automodapi
-
 setuptools
+wheel
 rich
