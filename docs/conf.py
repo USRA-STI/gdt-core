@@ -69,6 +69,8 @@ html_theme_options = {
     'logotext3': ':docs',   # white,  light
     'astropy_project_menubar': False
     }
+    
+html_favicon = '_static/gdt_favicon.ico'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
