@@ -13,41 +13,11 @@ Installation
 How to Install
 --------------
 
-The GDT Core package can be installed from its tarfile gdt-core.tar.gz.
+The GDT Core package can be installed from PyPI using:
 
-To install::
+.. code-block:: sh
 
-    $ pip install gdt-core.tar.gz
-
-or to include requirements to build documentation::
-
-    $ pip install gdt-core.tar.gz[docs]
-
-
-Development
------------
-For development, we recommend the following, including installing the extra
-dependencies for compiling the documentation and running unit tests::
-
-    $ tar -xvzf gdt-core.tar.gz
-    $ cd gdt-core
-    $ pip install -e ".[docs,test]"
-
-If you want to test your development, note that there are a number of data files
-that are used in testing.  See :ref:`Downloading Test/Tutorial Data<download_test_data>` 
-for downloading the test data.
-
-To test your development, navigate to the gdt-core root directory and execute ::
-
-    $ pytest
-
-
-Documentation 
--------------
-If installed using the ``docs`` option, the documentation can be compiled by
-navigating to the gdt-core/docs directory and
-
-    $ make html
+    pip install astro-gdt
 
 
 .. _download_test_data:
@@ -57,17 +27,23 @@ Downloading Test/Tutorial Data
 To download the data files used in the documentation and for testing, you need
 to run the ``gdt-download-data`` script after installation. The downloader
 script is designed so that you can download data from specific missions, or 
-download all of the test/tutorial data.  To see the list of available missions::
+download all of the test/tutorial data.  To see the list of available missions
 
-    $ gdt-download-data --help
+.. code-block:: sh
 
-If you want to download the Fermi GBM test/tutorial data only, for example::
+    gdt-download-data --help
 
-    $ gdt-download-data -m fermi-gbm
+If you want to download the Fermi GBM test/tutorial data only, for example:
 
-Or to download all of the data::
+.. code-block:: sh
+
+    gdt-download-data -m fermi-gbm
+
+Or to download all of the data:
     
-    $ gdt-download-data --all
+.. code-block:: sh
+
+    gdt-download-data --all
 
 The data are downloaded to a default directory. To access the data from the GDT, 
 there is a variable at the main level that stores the path dictionary for each 
@@ -82,15 +58,17 @@ Quickstart
 ----------
 To load the GDT Core package within your python environment, simply::
     
-    import gdt.core
+    >>> import gdt.core
 
 
 How to Uninstall
 ----------------
 
-To uninstall::
+To uninstall:
 
-    $ pip3 uninstall gdt-core
+.. code-block:: sh
+
+    pip uninstall gdt-core
 
 There are also a number of files for the tools that are copied into your 
 ``$HOME/.gammaray_data_tools`` directory.  You can delete these files if you 
