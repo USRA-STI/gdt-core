@@ -31,11 +31,10 @@ from pathlib import Path
 
 from setuptools import setup, find_namespace_packages
 
-sys.path.append('src')
-import gdt.core as core
-
 if __name__ == '__main__':
     pwd = Path(__file__).parent
+    sys.path.append(str(pwd / 'src'))
+    import gdt.core as core
 
     setup(
         name="astro-gdt",

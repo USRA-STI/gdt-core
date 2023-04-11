@@ -65,7 +65,7 @@ def validate_missions(mission_list: List[str], all_missions: bool = False) -> Li
     # validate the mission in the given list.
     for mis in mission_list:
         if mis not in installed_missions:
-            raise ValueError(f'{m} is not an installed mission')
+            raise ValueError(f'{mis} is not an installed mission')
 
     return mission_list
 
