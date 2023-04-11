@@ -90,9 +90,10 @@ Helping with Documentation
 You can contribute additions and changes to the documentation. In order to use sphinx to compile the documentation
 source files, we recommend that you install the packages contained within ``requirments.txt``.
 
-To compile the documentation, use the following command:
+To compile the documentation, use the following commands:
 
 .. code-block:: sh
 
-   command to use goes here
+   cd gdt-core/docs
+   make html
 
