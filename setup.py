@@ -38,10 +38,13 @@ if __name__ == '__main__':
     import gdt.core as core
     import tests
 
+    pwd = Path(__file__).parent
+
     setup(
         name="astro-gdt",
         version=core.__version__,
         description="Gamma-ray Data Tools: Core Components",
+        long_description=(pwd / "PIPY-README.rst").read_text(),
         author='Cleveland, Goldstein, Kocevski',
         url='https://github.com/USRA-STI/gdt-core',
         packages=find_namespace_packages(where='src', include=["*"]),
@@ -84,7 +87,7 @@ if __name__ == '__main__':
     core.data_path.mkdir(parents=True, exist_ok=True)
 
     # Copy sample specfit data file
-    src = Path(__file__).parent / 'data' / 'specfit.npz'
+    src = pwd / 'data' / 'specfit.npz'
     dest = core.data_path / 'specfit.npz'
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, dest)
