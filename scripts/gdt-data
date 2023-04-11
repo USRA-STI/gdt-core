@@ -28,7 +28,9 @@
 # License.
 #
 import argparse
+import shutil
 from urllib.parse import urlparse
+from importlib.resources import files
 
 import os
 from pathlib import Path
@@ -36,19 +38,15 @@ from typing import List
 from gdt.core import data_path
 from gdt.core.heasarc import FileDownloader
 
+gdt_data = files('gdt.data')
+
 
 def get_missions() -> List[str]:
     retval = []
-    with os.scandir(data_path) as entries:
-        for entry in entries:
-            if entry.is_dir():
-                t_file = Path(entry.path) / 'test_files.urls'
-                if t_file.exists():
-                    retval.append(entry.name)
+    for entry in gdt_data.iterdir():
+        if entry.is_file() and entry.name.endswith('.urls'):
+            retval.append(entry.name[:-5])
     return retval
-
-
-installed_missions = get_missions()
 
 
 def validate_missions(mission_list: List[str], all_missions: bool = False) -> List[str]:
@@ -73,7 +71,7 @@ def validate_missions(mission_list: List[str], all_missions: bool = False) -> Li
 
 
 def get_mission_urls(mission: str) -> List[str]:
-    ufile = data_path.joinpath(mission, 'test_files.urls')
+    ufile = gdt_data.joinpath(f'{mission}.urls')
     if not ufile.exists():
         raise ValueError(f'ERROR: {mission} does not have test data information.')
     urls = []
@@ -107,6 +105,14 @@ def clean_mission(mission: str):
 
 
 if __name__ == '__main__':
+    # If this is the first time this command tool is executed, then create the user directories.
+    if not data_path.exists():
+        data_path.mkdir(parents=True, exist_ok=True)
+        # copy sample spectral data file
+        src = gdt_data / 'specfit.npz'
+        dest = data_path / 'specfit.npz'
+        shutil.copyfile(src, dest)
+
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command', metavar='command', required=True)
 
@@ -125,6 +131,8 @@ if __name__ == '__main__':
                             help='Remove data for all missions')
 
     args = parser.parse_args()
+
+    installed_missions = get_missions()
 
     if args.command == 'list':
         for m in installed_missions:

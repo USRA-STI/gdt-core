@@ -1,3 +1,2 @@
-include data/specfit.npz
-include PIPY-README.rst
+include PYPI-README.rst
 include license.txt

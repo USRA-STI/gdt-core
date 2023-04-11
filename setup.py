@@ -26,28 +26,29 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
-import shutil
 import sys
 from pathlib import Path
 
 from setuptools import setup, find_namespace_packages
 
 sys.path.append('src')
+import gdt.core as core
 
 if __name__ == '__main__':
-    import gdt.core as core
-    import tests
-
     pwd = Path(__file__).parent
 
     setup(
         name="astro-gdt",
         version=core.__version__,
         description="Gamma-ray Data Tools: Core Components",
-        long_description=(pwd / "PIPY-README.rst").read_text(),
+        long_description=(pwd / "PYPI-README.rst").read_text(),
         author='Cleveland, Goldstein, Kocevski',
         url='https://github.com/USRA-STI/gdt-core',
         packages=find_namespace_packages(where='src', include=["*"]),
+        include_package_data=True,
+        package_data={
+            'gdt.data': ['*.npz'],
+        },
         scripts=[
             "scripts/gdt-data"
         ],
@@ -65,6 +66,7 @@ if __name__ == '__main__':
         package_dir={"": "src"},
         python_requires='>=3.8',
         install_requires=[
+            'importlib-resources;python_version<"3.9"',
             'pyproj>=1.9.6',
             'numpy>=1.17.3',
             'scipy>=1.1.0',
@@ -79,14 +81,4 @@ if __name__ == '__main__':
                 'astro-gdt-fermi',
             ]
         },
-        include_package_data=True,
     )
-
-    # create library data directory
-    core.data_path.mkdir(parents=True, exist_ok=True)
-
-    # Copy sample specfit data file
-    src = pwd / 'data' / 'specfit.npz'
-    dest = core.data_path / 'specfit.npz'
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(src, dest)
