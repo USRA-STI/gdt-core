@@ -49,7 +49,7 @@ The data are downloaded to a default directory. To access the data from the GDT,
 there is a variable at the main level that stores the path dictionary for each
 mission.  To access the Fermi GBM test data directory:
 
-    >>> from gdt.core import test_data
+    >>> from gdt.core import data_path
     >>> gbm_path = data_path.joinpath('fermi-gbm')
 
 Once you are done using the data, you can delete the data files with the following command:

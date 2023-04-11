@@ -26,6 +26,7 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import shutil
 import sys
 from setuptools import setup, find_namespace_packages
 
@@ -33,6 +34,7 @@ sys.path.append('src')
 
 if __name__ == '__main__':
     import gdt.core as core
+    import tests
 
     setup(
         name="astro-gdt",
@@ -76,3 +78,7 @@ if __name__ == '__main__':
 
     # create library data directory
     core.data_path.mkdir(parents=True, exist_ok=True)
+
+    # Copy sample specfit data file
+    specfit = tests.tests_path.joinpath('core/spectra/data/specfit.npz')
+    shutil.copy(specfit, core.data_path)

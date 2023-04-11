@@ -68,10 +68,10 @@ from a Fermi GBM Position History file and use the |SpacecraftFrame| object (see
 contains the position history of Fermi for an entire day.  We will select a
 time range over which to display the orbit.
 
-    >>> from gdt import test_data
+    >>> from gdt.core import data_path
     >>> from gdt.missions.fermi.gbm.poshist import GbmPosHistFile
     >>> # get the spacecraft frame from the position history file
-    >>> filepath = test_data['fermi-gbm'].joinpath('glg_poshist_all_170101_v01.fit')
+    >>> filepath = data_path.joinpath('fermi-gbm/glg_poshist_all_170101_v01.fit')
     >>> with GbmPosHistFile(filepath) as poshist:
     >>>     frame = poshist.get_spacecraft_frame()
     

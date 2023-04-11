@@ -49,10 +49,10 @@ information.  As an example, we will read in a Fermi GBM position history file
 that contains this information (see |core-coords| for details about using the 
 SpacecraftFrame class).
 
-    >>> from gdt import test_data
+    >>> from gdt.core import data_path
     >>> from gdt.missions.fermi.gbm.poshist import GbmPosHistFile
     >>> # get the spacecraft frame from the position history file
-    >>> filepath = test_data['fermi-gbm'].joinpath(('glg_poshist_all_170101_v01.fit')
+    >>> filepath = data_path.joinpath('fermi-gbm').joinpath(('glg_poshist_all_170101_v01.fit')
     >>> with GbmPosHistFile(filepath) as poshist:
     >>>     frame = poshist.get_spacecraft_frame()
 
@@ -187,7 +187,7 @@ a Fermi GBM localization (see |core-healpix| for more information about using
 HealPixLocalization objects).
 
     >>> from gdt.missions.fermi.gbm.localization import GbmHealPix
-    >>> filepath = test_data['fermi-gbm'].joinpath('glg_healpix_all_bn190915240_v00.fit')
+    >>> filepath = data_path.joinpath('fermi-gbm/glg_healpix_all_bn190915240_v00.fit')
     >>> loc = GbmHealPix.open(filepath)
     
 Now we simply create our plot and add the localization"

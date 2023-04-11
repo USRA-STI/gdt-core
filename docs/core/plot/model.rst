@@ -17,9 +17,9 @@ resulting photon model in photon, energy, or :math:`\nu F_\nu` space.
 We will load an example spectral fit to demonstrate the plot capabilities:
 
     >>> import os
-    >>> from gdt import test_data_path
+    >>> from gdt.core import data_path
     >>> from gdt.core.spectra.fitting import SpectralFitterPgstat
-    >>> saved_fit = os.path.join(test_data_path, 'specfit.npz')
+    >>> saved_fit = data_path.joinpath('specfit.npz')
     >>> specfitter = SpectralFitterPgstat.load(saved_fit)
     Fit loaded from 2023-03-01 20:41:59
     

@@ -16,9 +16,9 @@ A count spectrum can be plotted by using the |Spectrum| plotting class.
 We will use an example Fermi GBM PHAII file (see |core-phaii| for details 
 about PHAII data).
 
-    >>> from gdt import test_data
+    >>> from gdt.core import data_path
     >>> from gdt.missions.fermi.gbm.phaii import Cspec
-    >>> filepath = test_data['fermi-gbm'].joinpath('glg_cspec_n0_bn160509374_v01.pha')
+    >>> filepath = data_path.joinpath('fermi-gbm/glg_cspec_n0_bn160509374_v01.pha')
     >>> phaii = Cspec.open(filepath)
     
     >>> import matplotlib.pyplot as plt

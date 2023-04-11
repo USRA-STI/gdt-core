@@ -19,9 +19,9 @@ Examples
 Let's assume we have the FITS file "glg_ctime_nb_bn120415958_v00.pha" in our
 current directory.  You can access it with the following:
 
-    >>> from gdt import test_data
+    >>> from gdt.core import data_path
     >>> from gdt.core.file import FitsFileContextManager
-    >>> filepath = test_data['fermi-gbm'].joinpath("glg_ctime_nb_bn120415958_v00.pha")
+    >>> filepath = data_path.joinpath('fermi-gbm').joinpath("glg_ctime_nb_bn120415958_v00.pha")
     >>> f = FitsFileContextManager.open(filepath)
     >>> f
     <FitsFileContextManager(filename="glg_ctime_nb_bn120415958_v00.pha") at 0x109d25410>

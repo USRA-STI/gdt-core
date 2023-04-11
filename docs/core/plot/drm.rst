@@ -15,9 +15,9 @@ A response matrix can be plotted by using the |ResponsePlot| plotting class.
 We will use an example Fermi GBM response file (see |core-response| for details 
 about using responses).
 
-    >>> from gdt import test_data
+    >>> from gdt.core import data_path
     >>> from gdt.missions.fermi.gbm.response import GbmRsp2
-    >>> filepath = test_data['fermi-gbm'].joinpath('glg_cspec_n9_bn090131090_v00.rsp2')
+    >>> filepath = data_path.joinpath('fermi-gbm/glg_cspec_n9_bn090131090_v00.rsp2')
     >>> rsp2 = GbmRsp2.open(filepath)
     >>> # the DRM of the first response
     >>> drm = rsp2[0].drm
