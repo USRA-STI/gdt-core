@@ -80,7 +80,6 @@ if __name__ == '__main__':
             ]
         },
         include_package_data=True,
-        data_files=[('data', ['data/specfit.npz'])]
     )
 
     # create library data directory

@@ -1,0 +1,3 @@
+include data/specfit.npz
+include PIPY-README.rst
+include license.txt
