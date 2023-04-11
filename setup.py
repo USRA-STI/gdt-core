@@ -28,6 +28,8 @@
 #
 import shutil
 import sys
+from pathlib import Path
+
 from setuptools import setup, find_namespace_packages
 
 sys.path.append('src')
@@ -73,12 +75,16 @@ if __name__ == '__main__':
             'all': [
                 'astro-gdt-fermi',
             ]
-        }
+        },
+        include_package_data=True,
+        data_files=[('data', ['data/specfit.npz'])]
     )
 
     # create library data directory
     core.data_path.mkdir(parents=True, exist_ok=True)
 
     # Copy sample specfit data file
-    specfit = tests.tests_path.joinpath('core/spectra/data/specfit.npz')
-    shutil.copy(specfit, core.data_path)
+    src = Path(__file__).parent / 'data' / 'specfit.npz'
+    dest = core.data_path / 'specfit.npz'
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src, dest)
