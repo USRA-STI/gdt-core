@@ -25,32 +25,44 @@ The GDT Core package can be installed from PyPI using:
 Downloading Test/Tutorial Data
 ------------------------------
 To download the data files used in the documentation and for testing, you need
-to run the ``gdt-download-data`` script after installation. The downloader
-script is designed so that you can download data from specific missions, or 
+to run the ``gdt-data`` script after installation. The downloader
+script is designed so that you can download data from specific missions, or
 download all of the test/tutorial data.  To see the list of available missions
 
 .. code-block:: sh
 
-    gdt-download-data --help
+    gdt-data --help
 
 If you want to download the Fermi GBM test/tutorial data only, for example:
 
 .. code-block:: sh
 
-    gdt-download-data -m fermi-gbm
+    gdt-data download fermi-gbm
 
 Or to download all of the data:
-    
+
 .. code-block:: sh
 
-    gdt-download-data --all
+    gdt-data download --all
 
-The data are downloaded to a default directory. To access the data from the GDT, 
-there is a variable at the main level that stores the path dictionary for each 
+The data are downloaded to a default directory. To access the data from the GDT,
+there is a variable at the main level that stores the path dictionary for each
 mission.  To access the Fermi GBM test data directory:
 
-    >>> from gdt import test_data
-    >>> gbm_path = test_data['fermi-gbm']
+    >>> from gdt.core import test_data
+    >>> gbm_path = data_path.joinpath('fermi-gbm')
+
+Once you are done using the data, you can delete the data files with the following command:
+
+.. code-block:: sh
+
+   gdt-data clean fermi-gbm
+
+or delete all of the data with:
+
+.. code-block:: sh
+
+   gdt-data clean --all
     
 ----
 
@@ -68,7 +80,8 @@ To uninstall:
 
 .. code-block:: sh
 
-    pip uninstall gdt-core
+    gdt-data clean --all
+    pip uninstall astro-gdt
 
 There are also a number of files for the tools that are copied into your 
 ``$HOME/.gammaray_data_tools`` directory.  You can delete these files if you 
