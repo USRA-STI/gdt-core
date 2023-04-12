@@ -27,20 +27,27 @@
 # License.
 #
 import sys
+from pathlib import Path
+
 from setuptools import setup, find_namespace_packages
 
-sys.path.append('src')
-
 if __name__ == '__main__':
+    pwd = Path(__file__).parent
+    sys.path.append(str(pwd / 'src'))
     import gdt.core as core
 
     setup(
         name="astro-gdt",
         version=core.__version__,
         description="Gamma-ray Data Tools: Core Components",
+        long_description=(pwd / "PYPI-README.rst").read_text(),
         author='Cleveland, Goldstein, Kocevski',
         url='https://github.com/USRA-STI/gdt-core',
         packages=find_namespace_packages(where='src', include=["*"]),
+        include_package_data=True,
+        package_data={
+            'gdt.data': ['*.npz'],
+        },
         scripts=[
             "scripts/gdt-data"
         ],
@@ -58,6 +65,7 @@ if __name__ == '__main__':
         package_dir={"": "src"},
         python_requires='>=3.8',
         install_requires=[
+            'importlib-resources;python_version<"3.9"',
             'pyproj>=1.9.6',
             'numpy>=1.17.3',
             'scipy>=1.1.0',
@@ -69,10 +77,7 @@ if __name__ == '__main__':
         ],
         extras_require={
             'all': [
-                'gdt-fermi',
+                'astro-gdt-fermi',
             ]
-        }
+        },
     )
-
-    # create library data directory
-    core.data_path.mkdir(parents=True, exist_ok=True)

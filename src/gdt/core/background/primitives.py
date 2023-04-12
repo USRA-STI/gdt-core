@@ -246,7 +246,7 @@ class BackgroundRates(TimeEnergyBins):
         range.  Example use would be summing two backgrounds from two detectors.
         
         Args:
-            bkgds (list of :class:`BackgroundRates):
+            bkgds (list of :class:`BackgroundRates`):
                 A list containing the BackgroundRates to be summed
         
         Returns:

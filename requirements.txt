@@ -7,11 +7,11 @@ healpy
 cartopy
 pytest
 
-Sphinx
+Sphinx==4.5.0
 astropy-sphinx-theme
 nbsphinx
 ipython
 sphinx-automodapi
-
 setuptools
+wheel
 rich
