@@ -80,4 +80,9 @@ if __name__ == '__main__':
                 'astro-gdt-fermi',
             ]
         },
+        project_urls={
+            'Documentation': 'https://astro-gdt.readthedocs.io/en/latest/',
+            'Source': 'https://github.com/USRA-STI/gdt-core',
+            'Tracker': 'https://github.com/USRA-STI/gdt-core/issues',
+        }
     )
