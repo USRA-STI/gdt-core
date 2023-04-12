@@ -21,6 +21,10 @@ If you don't plan to contribute code to the project, the recommended install met
 .. code-block:: sh
 
    pip install astro-gdt
+   gdt data init
+
+The ``gdt data init`` is required to initialize the library after installation.
+
 
 Setting up a development environment
 ------------------------------------
@@ -37,6 +41,7 @@ development environment:
    pip install --upgrade pip setuptools wheel
    git clone git@github.com:USRA-STI/gdt-core.git
    pip install -e gdt-core/
+   gdt-data init
    pip install -r gdt-core/requirements.txt
 
 This should result in git-devel having the following directory structure::

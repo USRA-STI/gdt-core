@@ -97,24 +97,26 @@ def download_mission(mission: str):
 def clean_mission(mission: str):
     urls = get_mission_urls(mission)
     dest_dir = data_path.joinpath(mission)
-    for u in urls:
-        url = urlparse(u)
-        f_name = dest_dir.joinpath(Path(url.path).name)
-        if f_name.exists() and f_name.is_file():
-            f_name.unlink()
+    if dest_dir.exists():
+        for u in urls:
+            url = urlparse(u)
+            f_name = dest_dir.joinpath(Path(url.path).name)
+            if f_name.exists() and f_name.is_file():
+                f_name.unlink()
+        try:
+            dest_dir.rmdir()
+        except OSError as err:
+            # We will gracefully exit if the directory is not empty, otherwise raise exception
+            if 'empty' not in err.strerror:
+                raise
 
 
 if __name__ == '__main__':
-    # If this is the first time this command tool is executed, then create the user directories.
-    if not data_path.exists():
-        data_path.mkdir(parents=True, exist_ok=True)
-        # copy sample spectral data file
-        src = gdt_data / 'specfit.npz'
-        dest = data_path / 'specfit.npz'
-        shutil.copyfile(src, dest)
-
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command', metavar='command', required=True)
+
+    # init command
+    subparsers.add_parser('init', help='Initialize the library by creating the data directories')
 
     # list command
     subparsers.add_parser('list', help='List the missions that have test data available.')
@@ -132,23 +134,36 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    installed_missions = get_missions()
-
-    if args.command == 'list':
-        for m in installed_missions:
-            print(m)
+    if args.command == "init":
+        # Create the data directory and copy a sample spectral data file for tutorial
+        data_path.mkdir(parents=True, exist_ok=True)
+        src = gdt_data / 'specfit.npz'
+        dest = data_path / 'specfit.npz'
+        shutil.copyfile(src, dest)
     else:
-        try:
-            missions = validate_missions(args.mission, args.all_missions)
-        except ValueError as e:
-            print(f'Error: {str(e)}')
+
+        # Make sure the data directory exists
+        if not data_path.exists():
+            print("ERROR: The data directory was not found. Use the init command.")
             exit(1)
-        if args.command == 'download':
-            for m in missions:
-                download_mission(m)
-        elif args.command == 'clean':
-            for m in missions:
-                clean_mission(m)
+
+        installed_missions = get_missions()
+
+        if args.command == 'list':
+            for m in installed_missions:
+                print(m)
         else:
-            print('Unknown command')
-            exit(1)
+            try:
+                missions = validate_missions(args.mission, args.all_missions)
+            except ValueError as e:
+                print(f'Error: {str(e)}')
+                exit(1)
+            if args.command == 'download':
+                for m in missions:
+                    download_mission(m)
+            elif args.command == 'clean':
+                for m in missions:
+                    clean_mission(m)
+            else:
+                print('Unknown command')
+                exit(1)

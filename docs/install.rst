@@ -18,7 +18,9 @@ The GDT Core package can be installed from PyPI using:
 .. code-block:: sh
 
     pip install astro-gdt
+    gdt-data init
 
+The ``gdt-data init`` is required to initialize the library after installation.
 
 .. _download_test_data:
 

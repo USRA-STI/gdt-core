@@ -21,6 +21,10 @@ If you don't plan to contribute code to the project, the recommended install met
 .. code-block:: sh
 
    pip install astro-gdt
+   gdt data init
+
+The ``gdt data init`` is required to initialize the library after installation.
+
 
 Contributing Code or Documentation
 ----------------------------------
