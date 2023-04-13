@@ -23,7 +23,7 @@ If you don't plan to contribute code to the project, the recommended install met
    pip install astro-gdt
    gdt-data init
 
-The ``gdt data init`` is required to initialize the library after installation.
+The ``gdt-data init`` is required to initialize the library after installation.
 
 
 Setting up a development environment
