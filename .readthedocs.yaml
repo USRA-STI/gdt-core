@@ -13,6 +13,7 @@ build:
   apt_packages:
     - libproj-dev
     - libgeos-dev
+    - graphviz
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
