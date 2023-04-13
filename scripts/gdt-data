@@ -30,11 +30,16 @@
 import argparse
 import shutil
 from urllib.parse import urlparse
-from importlib.resources import files
-
-import os
 from pathlib import Path
 from typing import List
+
+# Use the backport version if importlib.resources for Python earlier than 3.10
+import sys
+if sys.version_info < (3, 10):
+    from importlib_resources import files
+else:
+    from importlib.resources import files
+
 from gdt.core import data_path
 from gdt.core.heasarc import FileDownloader
 
