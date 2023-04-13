@@ -41,7 +41,7 @@ else:
     from importlib.resources import files
 
 from gdt.core import data_path
-
+from gdt.core.heasarc import FileDownloader
 
 gdt_data = files('gdt.data')
 
