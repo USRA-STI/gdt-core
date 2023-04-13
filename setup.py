@@ -65,7 +65,7 @@ if __name__ == '__main__':
         package_dir={"": "src"},
         python_requires='>=3.8',
         install_requires=[
-            'importlib-resources;python_version<"3.9"',
+            'importlib-resources;python_version<"3.10"',
             'pyproj>=1.9.6',
             'numpy>=1.17.3',
             'scipy>=1.1.0',

@@ -29,7 +29,7 @@
 import os
 from pathlib import Path
 
-__version__ = '2.0.0'
+__version__ = '2.0.1'
 
 suite_path = Path(__file__).parent.parent
 
