@@ -35,6 +35,11 @@ suggest the following BibTex:
        url = {https://github.com/USRA-STI/gdt-core}
  }
 
+.. rubric:: Acknowledgments
+
+The Gamma-ray Data Tools are partially funded through the NASA ADAP Grant 
+80NSSC21K0651 and the NASA SMD Open Source Tools, Frameworks, and Libraries 
+Grant 80NSSC22K1741.
 
 ***************
 Getting Started
