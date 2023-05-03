@@ -41,6 +41,12 @@ from urllib.request import urlopen
 from urllib.parse import urlparse
 import numpy as np
 import astropy.io.fits as fits
+from traceback import TracebackType
+from gdt.core.progress import Progress
+from gdt.core.http import Http
+from gdt.core.ftp import Ftp
+from pathlib import Path
+
 
 from rich.progress import (
     BarColumn,
@@ -376,11 +382,11 @@ class Http(BaseFinder):
                  __traceback: Optional[TracebackType]) -> Optional[bool]:
         pass
 
-class FileDownloader(BaseFinder):
+class FileDownloader:
     """Used to download a list of files given as a URL."""
 
     def __init__(self):
-        super().__init__(progress=self._create_progress())
+        self._progress = Progress()
         self._progress.start()
         self._http = Http(progress=self._progress)
         self._ftp = Ftp(host=None, progress=self._progress)
@@ -403,7 +409,6 @@ class FileDownloader(BaseFinder):
         """Download files from a list of URLs."""
         for url in urls:
             self.download_url(url, dest_dir, verbose)
-
 
 
 class BrowseCatalog:
