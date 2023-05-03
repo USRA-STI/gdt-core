@@ -31,7 +31,7 @@ import argparse
 import shutil
 from urllib.parse import urlparse
 from pathlib import Path
-from typing import List
+from typing import Sequence
 
 # Use the backport version if importlib.resources for Python earlier than 3.10
 import sys
@@ -46,13 +46,12 @@ from gdt.core.heasarc import FileDownloader
 gdt_data = files('gdt.data')
 
 
-def get_missions() -> List[str]:
+def get_missions() -> Sequence[str]:
     retval = []
     for entry in gdt_data.iterdir():
         if entry.is_file() and entry.name.endswith('.urls'):
             retval.append(entry.name[:-5])
     return retval
-
 
 def validate_missions(mission_list: List[str], all_missions: bool = False) -> List[str]:
     # validate the use of arguments
