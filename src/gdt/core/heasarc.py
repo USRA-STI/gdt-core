@@ -399,7 +399,7 @@ class FileDownloader(BaseFinder):
         else:
             raise ValueError('url must begin with ftp://, http://, or https://')
 
-    def bulk_download(self, urls: list[str], dest_dir: Union[str, Path], verbose: bool = True):
+    def bulk_download(self, urls: List[str], dest_dir: Union[str, Path], verbose: bool = True):
         """Download files from a list of URLs."""
         for url in urls:
             self.download_url(url, dest_dir, verbose)
