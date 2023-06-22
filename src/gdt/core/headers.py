@@ -53,7 +53,7 @@ class Header(fits.Header):
     Once initialized, the class behaves as any other astropy.io.fits.Header, 
     however, new keywords cannot be added after initialization.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cards = [], *args, **kwargs):
         
         # an extension name must be set
         if not hasattr(self, 'name'):
@@ -70,7 +70,15 @@ class Header(fits.Header):
         for keyword in self.keywords:
             self.append(keyword)
         self.keywords = None
-        
+
+        if isinstance(cards, fits.Header):
+            cards = cards.cards
+        elif isinstance(cards, dict):
+            cards = cards.items()
+
+        for card in cards:
+            self[card[0]] = card[1]
+
         for key, val in kwargs.items():
             self[key] = val
  
