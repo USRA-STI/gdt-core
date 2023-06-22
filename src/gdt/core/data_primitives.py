@@ -138,6 +138,26 @@ class Range():
     def __eq__(self, other):
         return (self._low == other._low) and (self._high == other._high)
 
+    def __iadd__(self, value):
+        self._low += value
+        self._high += value
+    
+    def __isub__(self, value):
+        self._low -= value
+        self._high -= value
+
+    def __add__(self, value):
+        return self.__class__(self._low + value, self._high + value)
+        
+    def __sub__(self, value):
+        return self.__class__(self._low - value, self._high - value)
+
+    def __radd__(self, value):
+        return self + value
+        
+    def __rsub__(self, value):
+        return self.__class__(value - self._low, value - self._high)
+
     def __repr__(self):
         return '<{0}: ({1}, {2})>'.format(self.__class__.__name__, self._low,
                                          self._high)
