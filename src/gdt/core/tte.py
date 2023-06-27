@@ -58,6 +58,11 @@ class PhotonList(FitsFileContextManager):
         """(:class:`~.data_primitives.Ebounds`): The energy-channel mapping"""
         return self.data.ebounds
 
+    @ebounds.setter
+    def ebounds(self, ebounds):
+        """(:class:`~.data_primitives.Ebounds`): The energy-channel mapping"""
+        self.data.ebounds = ebounds
+
     @property
     def energy_range(self):
         """(float, float): The energy range of the data"""

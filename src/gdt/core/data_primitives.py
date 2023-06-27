@@ -506,10 +506,7 @@ class EventList():
                                 dtype=[('TIME', times.dtype.type),
                                        ('PHA', channels.dtype.type)])
         
-        if ebounds is not None:
-            if not isinstance(ebounds, Ebounds):
-                raise TypeError('ebounds must be of type Ebounds')
-        self._ebounds = ebounds
+        self.ebounds = ebounds
         
     @property
     def channel_range(self):
@@ -526,7 +523,15 @@ class EventList():
     def ebounds(self):
         """(:class:`Ebounds`): The energy bounds of the energy channels"""
         return self._ebounds
-    
+
+    @ebounds.setter
+    def ebounds(self, ebounds):
+        """(:class:`Ebounds`): The energy bounds of the energy channels"""
+        if ebounds is not None and not isinstance(ebounds, Ebounds):
+                raise TypeError('ebounds must be of type Ebounds or None')
+
+        self._ebounds = ebounds
+        
     @property
     def emax(self):
         """(float): The maximum energy"""
