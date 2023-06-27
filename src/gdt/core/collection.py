@@ -154,6 +154,12 @@ class DataCollection():
             except AttributeError:
                 self._data_dict['item{}'.format(len(self) + 1)] = data_item
 
+    def __getitem__(self, key):
+        return self.get_item(key)
+
+    def __setitem__(self, key, value):
+        self.include(value, key)
+    
     def remove(self, item_name):
         """Remove an object from the collection given the name 
         
