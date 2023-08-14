@@ -12,6 +12,7 @@ can be utilized for various instruments and is a generalized version of the
 Individual mission or instrument packages can be developed using ``astro-gdt``
 and released under the ``gdt.missions`` namespace (see ``astro-gdt-fermi`` as an example).
 
+The full documentation can be found `here <https://astro-gdt.readthedocs.io/en/latest/>`_.
 
 Normal Installation
 -------------------
