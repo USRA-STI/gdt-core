@@ -133,21 +133,25 @@ class FitsFileContextManager(AbstractContextManager):
             return ()
 
     @classmethod
-    def open(cls, file_path: Union[str, Path], mode: str = 'readonly', memmap: bool = None):
+    def open(cls, file_path: Union[str, Path], mode: str = 'readonly', memmap: bool = None, use_fsspec: bool = False, fsspec_kwargs: dict = None):
         """Open a FITS file.
             
         Args:
             file_path (str): The file path
             mode (str): The file access mode
             memmap (bool): If True, memory map when reading the file
+            use_fsspec (bool): Use `fsspec.open` to open the file, Defaults to `False`. Use of this feature requires the optional
+                ``fsspec`` package. A ``ModuleNotFoundError`` will be raised if the dependency is missing.
+            fsspec_kwargs (dict): Keyword arguments passed on to `fsspec.open`. This can be used to
+                configure local caching using, for example, simplecache.
         
         Returns:
             (:class:`FitsFileContextManager`)
         """
-        path = Path(file_path)
+        path = Path(file_path) if not use_fsspec else file_path
         obj = cls()
-        obj._hdulist = fits.open(path, mode=mode, memmap=memmap)
-        obj._filename = path.name
+        obj._hdulist = fits.open(path, mode=mode, memmap=memmap, use_fsspec=use_fsspec, fsspec_kwargs=fsspec_kwargs)
+        obj._filename = path.name if not use_fsspec else file_path
         return obj
 
     def write(self, directory: Union[str, Path], filename: str = None, **kwargs):
