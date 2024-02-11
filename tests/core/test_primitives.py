@@ -919,6 +919,28 @@ class TestTimeChannelBins(unittest.TestCase):
     def test_tstop(self):
         self.assertListEqual(self.bins.tstop.tolist(), [1.0, 2.0, 4.0, 5.0])
 
+    def test_apply_ebounds(self):
+        emin = [10.0, 50.0, 300.0]
+        emax = [50.0, 150., 500.0]
+        ebounds = Ebounds.from_bounds(emin, emax)
+        teb = self.bins.apply_ebounds(ebounds)
+        
+        assert isinstance(teb, TimeEnergyBins)
+        self.assertListEqual(teb.counts.flatten().tolist(), 
+                             self.bins.counts.flatten().tolist())
+        self.assertListEqual(teb.tstart.tolist(), self.bins.tstart.tolist())
+        self.assertListEqual(teb.tstop.tolist(), self.bins.tstop.tolist())
+        self.assertListEqual(teb.exposure.tolist(), self.bins.exposure.tolist())
+        self.assertListEqual(teb.emin.tolist(), emin)
+        self.assertListEqual(teb.emax.tolist(), emax)
+        
+        with self.assertRaises(TypeError):
+            self.bins.apply_ebounds(0)
+
+        with self.assertRaises(ValueError):
+            ebounds = Ebounds.from_bounds(emin[1:], emax[1:])
+            self.bins.apply_ebounds(ebounds)
+
     def test_closest_time_edge(self):
         # closest low edge
         self.assertEqual(self.bins.closest_time_edge(0.3, which='low'), 0.0)

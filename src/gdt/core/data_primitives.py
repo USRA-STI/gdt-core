@@ -1730,6 +1730,28 @@ class TimeChannelBins():
         """(np.array): The high-value edges of the time bins"""
         return self._tstop
 
+    def apply_ebounds(self, ebounds):
+        """Apply an energy bounds calibration and return a TimeEnergyBins 
+        object.
+        
+        Args:
+            ebounds (:class:`Ebounds`): The energy bounds. Must match the number
+                                        of channels as this object.
+        
+        Returns:
+            (:class:`TimeEnergyBins`)
+        """
+        if not isinstance(ebounds, Ebounds):
+            raise TypeError('ebounds must be an Ebounds object')
+        
+        if ebounds.num_intervals != self.num_chans:
+            raise ValueError('ebounds must have the same number of channels ' \
+                             'as this object.')
+        
+        return TimeEnergyBins(self.counts, self.tstart, self.tstop, 
+                              self.exposure, ebounds.low_edges(),
+                              ebounds.high_edges())
+    
     def closest_time_edge(self, val, which='either'):
         """Return the closest time bin edge
         
