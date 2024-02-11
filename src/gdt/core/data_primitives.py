@@ -578,7 +578,9 @@ class EventList():
     def bin(self, method, *args, tstart=None, tstop=None,
             event_deadtime=2.6e-6, overflow_deadtime=1.0e-5, **kwargs):
         """Bin the EventList in time given a binning function and return a
-        2D time-energy channel histogram.  
+        2D time-energy channel histogram. If the ebounds energy calibration is
+        set, returns a :class:`TimeEnergyBins` object, otherwise returns a
+        :class:`TimeChannelBins` object.
         
         The binning function should take as input an array of times as well
         as a tstart and tstop keywords for partial list binning.  Additional 
@@ -603,7 +605,7 @@ class EventList():
             **kwargs: Options to be passed to the binning function
         
         Returns:
-            :class:`TimeEnergyBins`: A Time-Energy Channel histogram
+            (:class:`TimeEnergyBins` or :class:`TimeChannelBins`)
         """
         if tstart is None:
             tstart = self.time_range[0]
@@ -618,8 +620,9 @@ class EventList():
 
         # get the time edges from the binning function and then do the 2d histo
         time_edges = method(bin_times, *args, **kwargs)
+        chan_list = np.arange(self.channel_range[1] + 2)
         counts = np.histogram2d(bin_times, self.channels[mask],
-                                [time_edges, np.arange(self.num_chans + 1)])[0]
+                                [time_edges, chan_list])[0]
 
         # calculate exposure
         lo_edges = time_edges[:-1]
@@ -628,10 +631,14 @@ class EventList():
         deadtime = counts.sum(axis=1) * event_deadtime + \
                    overflow_counts * (overflow_deadtime - event_deadtime)
         exposure = (hi_edges - lo_edges) - deadtime
-
-        bins = TimeEnergyBins(counts, lo_edges, hi_edges, exposure,
-                              self.ebounds.low_edges(), 
-                              self.ebounds.high_edges())
+        
+        if self.ebounds is None:
+            bins = TimeChannelBins(counts, lo_edges, hi_edges, exposure,
+                                   chan_list[:-1])
+        else:
+            bins = TimeEnergyBins(counts, lo_edges, hi_edges, exposure,
+                                  self.ebounds.low_edges(), 
+                                  self.ebounds.high_edges())
         return bins
 
     def channel_slice(self, chanlo, chanhi):
@@ -652,7 +659,9 @@ class EventList():
 
     def count_spectrum(self, **kwargs):
         """Extract a count spectrum for the EventList or for a segment of the
-        EventList.
+        EventList. If the ebounds energy calibration is set, returns an 
+        :class:`EnergyBins` object, otherwise returns a :class:`ChannelBins`
+        object.
         
         Args:
             time_ranges ([(float, float), ...], optional): 
@@ -665,14 +674,19 @@ class EventList():
                 Default is 0.
         
         Returns:        
-            (:class:`EnergyBins`)
+            (:class:`EnergyBins` or :class:`ChannelBins`)
         """
-        counts = np.histogram(self.channels, 
-                              bins=np.arange(self.num_chans + 1))[0]
-        exposure = np.full(self.num_chans, self.get_exposure(time_ranges=None,
-                                                             **kwargs))
-        bins = EnergyBins(counts, self.ebounds.low_edges(), 
-                          self.ebounds.high_edges(), exposure)
+        
+        chan_list = np.arange(self.channel_range[1] + 2)
+        counts = np.histogram(self.channels, bins=chan_list)[0]
+        exposure = np.full(chan_list.size-1, self.get_exposure(time_ranges=None,
+                                                               **kwargs))
+        
+        if self.ebounds is None:
+            bins = ChannelBins.create(counts, chan_list[:-1], exposure)
+        else:
+            bins = EnergyBins(counts, self.ebounds.low_edges(), 
+                              self.ebounds.high_edges(), exposure)
         return bins
 
     def energy_slice(self, emin, emax):

@@ -1997,7 +1997,21 @@ class TestEventList(unittest.TestCase):
         counts = [[0, 0, 0, 0], [0, 0, 0, 0]]
         for i in range(2):
              self.assertListEqual(bins.counts[i].tolist(), counts[i])
-        
+    
+        # no ebounds
+        ev = EventList(times=self.ev.times, channels=self.ev.channels)
+        bins = ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.0, 
+                      overflow_deadtime=0.0)
+        assert isinstance(bins, TimeChannelBins)
+        self.assertEqual(bins.num_chans, 4)
+        self.assertEqual(bins.num_times, 11)
+        counts = [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 1, 1],
+                  [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0], [0, 0, 1, 0],
+                  [0, 0, 0, 0], [0, 0, 1, 1], [0, 0, 2, 0]]
+        for i in range(11):
+            self.assertListEqual(bins.counts[i].tolist(), counts[i])
+        self.assertListEqual(bins.exposure.tolist(), [1.0]*11)
+    
     def test_channel_slice(self):
         
         # slice at end of range
@@ -2033,8 +2047,17 @@ class TestEventList(unittest.TestCase):
         bins = self.ev.count_spectrum(event_deadtime=0.1, overflow_deadtime=0.2)
         self.assertEqual(bins.size, 4)  
         self.assertListEqual(bins.counts.tolist(), [1, 0, 6, 3])    
-        self.assertListEqual(bins.exposure.tolist(), [8.604]*4)        
-
+        self.assertListEqual(bins.exposure.tolist(), [8.604]*4)
+        
+        # no ebounds
+        ev = EventList(times=self.ev.times, channels=self.ev.channels)
+        bins = ev.count_spectrum()
+        assert isinstance(bins, ChannelBins)
+        self.assertEqual(bins.size, 4)  
+        self.assertListEqual(bins.counts.tolist(), [1, 0, 6, 3])
+        self.assertListEqual(bins.chan_nums.tolist(), [0, 1, 2, 3])  
+        self.assertListEqual(bins.exposure.tolist(), [9.904]*4)
+        
     def test_energy_slice(self):
         
         # slice at end of range
