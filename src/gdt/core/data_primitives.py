@@ -32,8 +32,8 @@ from scipy.integrate import trapz
 import copy
 
 __all__ = ['Range', 'TimeRange', 'EnergyRange', 'Intervals', 'Gti', 'Ebounds',
-           'EventList', 'Bins', 'ExposureBins', 'TimeBins', 'EnergyBins',
-           'TimeChannelBins', 'TimeEnergyBins', 'ResponseMatrix', 
+           'EventList', 'Bins', 'ExposureBins', 'ChannelBins', 'TimeBins', 
+           'EnergyBins', 'TimeChannelBins', 'TimeEnergyBins', 'ResponseMatrix', 
            'Parameter']
 
 class Range():
@@ -1082,7 +1082,7 @@ class ExposureBins(Bins):
         mask = (self.exposure > 0.0)
         r[mask] = self.count_uncertainty[mask] / self.exposure[mask]
         return r
-
+    
     def contiguous_bins(self):
         """Return a list of ExposureBins, each one containing a continuous 
         segment of data.  This is done by comparing the edges of each bin, and 
@@ -1314,6 +1314,156 @@ class ExposureBins(Bins):
         return s
 
 
+class ChannelBins(ExposureBins):
+    """A class defining a set of Energy Channel bins.
+    """    
+    @property
+    def chan_nums(self):
+        """(np.array): The channel numbers"""
+        if self.size > 0:
+            return self.lo_edges
+            
+    @classmethod
+    def create(cls, counts, chan_nums, exposure, **kwargs):
+        """Create a :class:`ChannelBins` object from a list of channel numbers.
+        
+        Args:
+            counts (np.array): The array of counts in each bin
+            chan_nums (np.array): The energy channel numbers
+            exposure (np.array): The exposure of each bin
+            precalc_good_segments (bool, optional): If True, calculates contiguous
+                                                    bin segments on initialization.
+                                                    Default is True.
+        
+        Returns:
+            (:class:`ChannelBins`)
+        """
+        try:
+            iter(exposure)
+        except:
+            counts = np.asarray(counts)
+            exposure = np.full(counts.shape, exposure)
+        
+        chan_nums = np.asarray(chan_nums)
+        return cls(counts, chan_nums, chan_nums + 1, exposure, **kwargs)
+    
+    @property
+    def range(self):
+        """(int, int): The channel range"""
+        if self.size > 0:
+            return (self.chan_nums[0], self.chan_nums[-1]) 
+
+    def rebin(self, method, *args, chan_min=None, chan_max=None):        
+        """Rebin the ChannelBins object given a binning function and return 
+        a new ChannelBins object 
+        
+        The binning function should take as input an array of counts, 
+        array of exposures, and an array of bin edges. Additional arguments 
+        specific to the function are allowed. The function should return an 
+        array of the new counts, new exposure, and new edges.
+        
+        Note::
+          Edges for energy channels are treated as [chan_num, chan_num+1]
+        
+        Args:
+            method (<function>): A binning function
+            *args: Arguments to be passed to the binning function
+            chan_min (float, optional): 
+                If set, defines the minimum channel number of the ChannelBins to 
+                be binned, otherwise binning will begin at the first channel 
+                number.
+            chan_max (float, optional): 
+                If set, defines the maximum channel of the ChannelBins to be 
+                binned, otherwise binning will end at the last channel number.        
+        
+        Returns:
+            (:class:`ChannelBins`)
+        """
+
+        # empty bins
+        empty = self.__class__([], [], [], [])
+
+        # set the start and stop of the rebinning segment
+        crange = self.range
+        if chan_min is None:
+            chan_min = crange[0]
+        if chan_max is None:
+            chan_max = crange[1]
+        if chan_min < crange[0]:
+            chan_min = crange[0]
+        if chan_max > crange[1]:
+            chan_max = crange[1]
+        
+        bins = self.contiguous_bins()
+        new_histos = []
+        for bin in bins:
+
+            crange = bin.range
+            # split the histogram into pieces so that we only rebin the piece
+            # that needs to be rebinned
+            pre = empty
+            post = empty
+            if (chan_max < crange[0]) or (chan_min > crange[1]):
+                histo = empty
+            
+            elif chan_max == crange[1]:
+                if chan_min > crange[0]:
+                    pre = bin.slice(crange[0], chan_min-1)
+                histo = bin.slice(chan_min, crange[1])
+            
+            elif chan_min == crange[0]:
+                histo = bin.slice(crange[0], chan_max)
+                if chan_max < crange[1]:
+                    post = bin.slice(chan_max+1, crange[1])
+
+            elif (chan_min > crange[0]) or (chan_max < crange[1]):
+                pre = bin.slice(crange[0], chan_min-1)
+                histo = bin.slice(chan_min, chan_max)
+                post = bin.slice(chan_max+1, crange[1])
+            
+            else:
+                histo = bin
+
+            # perform the rebinning and create a new histo with the 
+            # rebinned rates
+            if histo.size > 0:
+                edges = np.append(histo.lo_edges, histo.hi_edges[-1])
+                new_counts, new_exposure, new_edges = method(histo.counts,
+                                                             histo.exposure,
+                                                             edges, *args)
+                new_histo = self.__class__(new_counts, new_edges[:-1],
+                                           new_edges[1:],
+                                           new_exposure)
+            else:
+                new_histo = bin
+
+            # now merge the split histo back together again
+            histos_to_merge = [i for i in (pre, new_histo, post) if
+                               i.size > 0]
+            
+            if len(histos_to_merge) > 0: 
+                new_histos.append(self.__class__.merge(histos_to_merge))
+
+        new_histo = self.__class__.merge(new_histos)
+        return new_histo
+
+    def slice(self, chan_min, chan_max):
+        """Perform a slice over the range of the bins and return a new 
+        ChannelBins object.
+        
+        Args:
+            lo_edge (float): The start of the slice
+            hi_edge (float): The end of the slice
+        
+        Returns:
+            (:class:`ChannelBins`)
+        """
+        mask = (self.chan_nums <= chan_max) & (self.chan_nums >= chan_min)
+        obj = self.__class__.create(self.counts[mask], self.chan_nums[mask], 
+                                    self.exposure[mask])
+        return obj
+
+
 class TimeBins(ExposureBins):
     """A class defining a set of Time History (lightcurve) bins.
 
@@ -1416,7 +1566,7 @@ class EnergyBins(ExposureBins):
 
 
 class TimeChannelBins():
-    """A class defining a set of 2D Time/Energy Channel bins.
+    """A class defining a set of 2D Time/Energy-Channel bins.
 
     Parameters:
         counts (np.array): The array of counts in each bin
@@ -1698,9 +1848,9 @@ class TimeChannelBins():
         return obj
 
     def integrate_time(self, tstart=None, tstop=None):
-        """Integrate the histogram over the time axis (producing a count rate
-        spectrum). Limits on the integration smaller than the full range can 
-        be set.
+        """Integrate the histogram over the time axis (producing an energy 
+        channel spectrum). Limits on the integration smaller than the full range 
+        can be set.
         
         Args:
             tstart (float, optional): 
@@ -1711,7 +1861,7 @@ class TimeChannelBins():
                 highest time edge of the histogram
         
         Returns:           
-            (:class:`EnergyBins`)
+            (:class:`ChannelBins`)
         """
         if tstart is None:
             tstart = self.time_range[0]
@@ -1723,7 +1873,7 @@ class TimeChannelBins():
         exposure = np.sum(self.exposure[mask])
         exposure = np.full(counts.size, exposure)
 
-        obj = EnergyBins(counts, self.emin, self.emax, exposure)
+        obj = ChannelBins.create(counts, self.chan_nums, exposure)
         return obj
 
     def rebin_channels(self, method, *args, chan_min=None, chan_max=None):
