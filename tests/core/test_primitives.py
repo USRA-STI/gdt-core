@@ -615,6 +615,158 @@ class TestExposureBins(unittest.TestCase):
                          self.bins.hi_edges, self.bins.exposure[1:])
 
 
+class TestChannelBins(unittest.TestCase):
+    
+    def setUp(self):
+        counts = [20, 50, 17, 3, 0, 3]
+        chan_nums = [0, 1, 3, 4, 5, 6]
+        exposure = 10.0
+        self.bins = ChannelBins.create(counts, chan_nums, exposure)
+    
+    def test_chan_nums(self):
+        self.assertListEqual(self.bins.chan_nums.tolist(), [0, 1, 3, 4, 5, 6])
+    
+    def test_contiguous_bins(self):
+        cont_bins = self.bins.contiguous_bins()
+        self.assertEqual(len(cont_bins), 2)
+        self.assertTupleEqual(cont_bins[0].range, (0, 1))
+        self.assertTupleEqual(cont_bins[1].range, (3, 6))
+        
+        self.assertEqual(len(cont_bins[0].contiguous_bins()), 1)
+    
+    def test_rebin(self):
+        
+        # rebin full range
+        rebinned = self.bins.rebin(combine_by_factor, 2)
+        self.assertEqual(rebinned.size, 3)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0, 3, 5])
+        self.assertListEqual(rebinned.counts.tolist(), [70, 20, 3])
+        self.assertListEqual(rebinned.exposure.tolist(), [20.0, 20.0, 20.0])
+
+        # rebin from chan_min through end of range        
+        rebinned = self.bins.rebin(combine_by_factor, 2, chan_min=3)
+        self.assertEqual(rebinned.size, 4)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0, 1, 3, 5])
+        self.assertListEqual(rebinned.counts.tolist(), [20, 50, 20, 3])
+        self.assertListEqual(rebinned.exposure.tolist(), [10.0, 10.0, 20.0, 20.0])
+        
+        # rebin from beginning of range through chan_max
+        rebinned = self.bins.rebin(combine_by_factor, 2, chan_max=4)
+        self.assertEqual(rebinned.size, 4)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0, 3, 5, 6])
+        self.assertListEqual(rebinned.counts.tolist(), [70, 20, 0, 3])
+        self.assertListEqual(rebinned.exposure.tolist(), [20.0, 20.0, 10.0, 10.0])
+
+        # rebin middle      
+        rebinned = self.bins.rebin(combine_by_factor, 3, chan_min=3, chan_max=5)
+        self.assertEqual(rebinned.size, 4)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0, 1, 3, 6])
+        self.assertListEqual(rebinned.counts.tolist(), [20, 50, 20, 3])
+        self.assertListEqual(rebinned.exposure.tolist(), [10.0, 10.0, 30.0, 10.0])
+
+        # rebin outside range
+        rebinned = self.bins.rebin(combine_by_factor, 2, chan_min=7, chan_max=10)
+        self.assertEqual(rebinned.size, 6)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0, 1, 3, 4, 5, 6])
+        self.assertListEqual(rebinned.counts.tolist(), [20, 50, 17, 3, 0, 3])
+        self.assertListEqual(rebinned.exposure.tolist(), [10.0]*6)
+
+    def test_range(self):
+        self.assertTupleEqual(self.bins.range, (0, 6))
+
+    def test_slice(self):
+        # middle slice       
+        bins2 = self.bins.slice(3, 4)
+        self.assertTupleEqual(bins2.range, (3, 4))
+        
+        # slice below lower boundary
+        bins2 = self.bins.slice(-1, 3)
+        self.assertTupleEqual(bins2.range, (0, 3))
+
+        # slice above upper boundary
+        bins2 = self.bins.slice(4, 7)
+        self.assertTupleEqual(bins2.range, (4, 6))
+        
+        # slice covering full range
+        bins2 = self.bins.slice(-1, 7)
+        self.assertTupleEqual(bins2.range, (0, 6))
+
+        # slice one bin
+        bins2 = self.bins.slice(3, 3)
+        self.assertTupleEqual(bins2.range, (3, 3))
+
+        # slice fully outside range
+        bins2 = self.bins.slice(-2, -1)
+        self.assertIsNone(bins2.range)
+
+    def test_merge(self):
+        
+        counts = [5, 7, 8]
+        exposure = [0.9, 0.9, 0.9]
+        
+        # merge at high end
+        chan_nums = [7, 8, 9]
+        bins2 = ChannelBins.create(counts, chan_nums, exposure)
+        bins_merged = ChannelBins.merge([self.bins, bins2])
+        self.assertListEqual(bins_merged.chan_nums.tolist(), [0, 1, 3, 4, 5, 6,
+                                                              7, 8, 9])
+        
+        # flip order
+        bins_merged = ChannelBins.merge([bins2, self.bins])
+        self.assertListEqual(bins_merged.chan_nums.tolist(), [0, 1, 3, 4, 5, 6,
+                                                              7, 8, 9])
+        
+        # merge at low end
+        bins3 = ChannelBins.create([2,3,4], [4,5,6], [0.8, 0.8, 0.8])
+        bins_merged = ChannelBins.merge([bins2, bins3])
+        self.assertListEqual(bins_merged.chan_nums.tolist(), [4, 5, 6, 7, 8, 9])
+        
+        # overlapping merge (not allowed)
+        bins2 = ChannelBins.create(counts, [5,6,7], exposure)
+        with self.assertRaises(ValueError):
+            bins_merged = ChannelBins.merge([self.bins, bins2])
+        with self.assertRaises(ValueError):
+            bins_merged = ChannelBins.merge([bins2, self.bins])
+
+    def test_sum(self):
+        
+        # same exposure
+        bins2 = ChannelBins.create(self.bins.counts, self.bins.chan_nums, 
+                                   self.bins.exposure)
+        bins_summed = ChannelBins.sum([self.bins, bins2])
+        self.assertListEqual(bins_summed.counts.tolist(), [40, 100, 34, 6, 0, 6])
+        self.assertListEqual(bins_summed.exposure.tolist(), [10.0]*6)
+        
+        # different exposure
+        exposure = [1.0] * 6
+        bins2 = ChannelBins.create(self.bins.counts, self.bins.chan_nums, 
+                                   exposure)
+        bins_summed = ChannelBins.sum([self.bins, bins2])
+        self.assertListEqual(bins_summed.counts.tolist(), [40, 100, 34, 6, 0, 6])
+        self.assertListEqual(bins_summed.exposure.tolist(), [5.5]*6)
+        
+        # wrong number of bins
+        bins2 = ChannelBins.create(self.bins.counts[1:], self.bins.chan_nums[1:],
+                                   self.bins.exposure[1:])
+        with self.assertRaises(AssertionError):
+            bins_summed = ChannelBins.sum([self.bins, bins2])
+
+        # non-matching bin edges
+        bins2 = ChannelBins.create(self.bins.counts, self.bins.chan_nums + 1,
+                                   self.bins.exposure)
+        with self.assertRaises(AssertionError):
+            bins_summed = ChannelBins.sum([self.bins, bins2])
+        
+    def test_init_errors(self):
+        with self.assertRaises(ValueError):
+            ChannelBins.create(self.bins.counts, self.bins.chan_nums[1:], 
+                               self.bins.exposure)
+
+        with self.assertRaises(TypeError):
+            ChannelBins.create(self.bins.counts, self.bins.chan_nums[0], 
+                               self.bins.exposure)
+    
+
 class TestTimeBins(unittest.TestCase):
     
     def test_init(self):
@@ -680,7 +832,484 @@ class TestEnergyBins(unittest.TestCase):
                              self.bins.hi_edges+0.1, self.bins.exposure)
         with self.assertRaises(AssertionError):
             bins_summed = EnergyBins.sum([self.bins, bins2])
+
+
+class TestTimeChannelBins(unittest.TestCase):
+    
+    def setUp(self):
+        counts = [[50, 5, 10], [100, 10, 20], [10, 1, 2], [20, 2, 4]]
+        tstart = [0.0, 1.0, 3.0, 4.0]
+        tstop = [1.0, 2.0, 4.0, 5.0]
+        exposure = [1] * 4
+        chan_nums = [0, 1, 3]
+        self.bins = TimeChannelBins(counts, tstart, tstop, exposure, chan_nums)
+    
+    def test_chan_nums(self):
+        self.assertListEqual(self.bins.chan_nums.tolist(), [0, 1, 3])
+
+    def test_channel_range(self):
+        self.assertTupleEqual(self.bins.channel_range, (0, 3))
+    
+    def test_counts(self):
+        self.assertListEqual(self.bins.counts[:,0].tolist(), [50, 100, 10, 20])
+        self.assertListEqual(self.bins.counts[:,1].tolist(), [5, 10, 1, 2])
+        self.assertListEqual(self.bins.counts[:,2].tolist(), [10, 20, 2, 4])
+ 
+    def test_count_uncertainty(self):
+        uncert = self.bins.count_uncertainty
+        vals = [7.07, 10., 3.16, 4.47]
+        for i in range(4):
+            self.assertAlmostEqual(uncert[i,0], vals[i], 2)
+
+        vals = [2.24, 3.16, 1.0, 1.41]
+        for i in range(4):
+            self.assertAlmostEqual(uncert[i,1], vals[i], 2)
+
+        vals = [3.16, 4.47, 1.41, 2.]
+        for i in range(4):
+            self.assertAlmostEqual(uncert[i,2], vals[i], 2)
+    
+    def test_exposure(self):
+        self.assertListEqual(self.bins.exposure.tolist(), [1.0]*4)
+
+    def test_num_chans(self):
+        self.assertEqual(self.bins.num_chans, 3)
+
+    def test_num_times(self):
+        self.assertEqual(self.bins.num_times, 4)
+
+    def test_quality(self):
+        self.assertListEqual(self.bins.quality.tolist(), [0]*4)
+
+    def test_rates(self):
+        self.assertListEqual(self.bins.rates[:,0].tolist(), [50., 100., 10., 20.])
+        self.assertListEqual(self.bins.rates[:,1].tolist(), [5., 10., 1., 2.])
+        self.assertListEqual(self.bins.rates[:,2].tolist(), [10., 20., 2., 4.])
         
+    def test_rate_uncertainty(self):
+        uncert = self.bins.rate_uncertainty
+        vals = [7.07, 10., 3.16, 4.47]
+        for i in range(4):
+            self.assertAlmostEqual(uncert[i,0], vals[i], 2)
+
+        vals = [2.24, 3.16, 1.0, 1.41]
+        for i in range(4):
+            self.assertAlmostEqual(uncert[i,1], vals[i], 2)
+
+        vals = [3.16, 4.47, 1.41, 2.]
+        for i in range(4):
+            self.assertAlmostEqual(uncert[i,2], vals[i], 2)
+
+    def test_size(self):
+        self.assertTupleEqual(self.bins.size, (4, 3))
+    
+    def test_time_centroids(self):
+        self.assertListEqual(self.bins.time_centroids.tolist(), 
+                             [0.5, 1.5, 3.5, 4.5])
+
+    def test_time_range(self):
+        self.assertTupleEqual(self.bins.time_range, (0.0, 5.0))
+    
+    def test_time_widths(self):
+        self.assertListEqual(self.bins.time_widths.tolist(), [1.0]*4)
+    
+    def test_tstart(self):
+        self.assertListEqual(self.bins.tstart.tolist(), [0.0, 1.0, 3.0, 4.0])
+
+    def test_tstop(self):
+        self.assertListEqual(self.bins.tstop.tolist(), [1.0, 2.0, 4.0, 5.0])
+
+    def test_closest_time_edge(self):
+        # closest low edge
+        self.assertEqual(self.bins.closest_time_edge(0.3, which='low'), 0.0)
+        # closest high edge
+        self.assertEqual(self.bins.closest_time_edge(0.3, which='high'), 1.0)
+        # closest edge
+        self.assertEqual(self.bins.closest_time_edge(0.3, which='either'), 0.0)
+
+    def test_contiguous_channel_bins(self):
+        cont_bins = self.bins.contiguous_channel_bins()
+        self.assertEqual(len(cont_bins), 2)
+        self.assertTupleEqual(cont_bins[0].channel_range, (0, 1))
+        self.assertTupleEqual(cont_bins[1].channel_range, (3, 3))
+        
+        self.assertEqual(len(cont_bins[0].contiguous_channel_bins()), 1)
+
+    def test_contiguous_time_bins(self):
+        cont_bins = self.bins.contiguous_time_bins()
+        self.assertEqual(len(cont_bins), 2)
+        self.assertTupleEqual(cont_bins[0].time_range, (0., 2.))
+        self.assertTupleEqual(cont_bins[1].time_range, (3., 5.))
+        
+        self.assertEqual(len(cont_bins[0].contiguous_time_bins()), 1)
+    
+    def test_get_exposure(self):
+        # full range
+        self.assertEqual(self.bins.get_exposure(), 4.0)
+        
+        # one time range
+        self.assertEqual(self.bins.get_exposure(time_ranges=(2.0, 4.0)), 2.0)
+        
+        # two time ranges
+        self.assertEqual(self.bins.get_exposure(time_ranges=[(0.0, 1.0), 
+                                                             (3.0, 4.0)]), 2.0)
+
+        # offset edges, no scaling
+        self.assertEqual(self.bins.get_exposure(time_ranges=(2.5, 4.0)), 2.0)
+
+        # offset edges, with scaling
+        self.assertEqual(self.bins.get_exposure(time_ranges=(2.5, 4.0), 
+                                                scale=True), 1.5)
+
+    def test_integrate_channels(self):
+        # full range
+        bins = self.bins.integrate_channels()
+        self.assertIsInstance(bins, TimeBins)
+        self.assertListEqual(bins.counts.tolist(), [65, 130, 13, 26])
+        self.assertListEqual(bins.exposure.tolist(), [1.0]*4)
+        self.assertListEqual(bins.lo_edges.tolist(), [0.0, 1.0, 3.0, 4.0])
+        self.assertListEqual(bins.hi_edges.tolist(), [1.0, 2.0, 4.0, 5.0])
+
+        # set emin
+        bins = self.bins.integrate_channels(chan_min=1)
+        self.assertListEqual(bins.counts.tolist(), [15, 30, 3, 6])
+        self.assertListEqual(bins.exposure.tolist(), [1.0]*4)
+        self.assertListEqual(bins.lo_edges.tolist(), [0.0, 1.0, 3.0, 4.0])
+        self.assertListEqual(bins.hi_edges.tolist(), [1.0, 2.0, 4.0, 5.0])
+
+        # set emax
+        bins = self.bins.integrate_channels(chan_max=1)
+        self.assertListEqual(bins.counts.tolist(), [55, 110, 11, 22])
+        self.assertListEqual(bins.exposure.tolist(), [1.0]*4)
+        self.assertListEqual(bins.lo_edges.tolist(), [0.0, 1.0, 3.0, 4.0])
+        self.assertListEqual(bins.hi_edges.tolist(), [1.0, 2.0, 4.0, 5.0])
+
+        # set both emin and emax
+        bins = self.bins.integrate_channels(chan_min=1, chan_max=1)
+        self.assertListEqual(bins.counts.tolist(), [5, 10, 1, 2])
+        self.assertListEqual(bins.exposure.tolist(), [1.0]*4)
+        self.assertListEqual(bins.lo_edges.tolist(), [0.0, 1.0, 3.0, 4.0])
+        self.assertListEqual(bins.hi_edges.tolist(), [1.0, 2.0, 4.0, 5.0])
+    
+    def test_integrate_time(self):
+        # full range
+        bins = self.bins.integrate_time()
+        self.assertIsInstance(bins, ChannelBins)
+        self.assertListEqual(bins.counts.tolist(), [180, 18, 36])
+        self.assertListEqual(bins.exposure.tolist(), [4.0]*3)
+        self.assertListEqual(bins.chan_nums.tolist(), [0, 1, 3])
+        
+        # set tstart
+        bins = self.bins.integrate_time(tstart=1.5)
+        self.assertListEqual(bins.counts.tolist(), [130, 13, 26])
+        self.assertListEqual(bins.exposure.tolist(), [3.0]*3)
+        self.assertListEqual(bins.chan_nums.tolist(), [0, 1, 3])
+
+        # set tstop
+        bins = self.bins.integrate_time(tstop=3.5)
+        self.assertListEqual(bins.counts.tolist(), [160, 16, 32])
+        self.assertListEqual(bins.exposure.tolist(), [3.0]*3)
+        self.assertListEqual(bins.chan_nums.tolist(), [0, 1, 3])
+
+        # set both tstart amd tstop
+        bins = self.bins.integrate_time(tstart=1.5, tstop=3.5)
+        self.assertListEqual(bins.counts.tolist(), [110, 11, 22])
+        self.assertListEqual(bins.exposure.tolist(), [2.0]*3)
+        self.assertListEqual(bins.chan_nums.tolist(), [0, 1, 3])
+
+    def test_rebin_channels(self):
+        
+        # rebin full range
+        rebinned = self.bins.rebin_channels(combine_by_factor, 2)
+        self.assertEqual(rebinned.num_chans, 1)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0])
+        counts = rebinned.counts.tolist()
+        vals = [55, 110, 11, 22]
+        for i in range(4):
+            self.assertEqual(counts[i][0], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [1.0]*4)
+        
+        # rebin from emin through end of range        
+        rebinned = self.bins.rebin_channels(combine_by_factor, 2, chan_min=0)
+        self.assertEqual(rebinned.num_chans, 1)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0])
+        counts = rebinned.counts.tolist()
+        vals = [55, 110, 11, 22]
+        for i in range(4):
+            self.assertEqual(counts[i][0], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [1.0]*4)
+        
+        # rebin from beginning of range through emax       
+        rebinned = self.bins.rebin_channels(combine_by_factor, 2, chan_max=3)
+        self.assertEqual(rebinned.num_chans, 1)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0])
+        counts = rebinned.counts.tolist()
+        vals = [55, 110, 11, 22]
+        for i in range(4):
+            self.assertEqual(counts[i][0], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [1.0]*4)
+        
+        # rebin middle      
+        rebinned = self.bins.rebin_channels(combine_by_factor, 2, chan_min=0, 
+                                            chan_max=1)
+        self.assertEqual(rebinned.num_chans, 2)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0, 3])
+        counts = rebinned.counts.tolist()
+        vals = [[55, 10], [110, 20], [11, 2], [22, 4]]
+        for i in range(4):
+            self.assertListEqual(counts[i], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [1.0]*4)
+ 
+        # rebin outside range
+        rebinned = self.bins.rebin_channels(combine_by_factor, 2, chan_min=4, 
+                                            chan_max=6)
+        self.assertEqual(rebinned.num_chans, 3)
+        self.assertListEqual(rebinned.chan_nums.tolist(), [0, 1, 3])
+        counts = rebinned.counts.tolist()
+        vals = [[50, 5, 10], [100, 10, 20], [10, 1, 2], [20, 2, 4]]
+        for i in range(4):
+            self.assertListEqual(counts[i], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [1.0]*4)
+   
+    def test_rebin_time(self):
+        # rebin full range
+        rebinned = self.bins.rebin_time(combine_by_factor, 2)
+        self.assertEqual(rebinned.num_times, 2)
+        self.assertListEqual(rebinned.tstart.tolist(), [0.0, 3.0])
+        self.assertListEqual(rebinned.tstop.tolist(), [2.0, 5.0])
+        counts = rebinned.counts.tolist()
+        vals = [[150, 15, 30], [30, 3, 6]]
+        for i in range(2):
+            self.assertListEqual(counts[i], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [2.0, 2.0])
+        
+        # rebin from tstart through end of range        
+        rebinned = self.bins.rebin_time(combine_by_factor, 2, tstart=0.5)
+        self.assertEqual(rebinned.num_times, 2)
+        self.assertListEqual(rebinned.tstart.tolist(), [0.0, 3.0])
+        self.assertListEqual(rebinned.tstop.tolist(), [2.0, 5.0])
+        counts = rebinned.counts.tolist()
+        vals = [[150, 15, 30], [30, 3, 6]]
+        for i in range(2):
+             self.assertListEqual(counts[i], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [2.0, 2.0])
+        
+        # rebin from beginning of range through tstop       
+        rebinned = self.bins.rebin_time(combine_by_factor, 2, tstop=4.5)
+        self.assertEqual(rebinned.num_times, 2)
+        self.assertListEqual(rebinned.tstart.tolist(), [0.0, 3.0])
+        self.assertListEqual(rebinned.tstop.tolist(), [2.0, 5.0])
+        counts = rebinned.counts.tolist()
+        vals = [[150, 15, 30], [30, 3, 6]]
+        for i in range(2):
+             self.assertListEqual(counts[i], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [2.0, 2.0])
+        
+        # rebin middle      
+        rebinned = self.bins.rebin_time(combine_by_factor, 2, tstart=0.5, 
+                                          tstop=1.5)
+        self.assertEqual(rebinned.num_times, 3)
+        self.assertListEqual(rebinned.tstart.tolist(), [0.0, 3.0, 4.0])
+        self.assertListEqual(rebinned.tstop.tolist(), [2.0, 4.0, 5.0])
+        counts = rebinned.counts.tolist()
+        vals = [[150, 15, 30], [10, 1, 2], [20, 2, 4]]
+        for i in range(3):
+            self.assertListEqual(counts[i], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [2.0, 1.0, 1.0])
+
+ 
+        # rebin outside range
+        rebinned = self.bins.rebin_time(combine_by_factor, 2, tstart=10.0, 
+                                        tstop=20.0)
+        self.assertEqual(rebinned.num_times, 4)
+        self.assertListEqual(rebinned.tstart.tolist(), [0.0, 1.0, 3.0, 4.0])
+        self.assertListEqual(rebinned.tstop.tolist(), [1.0, 2.0, 4.0, 5.0])
+        counts = rebinned.counts.tolist()
+        vals = [[50, 5, 10], [100, 10, 20], [10, 1, 2], [20, 2, 4]]
+        for i in range(4):
+            self.assertListEqual(counts[i], vals[i])
+        self.assertListEqual(rebinned.exposure.tolist(), [1.0]*4)
+    
+    def test_slice_channels(self):
+        # middle slice       
+        bins2 = self.bins.slice_channels(0, 1)
+        self.assertTupleEqual(bins2.channel_range, (0, 1))
+        
+        # slice below lower boundary
+        bins2 = self.bins.slice_channels(-1, 1)
+        self.assertTupleEqual(bins2.channel_range, (0, 1))
+
+        # slice above upper boundary
+        bins2 = self.bins.slice_channels(1, 5)
+        self.assertTupleEqual(bins2.channel_range, (1, 3))
+        
+        # slice covering full range
+        bins2 = self.bins.slice_channels(-1, 5)
+        self.assertTupleEqual(bins2.channel_range, (0, 3))
+
+        # slice one bin
+        bins2 = self.bins.slice_channels(1, 1)
+        self.assertTupleEqual(bins2.channel_range, (1, 1))
+
+        # slice fully outside range
+        bins2 = self.bins.slice_channels(5, 10)
+        self.assertIsNone(bins2.channel_range)
+
+    def test_slice_time(self):
+        # middle slice       
+        bins2 = self.bins.slice_time(1.5, 3.5)
+        self.assertTupleEqual(bins2.time_range, (1.0, 4.0))
+        
+        # slice below lower boundary
+        bins2 = self.bins.slice_time(-1.0, 3.5)
+        self.assertTupleEqual(bins2.time_range, (0.0, 4.0))
+
+        # slice above upper boundary
+        bins2 = self.bins.slice_time(1.5, 10.0)
+        self.assertTupleEqual(bins2.time_range, (1.0, 5.0))
+        
+        # slice covering full range
+        bins2 = self.bins.slice_time(-1.0, 10.0)
+        self.assertTupleEqual(bins2.time_range, (0.0, 5.0))
+
+        # slice one bin
+        bins2 = self.bins.slice_time(1.5, 1.5)
+        self.assertTupleEqual(bins2.time_range, (1.0, 2.0))
+
+        # slice fully outside range
+        bins2 = self.bins.slice_time(10.0, 20.0)
+        self.assertIsNone(bins2.time_range)
+
+    def test_merge_channels(self):
+        
+        counts = [[10, 20], [10, 20], [10, 20], [10, 20]]        
+        # merge at high end
+        chan_nums = [4, 5]
+        bins2 = TimeChannelBins(counts, self.bins.tstart, self.bins.tstop, 
+                                self.bins.exposure, chan_nums)
+        bins_merged = TimeChannelBins.merge_channels([self.bins, bins2])
+        self.assertListEqual(bins_merged.chan_nums.tolist(), [0, 1, 3, 4, 5])
+        
+        # flip order
+        bins_merged = TimeChannelBins.merge_channels([bins2, self.bins])
+        self.assertListEqual(bins_merged.chan_nums.tolist(), [0, 1, 3, 4, 5])
+        
+        # merge at low end
+        bins3 = TimeChannelBins(counts, self.bins.tstart, self.bins.tstop, 
+                                self.bins.exposure, [2, 3])
+        bins_merged = TimeChannelBins.merge_channels([bins2, bins3])
+        self.assertListEqual(bins_merged.chan_nums.tolist(), [2, 3, 4, 5])
+                
+        # overlapping merge (not allowed)
+        chan_nums = [2, 3]
+        bins2 = TimeChannelBins(counts, self.bins.tstart, self.bins.tstop, 
+                                self.bins.exposure, chan_nums)
+        with self.assertRaises(ValueError):
+            bins_merged = TimeChannelBins.merge_channels([self.bins, bins2])
+        with self.assertRaises(ValueError):
+            bins_merged = TimeChannelBins.merge_channels([bins2, self.bins])
+
+    def test_merge_time(self):
+        
+        counts = [[10, 20, 30], [10, 20, 30]] 
+        exposure = [1.0, 1.0]       
+        # merge at high end
+        tstart = [5.0, 6.0]
+        tstop = [6.0, 7.0]
+        bins2 = TimeChannelBins(counts, tstart, tstop, exposure, 
+                                self.bins.chan_nums)
+        bins_merged = TimeChannelBins.merge_time([self.bins, bins2])
+        self.assertListEqual(bins_merged.tstop.tolist(), [1.0, 2.0, 4.0, 5.0, 
+                                                          6.0, 7.0])
+        self.assertListEqual(bins_merged.tstart.tolist(), [0.0, 1.0, 3.0, 4.0,
+                                                           5.0, 6.0])
+        # flip order
+        bins_merged = TimeChannelBins.merge_time([bins2, self.bins])
+        self.assertListEqual(bins_merged.tstop.tolist(), [1.0, 2.0, 4.0, 5.0, 
+                                                          6.0, 7.0])
+        self.assertListEqual(bins_merged.tstart.tolist(), [0.0, 1.0, 3.0, 4.0,
+                                                           5.0, 6.0])
+        # merge at low end
+        tstart = [-2.0, -1.0]
+        tstop = [-1.0, 0.0]
+        bins2 = TimeChannelBins(counts, tstart, tstop, exposure, 
+                                self.bins.chan_nums)
+        bins_merged = TimeChannelBins.merge_time([self.bins, bins2])
+        self.assertListEqual(bins_merged.tstop.tolist(), [-1.0, 0.0, 1.0, 2.0, 
+                                                          4.0, 5.0])
+        self.assertListEqual(bins_merged.tstart.tolist(), [-2.0, -1.0, 0.0, 1.0,
+                                                           3.0, 4.0])
+                
+        # overlapping merge (not allowed)
+        tstart = [4.0, 5.0]
+        tstop = [5.0, 6.0]
+        bins2 = TimeChannelBins(counts, tstart, tstop, exposure, 
+                                self.bins.chan_nums)
+        with self.assertRaises(ValueError):
+            bins_merged = TimeChannelBins.merge_time([self.bins, bins2])
+        with self.assertRaises(ValueError):
+            bins_merged = TimeChannelBins.merge_time([bins2, self.bins])
+
+    def test_init_errors(self):
+        with self.assertRaises(TypeError):
+            TimeChannelBins(0, self.bins.tstart, self.bins.tstop, 
+                            self.bins.exposure, self.bins.chan_nums)
+
+        with self.assertRaises(TypeError):
+            TimeEnergyBins(self.bins.counts[:,0], self.bins.tstart, 
+                           self.bins.tstop, self.bins.exposure, 
+                           self.bins.chan_nums)
+        
+        with self.assertRaises(TypeError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart[0], 
+                            self.bins.tstop, self.bins.exposure, 
+                            self.bins.chan_nums)
+
+        with self.assertRaises(TypeError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart, 
+                            self.bins.tstop[0], self.bins.exposure, 
+                            self.bins.chan_nums)
+
+        with self.assertRaises(TypeError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart, 
+                            self.bins.tstop, self.bins.exposure[0], 
+                            self.bins.chan_nums)
+
+        with self.assertRaises(TypeError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart, 
+                            self.bins.tstop, self.bins.exposure, 
+                            self.bins.chan_nums[0])
+
+        with self.assertRaises(ValueError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart[1:], 
+                            self.bins.tstop, self.bins.exposure, 
+                            self.bins.chan_nums)
+
+        with self.assertRaises(ValueError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart, 
+                           self.bins.tstop, self.bins.exposure[1:], 
+                           self.bins.chan_nums)
+
+        with self.assertRaises(ValueError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart, 
+                           self.bins.tstop, self.bins.exposure[1:], 
+                           self.bins.chan_nums[1:])
+
+        with self.assertRaises(ValueError):
+            TimeChannelBins(self.bins.counts.T, self.bins.tstart, 
+                           self.bins.tstop, self.bins.exposure[1:], 
+                           self.bins.chan_nums)
+
+        with self.assertRaises(TypeError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart, 
+                           self.bins.tstop, self.bins.exposure, 
+                           self.bins.chan_nums, quality=0)
+
+        with self.assertRaises(ValueError):
+            TimeChannelBins(self.bins.counts, self.bins.tstart, 
+                           self.bins.tstop, self.bins.exposure, 
+                           self.bins.chan_nums, quality=[0, 0])
+ 
 
 class TestTimeEnergyBins(unittest.TestCase):
     
