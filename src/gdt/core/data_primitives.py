@@ -488,8 +488,7 @@ class EventList():
         times (np.array): The array of event times
         channels (np.array): The corresponding array of associated energy channel
         ebounds (:class:`Ebounds`, optional): The energy bounds mapped to 
-                                             energy channels
-
+                                              energy channels
     """
     def __init__(self, times=None, channels=None, ebounds=None):
         
@@ -562,10 +561,10 @@ class EventList():
         """(int): The number of energy channels. 
         Note that not all channels will necessarily have events, especially if a 
         slice is made over energy."""
-        try:
+        if self.ebounds is not None:
             return self._ebounds.num_intervals
-        except:
-            return len(set(self._events['PHA']))
+        else:
+            return (self._events['PHA'].max() - self._events['PHA'].min()) + 1
 
     @property
     def size(self):
@@ -628,7 +627,10 @@ class EventList():
 
         # get the time edges from the binning function and then do the 2d histo
         time_edges = method(bin_times, *args, **kwargs)
-        chan_list = np.arange(self.channel_range[1] + 2)
+        if self.ebounds is not None:
+            chan_list = np.arange(self.ebounds.num_intervals + 1)
+        else:
+            chan_list = np.arange(self.channel_range[1] + 2)
         counts = np.histogram2d(bin_times, self.channels[mask],
                                 [time_edges, chan_list])[0]
 
@@ -684,8 +686,10 @@ class EventList():
         Returns:        
             (:class:`EnergyBins` or :class:`ChannelBins`)
         """
-        
-        chan_list = np.arange(self.channel_range[1] + 2)
+        if self.ebounds is not None:
+            chan_list = np.arange(self.ebounds.num_intervals + 1)
+        else:    
+            chan_list = np.arange(self.channel_range[1] + 2)
         counts = np.histogram(self.channels, bins=chan_list)[0]
         exposure = np.full(chan_list.size-1, self.get_exposure(time_ranges=None,
                                                                **kwargs))
