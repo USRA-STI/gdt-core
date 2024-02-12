@@ -29,7 +29,8 @@
 import os
 import numpy as np
 
-from .data_primitives import Ebounds, Gti, TimeEnergyBins, EnergyBins
+from .data_primitives import Ebounds, Gti, TimeEnergyBins, TimeChannelBins, \
+                             EnergyBins
 from .headers import FileHeaders
 from .file import FitsFileContextManager
 from .pha import Pha
@@ -53,13 +54,17 @@ class Phaii(FitsFileContextManager):
 
     @property
     def ebounds(self):
-        """(:class:`~.data_primitives.Ebounds`): The energy-channel mapping"""
-        return self._ebounds
+        """(:class:`~.data_primitives.Ebounds`): The energy-channel mapping.
+        If data does not have an ebounds, returns None."""
+        if isinstance(self._data, TimeEnergyBins):
+            return self._ebounds
 
     @property
     def energy_range(self):
-        """(float, float): The energy range of the data"""
-        return self._data.energy_range
+        """(float, float): The energy range of the data.  If data does not have
+        an ebounds, returns None."""
+        if isinstance(self._data, TimeEnergyBins):
+            return self._data.energy_range
     
     @property
     def gti(self):
@@ -99,21 +104,31 @@ class Phaii(FitsFileContextManager):
         return exposure
 
     def rebin_energy(self, method, *args, energy_range=(None, None), **kwargs):
-        """Rebin the PHAII in energy given a rebinning method. 
-        Produces a new PHAII object.
+        """Rebin the PHAII in energy given a rebinning method. Produces a new 
+        PHAII object.
+        
+        Note::
+          If the data does not have an energy calibration (ebounds), then this
+          function will bin by energy channels, and therefore the 
+          ``energy_range`` argument should be a range of energy channels
+          instead of energies.
 
         Args:
             method (<function>): The rebinning function
             *args: Arguments to be passed to the rebinning function
             energy_range ((float, float), optional): 
-                The starting and ending energy to rebin.  If omitted, uses the 
-                full range of data.  Setting start or end to ``None`` will use 
-                the data from the beginning or end of the data, respectively.
+                The starting and ending energy (or channel) to rebin.  If 
+                omitted, uses the full range of data.  Setting start or end to 
+                ``None`` will use the data from the beginning or end of the data, respectively.
         Returns        
             (:class:`Phaii`)
         """
         emin, emax = self._assert_range(energy_range)
-        data = self.data.rebin_energy(method, *args, emin=emin, emax=emax)
+        if isinstance(self.data, TimeEnergyBins):
+            data = self.data.rebin_energy(method, *args, emin=emin, emax=emax)
+        else:
+            data = self.data.rebin_channels(method, *args, chan_min=emin, 
+                                            chan_max=emax)
         headers = self._build_headers(self.trigtime, *data.time_range, 
                                       data.num_chans)
         
@@ -149,8 +164,14 @@ class Phaii(FitsFileContextManager):
         return phaii
 
     def slice_energy(self, energy_ranges, **kwargs):
-        """Slice the PHAII by one or more energy range. Produces a new 
-        PHAII object.
+        """Slice the PHAII by one or more energy range. Produces a new PHAII 
+        object.
+        
+        Note::
+          If the data does not have an energy calibration (ebounds), then this
+          function will slice by energy channels, and therefore the 
+          ``energy_ranges`` argument should be a range(s) of energy channels
+          instead of energies.
 
         Args:
             energy_ranges ([(float, float), ...]): 
@@ -160,10 +181,16 @@ class Phaii(FitsFileContextManager):
             (:class:`Phaii`)
         """
         energy_ranges = self._assert_range_list(energy_ranges)
-        data = [self.data.slice_energy(*self._assert_range(energy_range)) \
-                for energy_range in energy_ranges]
-        data = TimeEnergyBins.merge_energy(data)
-
+        
+        if isinstance(self.data, TimeEnergyBins):
+            data = [self.data.slice_energy(*self._assert_range(energy_range)) \
+                    for energy_range in energy_ranges]
+            data = TimeEnergyBins.merge_energy(data)
+        else:
+            data = [self.data.slice_channels(*self._assert_range(energy_range)) \
+                    for energy_range in energy_ranges]
+            data = TimeChannelBins.merge_channels(data)
+        
         headers = self._build_headers(self.trigtime, *data.time_range, 
                                       data.num_chans)
         
@@ -192,9 +219,12 @@ class Phaii(FitsFileContextManager):
         for segment in data: 
             seg_gti = Gti.from_list([segment.time_range])
             gti = Gti.intersection(gti, seg_gti)
-       
-        data = TimeEnergyBins.merge_time(data)
-
+        
+        if isinstance(self.data, TimeEnergyBins):       
+            data = TimeEnergyBins.merge_time(data)
+        else:
+            data = TimeChannelBins.merge_time(data)
+            
         headers = self._build_headers(self.trigtime, *data.time_range, 
                                       data.num_chans)
         
@@ -228,20 +258,35 @@ class Phaii(FitsFileContextManager):
         # limit integration to be over desired energy or channel range
         if channel_range is not None:
             self._assert_range(channel_range)
-            energy_range = (self._data.emin[channel_range[0]],
-                            self._data.emax[channel_range[1]])
-        if energy_range is not None:
-            emin, emax = self._assert_range(energy_range)
-        else:
-            emin, emax = None, None
+        
+        if isinstance(self.data, TimeEnergyBins):
+            if channel_range is not None:
+                energy_range = (self._data.emin[channel_range[0]],
+                                self._data.emax[channel_range[1]])
+            if energy_range is not None:
+                emin, emax = self._assert_range(energy_range)
+            else:
+                emin, emax = None, None
 
-        # produce the TimeBins lightcurve object
-        lc = temp.integrate_energy(emin=emin, emax=emax)
+            # produce the TimeBins lightcurve object
+            lc = temp.integrate_energy(emin=emin, emax=emax)
+        
+        else:
+            if channel_range is None:
+                channel_range = (None, None)
+            lc = temp.integrate_channels(chan_min=channel_range[0],
+                                         chan_max=channel_range[1])
+
         return lc
     
     def to_pha(self, time_ranges=None, energy_range=None, channel_range=None,
                **kwargs):
-        """Integrate the PHAII data over time to produce a PHA object
+        """Integrate the PHAII data over time to produce a PHA object.
+        
+        Note::
+          If the data does not have an energy calibration (ebounds), then a 
+          PHA object cannot be created and calling this method will raise an
+          exception.
 
         Args:
             time_ranges ([(float, float), ...], optional): 
@@ -258,6 +303,9 @@ class Phaii(FitsFileContextManager):
         Returns:        
             (:class:`~.pha.Pha`)
         """
+        if isinstance(self.data, TimeChannelBins):
+            raise RuntimeError('Energy calibration required to create a PHA object')
+        
         if time_ranges is None:
             time_ranges = [self.time_range]
         time_ranges = self._assert_range_list(time_ranges)
@@ -324,9 +372,17 @@ class Phaii(FitsFileContextManager):
         if (channel_range is not None) or (energy_range is not None):
             if channel_range is not None:
                 self._assert_range(channel_range)
-                energy_range = (self._data.emin[channel_range[0]],
-                                self._data.emax[channel_range[1]])
-            temp = self._data.slice_energy(*self._assert_range(energy_range))
+            
+            if isinstance(self.data, TimeEnergyBins):
+                if channel_range is not None:
+                    energy_range = (self._data.emin[channel_range[0]],
+                                    self._data.emax[channel_range[1]])
+                temp = self.data.slice_energy(*self._assert_range(energy_range))
+            else:
+                if channel_range is None:
+                    channel_range = (None, None)
+                    temp = self.data.slice_channels(chan_min=channel_range[0],
+                                                    chan_max=channel_range[0])
         else:
             temp = self._data
 
@@ -364,10 +420,14 @@ class Phaii(FitsFileContextManager):
         obj._filename = filename
         
         # set data and ebounds
-        if not isinstance(data, TimeEnergyBins):
+        if not isinstance(data, TimeEnergyBins) and \
+           not isinstance(data, TimeChannelBins):
             raise TypeError('data must be of type TimeEnergyBins')
+        
         obj._data = data
-        obj._ebounds = Ebounds.from_bounds(data.emin, data.emax)
+        
+        if isinstance(data, TimeEnergyBins):
+            obj._ebounds = Ebounds.from_bounds(data.emin, data.emax)
         
         # set GTI
         if gti is not None:
@@ -414,7 +474,10 @@ class Phaii(FitsFileContextManager):
                                  'of energy channels')
         
         # merge the data
-        data = TimeEnergyBins.merge_time([phaii.data for phaii in phaii_list])
+        if isinstance(phaii_list[0].data, TimeEnergyBins):
+            data = TimeEnergyBins.merge_time([phaii.data for phaii in phaii_list])
+        else:
+            data = TimeChannelBins.merge_time([phaii.data for phaii in phaii_list])
         
         # merge the GTIs
         gti = phaii_list[0].gti
