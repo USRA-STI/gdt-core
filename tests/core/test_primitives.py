@@ -1900,7 +1900,16 @@ class TestEventList(unittest.TestCase):
 
     def test_ebounds(self):
         self.assertIsInstance(self.ev.ebounds, Ebounds)
-
+        
+        ev = EventList(times=self.ev.times, channels=self.ev.channels)
+        assert ev.ebounds is None
+        
+        with self.assertRaises(TypeError):
+            ev.ebounds = [10.0, 20.0, 40.0, 80.0]
+        
+        ev.ebounds = self.ev.ebounds
+        assert ev.ebounds == self.ev.ebounds
+        
     def test_emax(self):
         self.assertEqual(self.ev.emax, 160.0)
 

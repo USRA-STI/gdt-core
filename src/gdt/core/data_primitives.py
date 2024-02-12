@@ -525,9 +525,17 @@ class EventList():
     
     @property
     def ebounds(self):
-        """(:class:`Ebounds`): The energy bounds of the energy channels"""
+        """(:class:`Ebounds`): The energy bounds of the energy channels.
+                               This property can be set.
+        """
         return self._ebounds
     
+    @ebounds.setter
+    def ebounds(self, val):
+        if not isinstance(val, Ebounds):
+            raise TypeError('ebounds must be an Ebounds object')
+        self._ebounds = val
+        
     @property
     def emax(self):
         """(float): The maximum energy"""
