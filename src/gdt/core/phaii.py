@@ -234,7 +234,11 @@ class Phaii(FitsFileContextManager):
 
     def to_lightcurve(self, time_range=None, energy_range=None,
                       channel_range=None):
-        """Integrate the PHAII data over energy to produce a lightcurve
+        """Integrate the PHAII data over energy to produce a lightcurve.
+        
+        Note::
+          If the data has not energy calibration, then ``energy_range`` is 
+          ignored, and only ``channel_range`` is used.
         
         Args:
             time_range ((float, float), optional): 
@@ -355,6 +359,10 @@ class Phaii(FitsFileContextManager):
                     channel_range=None):
         """Integrate the PHAII data over time to produce a count spectrum
 
+        Note::
+          If the data has not energy calibration, then ``energy_range`` is 
+          ignored, and only ``channel_range`` is used.
+
         Args:
             time_range ((float, float), optional): 
                 The time range of the spectrum. If omitted, uses the entire 
@@ -375,16 +383,16 @@ class Phaii(FitsFileContextManager):
             
             if isinstance(self.data, TimeEnergyBins):
                 if channel_range is not None:
-                    energy_range = (self._data.emin[channel_range[0]],
-                                    self._data.emax[channel_range[1]])
+                    energy_range = (self.data.emin[channel_range[0]],
+                                    self.data.emax[channel_range[1]])
                 temp = self.data.slice_energy(*self._assert_range(energy_range))
             else:
                 if channel_range is None:
-                    channel_range = (None, None)
-                    temp = self.data.slice_channels(chan_min=channel_range[0],
-                                                    chan_max=channel_range[0])
+                    channel_range = self.data.channel_range
+                temp = self.data.slice_channels(chan_min=channel_range[0],
+                                                chan_max=channel_range[1])
         else:
-            temp = self._data
+            temp = self.data
 
         # limit integration to be over desired time range
         if time_range is not None:
