@@ -135,7 +135,7 @@ class TestPhaii(unittest.TestCase):
             phaii.set_ebounds(Ebounds.from_bounds(emin[1:], emax[1:]))
         
         phaii.set_ebounds(ebounds)
-        assert isinstance(ebounds, Ebounds)
+        assert isinstance(phaii.ebounds, Ebounds)
         assert isinstance(phaii.data, TimeEnergyBins)
         self.assertListEqual(phaii.ebounds.low_edges(), emin)
         self.assertListEqual(phaii.ebounds.high_edges(), emax)
@@ -370,7 +370,7 @@ class TestPhaiiNoEbounds(unittest.TestCase):
             phaii.set_ebounds(emin)
         
         phaii.set_ebounds(ebounds)
-        assert isinstance(ebounds, Ebounds)
+        assert isinstance(phaii.ebounds, Ebounds)
         assert isinstance(phaii.data, TimeEnergyBins)
         self.assertListEqual(phaii.ebounds.low_edges(), emin)
         self.assertListEqual(phaii.ebounds.high_edges(), emax)

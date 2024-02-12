@@ -135,6 +135,16 @@ class PhotonList(FitsFileContextManager):
                              overflow_deadtime=self.overflow_deadtime, **kwargs)
         return obj
 
+    def set_ebounds(self, ebounds):
+        """Set the energy calibration (ebounds) of the data. If the data already 
+        has an energy calibration, this method will update the calibration to 
+        the new ebounds.
+        
+        Args:
+            ebounds (:class:`~.data_primitives.Ebounds`): The ebounds
+        """
+        self.data.ebounds = ebounds        
+
     def slice_energy(self, energy_ranges, **kwargs):
         """Slice the PhotonList by one or more energy ranges. Produces a new 
         PhotonList object.

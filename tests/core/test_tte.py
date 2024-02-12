@@ -104,6 +104,26 @@ class TestPhotonList(unittest.TestCase):
         rebinned_tte = self.tte.rebin_energy(combine_by_factor, 2)
         self.assertEqual(rebinned_tte.num_chans, 3)        
         
+    def test_set_ebounds(self):
+        emin = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+        emax = [20.0, 30.0, 40.0, 50.0, 60.0, 70.0]
+        ebounds = Ebounds.from_bounds(emin, emax)
+        
+        data = EventList(times=self.tte.data.times, 
+                         channels=self.tte.data.channels)
+        tte = PhotonList.from_data(data, gti=self.tte.gti, 
+                                   trigger_time=self.tte.trigtime,
+                                   event_deadtime=self.tte.event_deadtime,
+                                   overflow_deadtime=self.tte.overflow_deadtime)
+    
+        with self.assertRaises(TypeError):
+            tte.set_ebounds(emin)
+                
+        tte.set_ebounds(ebounds)
+        assert isinstance(tte.ebounds, Ebounds)
+        self.assertListEqual(tte.ebounds.low_edges(), emin)
+        self.assertListEqual(tte.ebounds.high_edges(), emax)
+    
     def test_slice_energy(self):
         # one slice
         sliced_tte = self.tte.slice_energy((50.0, 250.0))
@@ -356,6 +376,26 @@ class TestPhotonListNoEbounds(unittest.TestCase):
         rebinned_tte = self.tte.rebin_energy(combine_by_factor, 2)
         self.assertEqual(rebinned_tte.num_chans, 3)        
         
+    def test_set_ebounds(self):
+        emin = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+        emax = [20.0, 30.0, 40.0, 50.0, 60.0, 70.0]
+        ebounds = Ebounds.from_bounds(emin, emax)
+        
+        data = EventList(times=self.tte.data.times, 
+                         channels=self.tte.data.channels)
+        tte = PhotonList.from_data(data, gti=self.tte.gti, 
+                                   trigger_time=self.tte.trigtime,
+                                   event_deadtime=self.tte.event_deadtime,
+                                   overflow_deadtime=self.tte.overflow_deadtime)
+    
+        with self.assertRaises(TypeError):
+            tte.set_ebounds(emin)
+                
+        tte.set_ebounds(ebounds)
+        assert isinstance(tte.ebounds, Ebounds)
+        self.assertListEqual(tte.ebounds.low_edges(), emin)
+        self.assertListEqual(tte.ebounds.high_edges(), emax)
+    
     def test_slice_energy(self):
         # one slice
         sliced_tte = self.tte.slice_energy((2, 4))
