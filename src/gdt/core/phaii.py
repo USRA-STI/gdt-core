@@ -162,7 +162,33 @@ class Phaii(FitsFileContextManager):
         phaii = self.from_data(data, gti=self.gti, trigger_time=self.trigtime, 
                               headers=headers, **kwargs)
         return phaii
+    
+    def set_ebounds(self, ebounds):
+        """Set the energy calibration (ebounds) of the data. If the data are
+        not yet energy calibrated, this will convert the data object from
+        :class:`~.data_primitives.TimeChannelBins` to 
+        :class:`~.data_primitives.TimeEnergyBins``.  If the data already has an
+        energy calibration, this method will update the calibration to with the
+        new ebounds. The number of channels in ``ebounds`` must equal the number
+        of channels of the data.
+        
+        Args:
+            ebounds (:class:`~.data_primitives.Ebounds`): The ebounds
+        """
+        if not isinstance(ebounds, Ebounds):
+            raise TypeError('ebounds must be an Ebounds object')
+        
+        if isinstance(self.data, TimeChannelBins):
+            self._data = self.data.apply_ebounds(ebounds)
+        else:
+            if ebounds.num_intervals != self.num_chans:
+                raise ValueError('Ebounds is of wrong size for this data')
+            self._data = TimeEnergyBins(self.data.counts, self.data.tstart,
+                                        self.data.tstop, self.data.exposure,
+                                        ebounds.low_edges(), ebounds.high_edges())
 
+        self._ebounds = ebounds
+    
     def slice_energy(self, energy_ranges, **kwargs):
         """Slice the PHAII by one or more energy range. Produces a new PHAII 
         object.

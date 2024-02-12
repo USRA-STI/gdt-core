@@ -119,6 +119,27 @@ class TestPhaii(unittest.TestCase):
                                                time_range=(0.1, 0.2))
         self.assertEqual(rebinned_phaii.data.num_times, 4)
         
+    def test_set_ebounds(self):
+        emin = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0]
+        emax = [20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0]
+        ebounds = Ebounds.from_bounds(emin, emax)
+        
+        phaii = Phaii.from_data(self.phaii.data, gti=self.phaii.gti, 
+                                trigger_time=self.phaii.trigtime)
+        
+        with self.assertRaises(TypeError):
+            phaii.set_ebounds(emin)
+        
+        # wrong number of channels
+        with self.assertRaises(ValueError):
+            phaii.set_ebounds(Ebounds.from_bounds(emin[1:], emax[1:]))
+        
+        phaii.set_ebounds(ebounds)
+        assert isinstance(ebounds, Ebounds)
+        assert isinstance(phaii.data, TimeEnergyBins)
+        self.assertListEqual(phaii.ebounds.low_edges(), emin)
+        self.assertListEqual(phaii.ebounds.high_edges(), emax)
+
     def test_slice_energy(self):
         # one slice
         sliced_phaii = self.phaii.slice_energy((25.0, 750.0))
@@ -334,7 +355,26 @@ class TestPhaiiNoEbounds(unittest.TestCase):
         rebinned_phaii = self.phaii.rebin_time(combine_by_factor, 2, 
                                                time_range=(0.1, 0.2))
         self.assertEqual(rebinned_phaii.data.num_times, 4)
+    
+    def test_set_ebounds(self):
+        emin = [4.323754, 11.464164, 26.22962, 49.60019, 101.016815,
+                290.46063, 538.1436, 997.2431]
+        emax = [11.464164, 26.22962, 49.60019, 101.016815, 290.46063,
+                538.1436, 997.2431, 2000.]
+        ebounds = Ebounds.from_bounds(emin, emax)
         
+        phaii = Phaii.from_data(self.phaii.data, gti=self.phaii.gti, 
+                                trigger_time=self.phaii.trigtime)
+        
+        with self.assertRaises(TypeError):
+            phaii.set_ebounds(emin)
+        
+        phaii.set_ebounds(ebounds)
+        assert isinstance(ebounds, Ebounds)
+        assert isinstance(phaii.data, TimeEnergyBins)
+        self.assertListEqual(phaii.ebounds.low_edges(), emin)
+        self.assertListEqual(phaii.ebounds.high_edges(), emax)
+    
     def test_slice_energy(self):
         # one slice
         sliced_phaii = self.phaii.slice_energy((1, 6))
