@@ -66,9 +66,6 @@ phaii_n7 = tte_n7.data.integrate_energy(nai_erange[0],nai_erange[1])
 
 phaiis = GbmDetectorCollection.from_list([tte_n0,tte_n6,tte_n7], names=['n0','n6','n7'], dets=['n0','n6','n7'])
 
-# timebins = [phaii_n0,phaii_n6,phaii_n7]
-# timebins = [phaii_n0]
-
 
 ################ Background ################
 
