@@ -26,14 +26,14 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+from pathlib import Path
 import numpy as np
 import os
 import unittest
 from unittest import TestCase
-from gdt.core.duration import Duration
+from gdt.core.temporal.duration import Duration
 import gdt.core
 import numpy as np
-from gdt.core import data_path
 from gdt.missions.fermi.gbm.collection import GbmDetectorCollection
 from gdt.missions.fermi.gbm.tte import GbmTte
 from gdt.core.background.fitter import BackgroundFitter
@@ -41,15 +41,14 @@ from gdt.core.background.binned import Polynomial
 from gdt.core.binning.unbinned import bin_by_time
 from gdt.core.data_primitives import TimeBins
 
+data_path = Path(__file__).parent.joinpath('data')
+n0_file = data_path / 'glg_tte_n0_bn230812790_v04.fit'
+n6_file = data_path / 'glg_tte_n6_bn230812790_v04.fit'
+n7_file = data_path / 'glg_tte_n7_bn230812790_v04.fit'
 
-filepath = data_path.joinpath('/Users/orobert2/PycharmProjects/gdt-core_roberts_dev/tests/core/test_data/')
-
-#inputs:
-bn = 'bn230812790'
-
-n0 = GbmTte.open(str(filepath) + '/' + str(bn) + '/glg_tte_n0_{}_v04.fit'.format(bn))
-n6 = GbmTte.open(str(filepath) + '/' + str(bn) + '/glg_tte_n6_{}_v04.fit'.format(bn))
-n7 = GbmTte.open(str(filepath) + '/' + str(bn) + '/glg_tte_n7_{}_v04.fit'.format(bn))
+n0 = GbmTte.open(n0_file)
+n6 = GbmTte.open(n6_file)
+n7 = GbmTte.open(n7_file)
 
 time_Res = 0.016 #in s
 nai_erange = (10.0, 1000.0)
@@ -83,33 +82,19 @@ for bf_phaii in bf_phaiis:
     bk_list.append(bkgds_phaiis)
 
 
-duration_interval = (0.25,0.75)
+duration_interval = (0.25, 0.75)
 num_sims = 10000
 confidence = 0.67
 
-# timebins_list = TimeBins.sum([phaii_n0,phaii_n6,phaii_n7])
-# data = TimeBins.sum([phaii_n0, phaii_n6, phaii_n7])
-# timebins_list_x = timebins_list.centroids
-# timebins_list_y = timebins_list.counts
-
 
 class TestDuration(unittest.TestCase):
-
-    timebins = TimeBins([phaii_n0,phaii_n6,phaii_n7])
+    
+    timebins = [phaii_n0, phaii_n6, phaii_n7]
     duration = Duration(timebins, bk_list, duration_interval)
-    duration.calculate(num_sims,confidence)
+    
+    output = duration.calculate(num_sims, confidence)
     data = TimeBins.sum([phaii_n0, phaii_n6, phaii_n7])
 
     def test_inputExists(self):
-        self.assertIsNotNone(self.duration)
+        self.assertIsNotNone(self.output)
 
-    # def test_data(self):
-    #     self.asserttrue(self.duration.timebins_list, TimeBins)
-    #
-    # # def test_attributes(self):
-    # #     self.assertEqual(len(self.duration), 3)
-
-
-        
-if __name__ == '__main__':
-    unittest.main()
