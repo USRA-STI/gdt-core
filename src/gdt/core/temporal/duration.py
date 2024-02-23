@@ -30,20 +30,37 @@
 import numpy as np
 
 class Duration:
+    """Computes a count-based duration given one or more time-synchronized 
+    lightcurves and corresponding background models.
+    
+    Parameters:
+        timebins_list (list of :class:`~gdt.core.data_primitives.TimeBins`):
+            The list of lightcurve objects
+        bkgds_list (list of :class:`~gdt.core.background.primitives.BackgroundRates`):
+            The list of corresponding background models
+        duration_interval (tuple): The fractional interval of the accumulated 
+                                   count fluence.  For example, it is common to
+                                   quote a T90 for gamma-ray bursts, which is
+                                   the timespan covering the 5%-95% accumulated
+                                   fluence.  This would be passed as (0.05, 0.95)
+    """
     def __init__(self, timebins_list, bkgds_list, duration_interval):
-        # intializes with a list of TimeBins, BackgroundRates and specified duration interval.
-        # The user must specify the duration interval they want to calculate (e.g. (0.05, 0.95)).
-        # This only checks that the inputs are valid
         self.timebins_list = timebins_list
         self.bkgds_list = bkgds_list
         self.duration_interval = duration_interval
 
     def calculate(self, num_sims, confidence):
-        # Performs the calculation. The user can also define the number
-        # of sims and confidence region for the uncertainty calculation. This
-        # will return a 3-tuple: (value, - error, + error)
-
-        ####################  Calculation  ###########################
+        """Performs the duration calculation and the uncertainty on the 
+        duration is performed via Monte Carlo simulations.
+        
+        Args:
+            num_sims (int): The number of simulations to perform for the 
+                            uncertainty calculation
+            confidence (float): The confidence region for the duration uncertainty
+        
+        Returns:
+            (tuple): A 3-tuple representing the (value, - error, + error)
+        """
 
         list_src_cts = []
         list_src_centroids = []
@@ -65,24 +82,19 @@ class Duration:
             b_rates_cts_err = b_rates.count_uncertainty
             list_bkg_cts.append(b_rates_cts)
             list_bkg_cts_err.append(b_rates_cts_err)
-            # break
         br = np.sum(list_bkg_cts, axis=0)
 
         workingrate = timebins_y.T[:, ] - br.T[:, ]
         cumflsum = workingrate.cumsum(axis=1)
         plotter_full = (timebins_x, cumflsum.T[:, ])
-        # plt.plot(plotter_full[0],plotter_full[1])
 
         f_lower = np.where(plotter_full[1] <= self.duration_interval[0] * np.max(plotter_full[1]))
         t_lower = np.max(timebins_x[f_lower[0]])
-        # t_lower = round(t_lower2, 2)
 
         f_higher = np.where(plotter_full[1] <= self.duration_interval[1] * np.max(plotter_full[1]))
         t_higher = np.max(timebins_x[f_higher[0]])
-        # t_higher = round(t_higher2, 2)
 
         t_diff = (t_higher - t_lower)
-        # t_diff = round(f_diff, 4)
 
         ####################  Errors  ###########################
 
