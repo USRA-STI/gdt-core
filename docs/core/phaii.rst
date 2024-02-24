@@ -2,8 +2,10 @@
 .. |Phaii| replace:: :class:`~gdt.core.phaii.Phaii`
 .. |Pha| replace:: :class:`~gdt.core.pha.Pha`
 .. |TimeEnergyBins| replace:: :class:`~gdt.core.data_primitives.TimeEnergyBins`
+.. |TimeChannelBins| replace:: :class:`~gdt.core.data_primitives.TimeChannelBins`
 .. |TimeBins| replace:: :class:`~gdt.core.data_primitives.TimeBins`
 .. |EnergyBins| replace:: :class:`~gdt.core.data_primitives.EnergyBins`
+.. |ChannelBins| replace:: :class:`~gdt.core.data_primitives.ChannelBins`
 .. |Gti| replace:: :class:`~gdt.core.data_primitives.Gti`
 .. |Ebounds| replace:: :class:`~gdt.core.data_primitives.Ebounds`
 .. |Phaii.open()| replace:: :meth:`~gdt.core.phaii.Phaii.open`
@@ -269,6 +271,76 @@ long as they do not overlap in time:
     energy range (4.32, 2000.0)>
     >>> phaii_merged.gti
     <Gti: 2 intervals; range (0.0, 0.32)>
+
+No Energy Calibration
+=====================
+Sometimes PHAII data does not have a native calibration associated with it or
+the calibration is applied at a later time.  We can still create a |Phaii| 
+object with a |TimeChannelBins| object.
+
+    >>> from gdt.core.data_primitives import TimeChannelBins, Gti
+    >>> from gdt.core.phaii import Phaii
+    >>> # construct the time series count spectra (6 time bins, 8 channels)
+    >>> counts = [[ 0,  0,  2,  1,  2,  0,  0,  0],
+    >>>           [ 3, 16, 10, 13, 14,  4,  3,  3],
+    >>>           [ 3, 23, 26, 13,  8,  8,  5,  5],
+    >>>           [ 4, 21, 19, 16, 13,  2,  3,  4],
+    >>>           [ 4, 20, 17, 11, 15,  2,  1,  5],
+    >>>           [ 6, 20, 19, 11, 11,  1,  4,  4]]
+    >>> tstart = [0.0000, 0.0039, 0.0640, 0.1280, 0.1920, 0.2560]
+    >>> tstop = [0.0039, 0.0640, 0.1280, 0.1920, 0.2560, 0.320]
+    >>> exposure = [0.0038, 0.0598, 0.0638, 0.0638, 0.0638, 0.0638]
+    >>> chan_nums = [0, 1, 2, 3, 4, 5, 6, 7]
+    >>> data = TimeChannelBins(counts, tstart, tstop, exposure, chan_nums)
+
+    >>> # construct the good time interval(s)
+    >>> gti = Gti.from_list([(0.0000, 0.320)])
+
+    >>> # create the PHAII object
+    >>> phaii = Phaii.from_data(data, gti=gti, trigger_time=356223561.)
+    >>> phaii
+    <Phaii: 
+    trigger time: 356223561.0;
+    time range (0.0, 0.32);
+    energy range None>
+
+All of the functionality is maintained when using uncalibrated PHAII data, 
+including merging, slicing, rebinning, and converting to lightcurves and 
+spectra, with the exception of creating a PHA object, which requires an 
+energy calibration. When converting to a spectrum, a |ChannelBins| object is 
+returned instead of an |EnergyBins| object:
+
+    >>> spectrum = phaii.to_spectrum()
+    >>> spectrum
+    <ChannelBins: 8 bins;
+     range (0, 7);
+     1 contiguous segments>
+
+We can even plot the channel spectrum, which will look a little bit different
+from the earlier count spectrum plot because we don't have an energy calibration:
+
+    >>> from gdt.core.plot.spectrum import Spectrum
+    >>> specplot = Spectrum(data=spectrum)
+    >>> plt.show()
+
+.. image:: phaii_figs/specfig2.png
+
+If, after creating the uncalibrated |Phaii| object, we want to apply an energy
+calibration, we can do that by creating an |Ebounds| object containing the 
+energy edges.  This will update the data container from a |TimeChannelBins| to
+a |TimeEnergyBins|:
+
+    >>> emin = [4.32, 11.5, 26.2, 49.6, 101., 290., 539., 997.]
+    >>> emax = [11.5, 26.2, 49.6, 101., 290., 539., 997., 2000.]
+    >>> ebounds = Ebounds.from_bounds(emin, emax)
+    >>> phaii.set_ebounds(ebounds)
+    >>> phaii.data
+    <TimeEnergyBins: 6 time bins;
+     time range (0.0, 0.32);
+     1 time segments;
+     8 energy bins;
+     energy range (4.32, 2000.0);
+     1 energy segments>
 
 
 For Developers:
