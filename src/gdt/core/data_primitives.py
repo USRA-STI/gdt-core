@@ -640,7 +640,7 @@ class EventList():
         overflow_counts = counts[:, -1]
         deadtime = counts.sum(axis=1) * event_deadtime + \
                    overflow_counts * (overflow_deadtime - event_deadtime)
-        exposure = (hi_edges - lo_edges) - deadtime
+        exposure = (np.minimum(hi_edges, tstop) - np.maximum(lo_edges, tstart)) - deadtime
         
         if self.ebounds is None:
             bins = TimeChannelBins(counts, lo_edges, hi_edges, exposure,
