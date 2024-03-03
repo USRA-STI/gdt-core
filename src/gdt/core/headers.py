@@ -191,7 +191,7 @@ class FileHeaders():
                 else:
                     try:
                         obj[i][key] = headers[i][key]
-                    except:
+                    except KeyError:
                         warnings.warn(f'{key} not found in header', 
                                       RuntimeWarning)
                         
