@@ -26,6 +26,7 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import warnings
 import astropy.io.fits as fits
 from astropy.time import Time
 
@@ -188,7 +189,12 @@ class FileHeaders():
                     obj[i][key][hidx] = headers[i][key][hidx]
                     hidx += 1
                 else:
-                    obj[i][key] = headers[i][key]
+                    try:
+                        obj[i][key] = headers[i][key]
+                    except:
+                        warnings.warn(f'{key} not found in header', 
+                                      RuntimeWarning)
+                        
         
         return obj
         
