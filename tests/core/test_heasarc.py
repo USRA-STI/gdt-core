@@ -52,6 +52,9 @@ class MyBadCatalog(BrowseCatalog):
 
 # ------------------------------------------------------------------------------
 
+@unittest.skipIf(
+    os.environ.get('SKIP_HEASARC_FTP_TESTS', False), 'Skipping HEASARC FTP tests'
+)
 class TestFtpFinder(unittest.TestCase):
     
     def tearDown(self):

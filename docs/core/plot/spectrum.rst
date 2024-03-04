@@ -7,11 +7,15 @@
 .. |BackgroundSpectrum| replace:: :class:`~gdt.core.background.primitives.BackgroundSpectrum`
 .. |core-phaii| replace:: :ref:`PHAII Data<core-phaii>`
 .. |background_fitter| replace:: :ref:`Background Fitter<background_fitter>`
+.. |ChannelBins| replace:: :class:`~gdt.core.data_primitives.ChannelBins`
 
 ******************************************************
 Plotting Count Spectra (:mod:`~gdt.core.plot.spectra`)
 ******************************************************
 A count spectrum can be plotted by using the |Spectrum| plotting class.
+
+Energy-Calibrated Spectrum
+==========================
 
 We will use an example Fermi GBM PHAII file (see |core-phaii| for details 
 about PHAII data).
@@ -132,6 +136,37 @@ properties:
 
 .. image:: spectrum_figs/specfig7.png
 
+Uncalibrated Energy Channel Spectrum
+====================================
+If we have a count spectrum but no energy calibration, then we simply want to
+plot the number of counts in each energy channel. This is represented by the
+|ChannelBins| data object, and |Spectrum| can be used to plot these as well.
+
+As an example, let's create an uncalibrated energy channel spectrum from the
+Fermi GBM data we used earlier:
+
+    >>> from gdt.core.data_primitives import ChannelBins
+    >>> spectrum = phaii.to_spectrum()
+    >>> # create a list of channel numbers
+    >>> chan_nums = list(range(spectrum.size))
+    >>> chan_bins = ChannelBins.create(spectrum.counts, chan_nums, spectrum.exposure)
+    >>> chan_bins
+    <ChannelBins: 128 bins;
+     range (0, 127);
+     1 contiguous segments>
+
+Now we can plot it:
+
+    >>> import matplotlib.pyplot as plt
+    >>> from gdt.core.plot.spectrum import Spectrum
+    >>> specplot = Spectrum(data=chan_bins)
+    >>> plt.show()
+
+.. image:: spectrum_figs/specfig8.png
+
+Notice that by default, the x-axis is plotted in linear channel space, and the
+spectrum is no longer differential like it is displayed when we have an 
+energy calibration.
 
 Reference/API
 =============
