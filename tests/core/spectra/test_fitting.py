@@ -929,7 +929,8 @@ class TestSpectralFitterPgstat(unittest.TestCase):
         self.rsp2 = make_rsp('det1')
         self.fitter = SpectralFitterPgstat([self.pha1, self.pha2],
                                            [self.bak1.data, self.bak2.data],
-                                           [self.rsp1, self.rsp2], method='TNC')
+                                           [self.rsp1, self.rsp2], 
+                                           method='Nelder-Mead')
         pl = PowerLaw()
         pl.max_values[1] = 10.0
         self.fitter.fit(pl)
