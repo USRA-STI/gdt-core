@@ -26,6 +26,7 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import sys
 import warnings
 from datetime import datetime
 
@@ -1030,8 +1031,6 @@ class SpectralFitterCstat(SpectralFitter):
 
 class SpectralFitterPstat(SpectralFitter):
     """Jointly-fit datasets using P-Stat (Poisson source with known background).
-    This statistic assumes non-zero counts, therefore any channels with zero
-    counts will be masked out and not used in fitting.
 
     Parameters:
         pha_list (list of :class:`~gdt.core.pha.Pha`): 
@@ -1145,10 +1144,6 @@ def pstat(obs_counts, mod_rates, exposure, back_rates):
     The "pstat" statistic from the `XSPEC Statistics Appendix
     <https://heasarc.gsfc.nasa.gov/xanadu/xspec/manual/XSappendixStatistics.html>`_.
     
-    Note:
-        Elements with zero counts are masked out and not figured in the 
-        statistic.
-    
     Args:
         obs_counts (np.array): The total observed counts
         mod_rates (np.array): The model source rates
@@ -1159,11 +1154,16 @@ def pstat(obs_counts, mod_rates, exposure, back_rates):
         (float)
     """
 
-    mask = (obs_counts > 0) & (mod_rates + back_rates > 0.0)
-    pstat_val = (exposure * (mod_rates[mask] + back_rates[mask])
-                 - obs_counts[mask] * np.log(exposure * (mod_rates[mask] + back_rates[mask]))
+    mask = (obs_counts > 0) & ((mod_rates + back_rates) > 0.0)
+    pstat = np.zeros_like(obs_counts, dtype=float)
+    pstat[mask] = (exposure * (mod_rates[mask] + back_rates[mask]) \
+                 - obs_counts[mask] * np.log(exposure * (mod_rates[mask] + back_rates[mask])) \
                  - obs_counts[mask] * (1.0 - np.log(obs_counts[mask])))
-    return -pstat_val.sum()
+    
+    # zero-count bins
+    mask = (obs_counts == 0) & ((mod_rates + back_rates) > 0.0)
+    pstat[mask] = exposure * (mod_rates[mask] + back_rates[mask])
+    return -pstat.sum()
 
 
 def pgstat(obs_counts, mod_rates, exposure, back_counts, back_var, back_exp):

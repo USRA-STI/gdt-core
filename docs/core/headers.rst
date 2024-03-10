@@ -170,10 +170,10 @@ update the value to the current date and time:
   '2022-04-23T17:11:05'
 
 The FileHeaders class can act as a header verifier for reading in files. If 
-there are missing keywords compared to what is expected in the header template,
-or if the values are not the type expected, an exception will be raised. If 
-there are extraneous keywords in the header compared to what is expected, no
-exception will be raised, but the extraneous keywords will be ignored.
+there are missing keywords compared to what is expected in the header template, 
+a warning will be raised. If there are extraneous keywords in the header 
+compared to what is expected, no warning will be raised, but the extraneous 
+keywords will be ignored.
 
 To test this, let's make a similar header to ``MyHeader``, but with the ``BOOL``
 keyword missing:
@@ -190,7 +190,7 @@ will populate the template headers with the header information:
 
   >>> # the list of headers can be from a file read from disk
   >>> file_headers = MyFileHeaders.from_headers([MyPartialHeader(), MySecondHeader()])
-  KeyError: "Keyword 'BOOL' not found."
+  RuntimeWarning: BOOL not found in header PRIMARY
   >>> file_headers = MyFileHeaders.from_headers([MyHeader(), MySecondHeader()])
   >>> file_headers
   <MyFileHeaders: 2 headers>
