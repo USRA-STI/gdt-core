@@ -183,10 +183,7 @@ class FitsFileContextManager(AbstractContextManager):
 
         # write to file
         full_path = dir_path / filename
-        try:
-            self.hdulist.writeto(full_path, checksum=True, **kwargs)
-        except Exception as e:
-            print(e)
+        self.hdulist.writeto(full_path, checksum=True, **kwargs)
 
     def _build_hdulist(self):
         """This builds the HDU list for the FITS file.  This method needs
