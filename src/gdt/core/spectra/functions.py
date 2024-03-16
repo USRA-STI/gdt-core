@@ -256,8 +256,13 @@ class Function(ABC):
             (:class:`SuperFunction`)
         """
         obj = cls._super_function(func1, func2, np.sum)
-        obj.names = [func1.name, func2.name]
-        obj.name = ' + '.join(obj.names)
+        if isinstance(func1, SuperFunction):
+            obj.names = func1.names + [func2.name]
+        elif isinstance(func2, SuperFunction):
+            obj.names = func2.names + [func1.name]
+        else:
+            obj.names = [func1.name, func2.name]        
+        obj.name = ' + '.join([func1.name, func2.name])
         return obj
 
     @classmethod
@@ -272,8 +277,13 @@ class Function(ABC):
             (:class:`SuperFunction`)
         """
         obj = cls._super_function(func1, func2, np.prod)
-        obj.names = [func1.name, func2.name]
-        obj.name = ' * '.join(obj.names)
+        if isinstance(func1, SuperFunction):
+            obj.names = func1.names + [func2.name]
+        elif isinstance(func2, SuperFunction):
+            obj.names = func2.names + [func1.name]
+        else:
+            obj.names = [func1.name, func2.name]   
+        obj.name = ' * '.join([func1.name, func2.name])
         return obj
 
     @classmethod
