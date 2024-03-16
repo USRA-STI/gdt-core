@@ -155,6 +155,7 @@ class TestAdditiveSuperFunction(unittest.TestCase):
                           ('MySecondFunction: C0', 'units1', 'Coeff1'),
                           ('MySecondFunction: C1', 'units2', 'Coeff2')])
         self.assertEqual(myfunc.free, [True] * 4)
+        assert myfunc.names == ['MyFirstFunction', 'MySecondFunction']
 
     def test_eval(self):
         myfunc = MyFirstFunction() + MySecondFunction()
@@ -181,6 +182,7 @@ class TestMultiplicativeSuperFunction(unittest.TestCase):
                           ('MySecondFunction: C0', 'units1', 'Coeff1'),
                           ('MySecondFunction: C1', 'units2', 'Coeff2')])
         self.assertEqual(myfunc.free, [True] * 4)
+        assert myfunc.names == ['MyFirstFunction', 'MySecondFunction']
 
     def test_eval(self):
         myfunc = MyFirstFunction() * MySecondFunction()
@@ -200,6 +202,8 @@ class TestMixedMultipleSuperFunctions(unittest.TestCase):
         self.assertEqual(myfunc.name, 'MyFirstFunction + MySecondFunction * MyThirdFunction')
         self.assertEqual(myfunc.nparams, 5)
         self.assertEqual(myfunc.num_components, 3)
+        assert myfunc.names == ['MyFirstFunction', 'MySecondFunction', 
+                                'MyThirdFunction']
 
     def test_eval(self):
         myfunc = MyFirstFunction() + MySecondFunction() * MyThirdFunction()
