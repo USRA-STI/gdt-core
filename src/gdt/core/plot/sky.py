@@ -453,6 +453,12 @@ class SkyPlot(GdtPlot):
         else:
             x = lon_array
             y = lat_array
+        
+        # Astropy SkyCoord will convert 360 deg to 0 deg, which results in 
+        # undesired behavior for plotting.  So, we make this a value slightly
+        # smaller than 360 deg.        
+        x[(x == 360.0)] = (360.0 - 1e-6)
+
         coords = SkyCoord(x.flatten(), y.flatten(), frame='gcrs', unit='deg')
         
         try:
