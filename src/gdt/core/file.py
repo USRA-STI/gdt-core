@@ -205,10 +205,15 @@ class FitsFileContextManager(AbstractContextManager):
 
     def _repr_html_(self):
         s = f'<p>&lt{self.__class__.__name__}(filename=<b>"{self.filename}"</b>) at {hex(id(self))}&gt</p>'
-        s += '<table>'
-        s += '<tr><th>No.</th><th>Name</th><th>Ver</th><th>Type</th><th>Cards</th><th>Dimensions</th></tr>'
-        for row in self._hdulist.info(False):
-            s += f'<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[4]}</td>' \
-                 f'<td>{row[5]}</td></tr>'
-        s += '</table>'
+        try:
+            t = '<table>'
+            t += '<tr><th>No.</th><th>Name</th><th>Ver</th><th>Type</th><th>Cards</th><th>Dimensions</th></tr>'
+            for row in self.hdulist.info(False):
+                t += f'<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[4]}</td>' \
+                     f'<td>{row[5]}</td></tr>'
+            t += '</table>'
+            s += t
+        except NotImplementedError:
+            pass
+
         return s
