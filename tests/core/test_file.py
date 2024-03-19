@@ -31,7 +31,6 @@ import unittest
 import numpy as np
 from tempfile import TemporaryDirectory, mkdtemp
 from pathlib import Path
-import pytest
 from astropy.io import fits
 from gdt.core.file import FileContextManager, FitsFileContextManager
 
@@ -171,24 +170,17 @@ class TestFitsFileContextManager(unittest.TestCase):
             fpath = Path(this_path, self.fits_file.name)
             self.assertTrue(fpath.exists())
 
-
-@pytest.fixture(scope="module")
-def cache_path():
-    return mkdtemp()
-
-
-@pytest.mark.parametrize("fits_file", ["tcat", "trigdat"])
-def test_fsspec_cache_open_fits(fits_file, cache_path):
-    trigger_name = "bn190915240"
-    file_name = f"glg_{fits_file}_all_{trigger_name}_v0[0-9].fit"
-    fits_url = f"simplecache::https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/20{trigger_name[2:4]}/{trigger_name}/current/{file_name}"
-    fsspec_kwargs = {"simplecache": {"cache_storage": cache_path, "same_names": True}}
-    with FitsFileContextManager.open(fits_url, use_fsspec=True, fsspec_kwargs=fsspec_kwargs) as f:
-        assert f is not None
-        assert f.num_hdus >= 1
-        assert f.hdulist[0].name
-        assert f.hdulist[0].header
-        assert len(f.hdulist[0].header.cards) >= 1
-        assert next(Path(cache_path).glob(file_name))
-
-
+    def test_fsspec_cache_open_fits(self):
+        trigger_name = "bn190915240"
+        cache_path = self.temp_dir
+        fsspec_kwargs = {"simplecache": {"cache_storage": cache_path, "same_names": True}}
+        for fits_file in ["tcat", "trigdat"]:
+            file_name = f"glg_{fits_file}_all_{trigger_name}_v0[0-9].fit"
+            fits_url = f"simplecache::https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/20{trigger_name[2:4]}/{trigger_name}/current/{file_name}"
+            with FitsFileContextManager.open(fits_url, use_fsspec=True, fsspec_kwargs=fsspec_kwargs) as f:
+                assert f is not None
+                assert f.num_hdus >= 1
+                assert f.hdulist[0].name
+                assert f.hdulist[0].header
+                assert len(f.hdulist[0].header.cards) >= 1
+                assert next(Path(cache_path).glob(file_name))
