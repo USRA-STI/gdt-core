@@ -35,6 +35,13 @@ from astropy.io import fits
 from gdt.core.file import FileContextManager, FitsFileContextManager
 
 
+class MockFitsFileClass(FitsFileContextManager):
+    def _build_hdulist(self):
+        primary = fits.PrimaryHDU()
+        hdulist = fits.HDUList(hdus=[primary])
+        return hdulist
+
+
 class TestFileContextManager(unittest.TestCase):
 
     def test_open(self):
@@ -184,3 +191,42 @@ class TestFitsFileContextManager(unittest.TestCase):
                 assert f.hdulist[0].header
                 assert len(f.hdulist[0].header.cards) >= 1
                 assert next(Path(cache_path).glob(file_name))
+
+    def test_new_repr_html_no_builder(self):
+        """Test html representation of a newly created object without a hdu builder."""
+        f = FitsFileContextManager()
+        repr_html = f._repr_html_()
+        self.assertRegex(repr_html,
+                         r'<p>&ltFitsFileContextManager\(filename=<b>"None"</b>\) at 0x[0-9a-f]+&gt</p>')
+
+    def test_new_repr_html_builder(self):
+        """Test html representation of a newly created object with a hdu builder."""
+        f = MockFitsFileClass()
+        repr_html = f._repr_html_()
+        print(repr_html)
+
+        # Confirm expected table was returned
+        expected_object_info = (r'<p>&ltMockFitsFileClass\(filename=<b>"None"</b>\)'
+                                r' at 0x[0-9a-f]+&gt</p>.*')
+        expected_table = (r"<table>"
+                          r"<tr><th>No.</th><th>Name</th><th>Ver</th><th>Type</th><th>Cards</th><th>Dimensions</th></tr>"
+                          r"<tr><td>0</td><td>PRIMARY</td><td>1</td><td>PrimaryHDU</td><td>4</td><td>\(\)</td></tr>"
+                          r"</table>")
+        self.assertRegex(repr_html, expected_object_info + expected_table)
+
+
+    def test_repr_html_with_file(self):
+        """Test html representation of a fits file"""
+        with FitsFileContextManager.open(self.fits_file) as f:
+            repr_html = f._repr_html_()
+            print(repr_html)
+
+        # Confirm expected table was returned
+        expected_object_info = (r'<p>&ltFitsFileContextManager\(filename=<b>"test_data.fits"</b>\)'
+                                r' at 0x[0-9a-f]+&gt</p>.*')
+        expected_table = (r"<table>"
+                          r"<tr><th>No.</th><th>Name</th><th>Ver</th><th>Type</th><th>Cards</th><th>Dimensions</th></tr>"
+                          r"<tr><td>0</td><td>PRIMARY</td><td>1</td><td>PrimaryHDU</td><td>4</td><td>\(\)</td></tr>"
+                          r"<tr><td>1</td><td></td><td>1</td><td>BinTableHDU</td><td>62</td><td>5R x 19C</td></tr>"
+                          r"</table>")
+        self.assertRegex(repr_html, expected_object_info + expected_table)

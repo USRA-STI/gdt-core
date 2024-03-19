@@ -29,7 +29,7 @@
 import os
 import unittest
 import numpy as np
-from gdt.core.data_primitives import EventList, Gti, Ebounds, EnergyBins
+from gdt.core.data_primitives import EventList, Gti, Ebounds, EnergyBins, ChannelBins
 from gdt.core.headers import FileHeaders
 from gdt.core.phaii import Phaii
 from gdt.core.pha import Pha
@@ -104,6 +104,26 @@ class TestPhotonList(unittest.TestCase):
         rebinned_tte = self.tte.rebin_energy(combine_by_factor, 2)
         self.assertEqual(rebinned_tte.num_chans, 3)        
         
+    def test_set_ebounds(self):
+        emin = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+        emax = [20.0, 30.0, 40.0, 50.0, 60.0, 70.0]
+        ebounds = Ebounds.from_bounds(emin, emax)
+        
+        data = EventList(times=self.tte.data.times, 
+                         channels=self.tte.data.channels)
+        tte = PhotonList.from_data(data, gti=self.tte.gti, 
+                                   trigger_time=self.tte.trigtime,
+                                   event_deadtime=self.tte.event_deadtime,
+                                   overflow_deadtime=self.tte.overflow_deadtime)
+    
+        with self.assertRaises(TypeError):
+            tte.set_ebounds(emin)
+                
+        tte.set_ebounds(ebounds)
+        assert isinstance(tte.ebounds, Ebounds)
+        self.assertListEqual(tte.ebounds.low_edges(), emin)
+        self.assertListEqual(tte.ebounds.high_edges(), emax)
+    
     def test_slice_energy(self):
         # one slice
         sliced_tte = self.tte.slice_energy((50.0, 250.0))
@@ -260,6 +280,243 @@ class TestPhotonList(unittest.TestCase):
         with self.assertRaises(ValueError):
             PhotonList.merge([tte1, tte3])
         
+    def test_no_gti(self):
+        tte = PhotonList.from_data(self.tte.data)
+        self.assertTupleEqual(tte.gti.as_list()[0], (0.706, 10.61))
+    
+    def test_errors(self):
+        
+        with self.assertRaises(TypeError):
+            PhotonList.from_data(self.tte.gti)
+
+        with self.assertRaises(TypeError):
+            PhotonList.from_data(self.tte.data, gti=self.tte.data)
+    
+        with self.assertRaises(ValueError):
+            PhotonList.from_data(self.tte.data, trigger_time=-10.0)
+
+        with self.assertRaises(TypeError):
+            PhotonList.from_data(self.tte.data, headers=self.tte.data)
+
+        with self.assertRaises(ValueError):
+            PhotonList.from_data(self.tte.data, event_deadtime=-10.0)
+
+        with self.assertRaises(ValueError):
+            PhotonList.from_data(self.tte.data, overflow_deadtime=-10.0)
+
+        with self.assertRaises(TypeError):
+            PhotonList.from_data(self.tte.data, event_deadtime='')
+
+        with self.assertRaises(TypeError):
+            PhotonList.from_data(self.tte.data, overflow_deadtime='')
+
+
+class TestPhotonListNoEbounds(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        times = [0.706, 1.640, 3.185, 3.512, 5.540, 
+                 7.790, 9.602, 9.726, 10.45, 10.61]
+        chans = [4, 1, 0, 4, 5, 0, 4, 0, 2, 0]
+        data = EventList(times=times, channels=chans)
+        gti = Gti.from_list([(0.0000, 10.70)])
+        cls.tte = PhotonList.from_data(data, gti=gti, 
+                                       trigger_time=356223561.133346,
+                                       event_deadtime=0.001, 
+                                       overflow_deadtime=0.1)
+        
+    def test_data(self):
+        self.assertIsInstance(self.tte.data, EventList)
+    
+    def test_ebounds(self):
+        assert self.tte.ebounds is None
+    
+    def test_energy_range(self):
+        assert self.tte.energy_range is None
+
+    def test_event_deadtime(self):
+        self.assertEqual(self.tte.event_deadtime, 0.001)
+
+    def test_filename(self):
+        self.assertIsNone(self.tte.filename)
+    
+    def test_gti(self):
+        self.assertIsInstance(self.tte.gti, Gti)
+    
+    def test_headers(self):
+        self.assertIsNone(self.tte.headers)
+
+    def test_num_chans(self):
+        self.assertEqual(self.tte.num_chans, 6)
+
+    def test_overflow_deadtime(self):
+        self.assertEqual(self.tte.overflow_deadtime, 0.1)
+    
+    def test_time_range(self):
+        self.assertTupleEqual(self.tte.time_range, (0.706, 10.61))
+    
+    def test_trigtime(self):
+        self.assertEqual(self.tte.trigtime, 356223561.133346)
+
+    def test_get_exposure(self):
+        # total exposure
+        self.assertAlmostEqual(self.tte.get_exposure(), 9.795)
+        
+        # exposure of a time slice
+        self.assertAlmostEqual(self.tte.get_exposure(time_ranges=(0.0, 5.0)),
+                               4.996)
+
+        # exposure of multiple time slices
+        self.assertAlmostEqual(self.tte.get_exposure(time_ranges=[(0.0, 2.0),
+                                                                    (5.0, 7.0)]),
+                               3.898)
+    
+    def test_rebin_energy(self):
+        # full range
+        rebinned_tte = self.tte.rebin_energy(combine_by_factor, 2)
+        self.assertEqual(rebinned_tte.num_chans, 3)        
+        
+    def test_set_ebounds(self):
+        emin = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+        emax = [20.0, 30.0, 40.0, 50.0, 60.0, 70.0]
+        ebounds = Ebounds.from_bounds(emin, emax)
+        
+        data = EventList(times=self.tte.data.times, 
+                         channels=self.tte.data.channels)
+        tte = PhotonList.from_data(data, gti=self.tte.gti, 
+                                   trigger_time=self.tte.trigtime,
+                                   event_deadtime=self.tte.event_deadtime,
+                                   overflow_deadtime=self.tte.overflow_deadtime)
+    
+        with self.assertRaises(TypeError):
+            tte.set_ebounds(emin)
+                
+        tte.set_ebounds(ebounds)
+        assert isinstance(tte.ebounds, Ebounds)
+        self.assertListEqual(tte.ebounds.low_edges(), emin)
+        self.assertListEqual(tte.ebounds.high_edges(), emax)
+    
+    def test_slice_energy(self):
+        # one slice
+        sliced_tte = self.tte.slice_energy((2, 4))
+        assert sliced_tte.energy_range is None
+        self.assertEqual(sliced_tte.num_chans, 3)
+        
+        # multiple slices
+        sliced_tte = self.tte.slice_energy([(1, 2), (4, 5)])
+        assert sliced_tte.energy_range is None
+        self.assertEqual(sliced_tte.num_chans, 5)
+
+    def test_slice_time(self):
+        # one slice
+        sliced_tte = self.tte.slice_time((0.0, 5.0))
+        self.assertTupleEqual(sliced_tte.time_range, (0.706, 3.512))
+        self.assertEqual(sliced_tte.data.size, 4)
+        
+        # multiple slices
+        sliced_tte = self.tte.slice_time([(0.0, 2.0), (5.0, 7.0)])
+        self.assertTupleEqual(sliced_tte.time_range, (0.706, 5.540))
+        self.assertEqual(sliced_tte.data.size, 3)
+
+    def test_to_spectrum(self):
+        # integrate full ranges
+        spec = self.tte.to_spectrum()
+        self.assertIsInstance(spec, ChannelBins)
+        self.assertTupleEqual(spec.range, (0, 5))
+        
+        # this should be the whole range because we have no ebounds
+        spec = self.tte.to_spectrum(energy_range=(50.0, 300.0))
+        self.assertListEqual(spec.counts.tolist(), [4, 1, 1, 0, 3, 1])
+        
+        # or channels
+        spec = self.tte.to_spectrum(channel_range=(3, 5))
+        self.assertListEqual(spec.counts.tolist(), [0, 0, 0, 0, 3, 1])
+        
+        # integrate over a part of the time range
+        spec = self.tte.to_spectrum(time_range=(0.0, 5.0))
+        self.assertListEqual(spec.counts.tolist(), [1, 1, 0, 0, 2])
+    
+    def test_to_pha(self):
+        
+        # this should raise an exception
+        with self.assertRaises(RuntimeError):
+            self.tte.to_pha()
+        
+    def test_to_phaii(self):
+        # full range
+        phaii = self.tte.to_phaii(bin_by_time, 1.0, phaii_class=Phaii)
+        assert phaii.energy_range is None
+        self.assertTupleEqual(phaii.gti.as_list()[0], self.tte.gti.as_list()[0])
+        self.assertEqual(phaii.num_chans, 6)
+        self.assertTupleEqual(phaii.time_range, (0.706, 10.706))
+        self.assertEqual(phaii.trigtime, self.tte.trigtime)
+        self.assertEqual(phaii.data.num_times, 10)
+        
+        # time range
+        phaii = self.tte.to_phaii(bin_by_time, 1.0, phaii_class=Phaii, 
+                                  time_range=(0.0, 5.0))
+        assert phaii.energy_range is None
+        self.assertTupleEqual(phaii.gti.as_list()[0], (0.706, 3.512))
+        self.assertEqual(phaii.num_chans, 5)
+        self.assertTupleEqual(phaii.time_range, (0.706, 3.706))
+        self.assertEqual(phaii.trigtime, self.tte.trigtime)
+        self.assertEqual(phaii.data.num_times, 3)
+        
+        # energy range (this should be same as full range because no ebounds)
+        phaii = self.tte.to_phaii(bin_by_time, 1.0, phaii_class=Phaii, 
+                                  energy_range=(10.0, 50.0))
+        assert phaii.energy_range is None
+        self.assertTupleEqual(phaii.gti.as_list()[0], self.tte.gti.as_list()[0])
+        self.assertEqual(phaii.num_chans, 6)
+        self.assertEqual(phaii.trigtime, self.tte.trigtime)
+        self.assertEqual(phaii.data.num_times, 10)
+
+        # channel range
+        phaii = self.tte.to_phaii(bin_by_time, 1.0, phaii_class=Phaii, 
+                                  channel_range=(0, 2))
+        assert phaii.energy_range is None
+        self.assertTupleEqual(phaii.gti.as_list()[0], self.tte.gti.as_list()[0])
+        self.assertEqual(phaii.num_chans, 3)
+        self.assertEqual(phaii.trigtime, self.tte.trigtime)
+        self.assertEqual(phaii.data.num_times, 9)
+        
+        # bad time range
+        with self.assertRaises(AssertionError):
+            self.tte.to_phaii(bin_by_time, 1.0, phaii_class=Phaii, 
+                              time_range=(1.0, 0.0))
+       
+        # bad channel range
+        with self.assertRaises(AssertionError):
+            self.tte.to_phaii(bin_by_time, 1.0, phaii_class=Phaii, 
+                              channel_range=(1.0, 0.0))
+        
+        # bad Phaii class
+        with self.assertRaises(TypeError):
+            self.tte.to_phaii(bin_by_time, 1.0, phaii_class=Pha)
+    
+    def test_write(self):
+        with self.assertRaises(NameError):
+            self.tte.write('.')
+
+    def test_merge(self):
+        tte1 = self.tte.slice_time((0.0, 5.0))
+        tte2 = self.tte.slice_time((6.0, 10.0))
+        tte = PhotonList.merge([tte1, tte2])
+        self.assertListEqual(tte.data.times.tolist(), 
+                             [0.706, 1.640, 3.185, 3.512, 7.790, 9.602, 9.726])
+        self.assertListEqual(tte.data.channels.tolist(), 
+                             [4, 1, 0, 4, 0, 4, 0])
+        self.assertTupleEqual(tte.gti.as_list()[0], (0.706, 3.512))
+        self.assertTupleEqual(tte.gti.as_list()[1], (7.79, 9.726))
+        
+        # not a list of valid PhotonLists
+        with self.assertRaises(ValueError):
+            PhotonList.merge([tte1, tte2.gti])
+        
+        # not a valid header index
+        with self.assertRaises(ValueError):
+            PhotonList.merge([tte1, tte2], primary=2)
+                
     def test_no_gti(self):
         tte = PhotonList.from_data(self.tte.data)
         self.assertTupleEqual(tte.gti.as_list()[0], (0.706, 10.61))

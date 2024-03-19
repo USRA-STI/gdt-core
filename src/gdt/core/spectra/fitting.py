@@ -26,6 +26,7 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import sys
 import warnings
 from datetime import datetime
 
@@ -975,7 +976,8 @@ class SpectralFitterPgstat(SpectralFitter):
         # perform pgstat calculation for one dataset
         return self._stat(self._data[set_num], src_model, self._exposure[set_num],
                           self._back_rates[set_num] * self._back_exp[set_num],
-                          self._back_var[set_num], self._back_exp[set_num])
+                          self._back_var[set_num] * self._back_exp[set_num]**2, 
+                          self._back_exp[set_num])
 
 
 class SpectralFitterCstat(SpectralFitter):
@@ -1030,8 +1032,6 @@ class SpectralFitterCstat(SpectralFitter):
 
 class SpectralFitterPstat(SpectralFitter):
     """Jointly-fit datasets using P-Stat (Poisson source with known background).
-    This statistic assumes non-zero counts, therefore any channels with zero
-    counts will be masked out and not used in fitting.
 
     Parameters:
         pha_list (list of :class:`~gdt.core.pha.Pha`): 
@@ -1145,10 +1145,6 @@ def pstat(obs_counts, mod_rates, exposure, back_rates):
     The "pstat" statistic from the `XSPEC Statistics Appendix
     <https://heasarc.gsfc.nasa.gov/xanadu/xspec/manual/XSappendixStatistics.html>`_.
     
-    Note:
-        Elements with zero counts are masked out and not figured in the 
-        statistic.
-    
     Args:
         obs_counts (np.array): The total observed counts
         mod_rates (np.array): The model source rates
@@ -1159,11 +1155,16 @@ def pstat(obs_counts, mod_rates, exposure, back_rates):
         (float)
     """
 
-    mask = (obs_counts > 0) & (mod_rates + back_rates > 0.0)
-    pstat_val = (exposure * (mod_rates[mask] + back_rates[mask])
-                 - obs_counts[mask] * np.log(exposure * (mod_rates[mask] + back_rates[mask]))
+    mask = (obs_counts > 0) & ((mod_rates + back_rates) > 0.0)
+    pstat = np.zeros_like(obs_counts, dtype=float)
+    pstat[mask] = (exposure * (mod_rates[mask] + back_rates[mask]) \
+                 - obs_counts[mask] * np.log(exposure * (mod_rates[mask] + back_rates[mask])) \
                  - obs_counts[mask] * (1.0 - np.log(obs_counts[mask])))
-    return -pstat_val.sum()
+    
+    # zero-count bins
+    mask = (obs_counts == 0) & ((mod_rates + back_rates) > 0.0)
+    pstat[mask] = exposure * (mod_rates[mask] + back_rates[mask])
+    return -pstat.sum()
 
 
 def pgstat(obs_counts, mod_rates, exposure, back_counts, back_var, back_exp):
@@ -1182,10 +1183,10 @@ def pgstat(obs_counts, mod_rates, exposure, back_counts, back_var, back_exp):
         (float)
     """
     mask = (obs_counts > 0)
-    pg = np.zeros_like(obs_counts)
+    pg = np.zeros_like(obs_counts, dtype=float)
     # special case for zero observed counts
     pg[~mask] = (exposure * mod_rates[~mask] + back_counts[~mask] * (exposure / back_exp)
-                 - np.sqrt(back_var[~mask]) * (exposure / back_exp) ** 2 / 2.0)
+                 - back_var[~mask] * (exposure / back_exp)**2 / 2.0)
 
     # for all other cases:
     obs_counts_nz = obs_counts[mask]
@@ -1193,15 +1194,28 @@ def pgstat(obs_counts, mod_rates, exposure, back_counts, back_var, back_exp):
     back_counts_nz = back_counts[mask]
     back_var_nz = back_var[mask]
 
-    d = np.sqrt((exposure * back_var_nz - back_exp * back_counts_nz + back_exp ** 2 * mod_rates_nz) ** 2
-                - 4.0 * back_exp ** 2 * (exposure * back_var_nz * mod_rates_nz - obs_counts_nz * back_var_nz
-                                         - back_exp * back_counts_nz * mod_rates_nz))
+    # pull out some common calculations to simply and speed up
+    q = (exposure * back_var_nz) - (back_exp * back_counts_nz) \
+        + (back_exp**2 * mod_rates_nz)
+    
+    r = (exposure * back_var_nz * mod_rates_nz) - (obs_counts_nz * back_var_nz) \
+        - (back_exp * back_counts_nz * mod_rates_nz)
 
-    f = ((-(exposure * back_var_nz - back_exp * back_counts_nz + back_exp ** 2 * mod_rates_nz) + d)
-         / (2.0 * back_exp ** 2))
+    # root, and how to decide if positive/negative is used
+    d = np.sqrt(q**2 - 4.0 * back_exp**2 * r)    
+    d[q < 0.0] *= -1.0
+    
+    
+    f = ( (-q + d) / (2.0 * back_exp**2))
+    f_alt = (2.0 * r) / (-q + d)
+    
+    # if f < 0, then use f_alt
+    fmask = f < 0.0
+    f[fmask] = f_alt[fmask]
 
-    pg[mask] = (back_exp * (mod_rates_nz + f) - obs_counts_nz * np.log(exposure * mod_rates_nz + exposure * f)
-                + (back_counts_nz - back_exp * f) ** 2 / (2.0 * back_var_nz)
+    pg[mask] = (exposure * (mod_rates_nz + f) \
+               - obs_counts_nz * np.log(exposure * mod_rates_nz + exposure * f) \
+                + (back_counts_nz - back_exp * f)**2 / (2.0 * back_var_nz) \
                 - obs_counts_nz * (1.0 - np.log(obs_counts_nz)))
-
+    
     return -pg.sum()
