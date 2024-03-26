@@ -94,6 +94,7 @@ Reduction and Analysis
    core/binning/binning   
    core/simulate/simulate
    core/spectra/spectra
+   core/temporal/temporal
    
 Plotting
 --------

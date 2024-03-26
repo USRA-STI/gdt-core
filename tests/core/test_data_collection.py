@@ -24,6 +24,7 @@
 #
 import numpy as np
 import os
+import unittest
 from unittest import TestCase, skip
 from gdt.core.collection import DataCollection
 
