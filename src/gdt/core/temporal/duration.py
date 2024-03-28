@@ -59,6 +59,7 @@ class Duration:
         # error propagation, multiplication.
         c = np.sqrt((a ** 2) + (b ** 2))
         return c
+        
     def calculate(self, num_sims, confidence):
         # Performs the calculation. The user must specify the duration interval they
         # want to calculate (e.g. (0.05, 0.95)). The user can also define the number
