@@ -19,13 +19,12 @@ The class is initialized using these three attributes, which are the user inputs
 
 >>> class Duration:
     >>>
-    >>>def __init__(self, timebins_list, bkgds_list, duration_interval):
+    >>>    def __init__(self, timebins_list, bkgds_list, duration_interval):
     >>>    # intializes with a list of TimeBins and BackgroundRates
     >>>    # this only checks that the inputs are valid
-
-    >>>    self.timebins_list = timebins_list
-    >>>    self.bkgds_list = bkgds_list
-    >>>    self.duration_interval = duration_interval
+    >>>        self.timebins_list = timebins_list
+    >>>        self.bkgds_list = bkgds_list
+    >>>        self.duration_interval = duration_interval
 
 Before using the calcuate method to perform the duration calculation using these objects, we have defined methods used
 in that method to help with things like the error propagation and quantiles:
@@ -36,7 +35,6 @@ in that method to help with things like the error propagation and quantiles:
     >>>        return c
 
     >>>    def quantiles(self, tparam, confidence):
-    >>>        # error propagation, multiplication.
     >>>        loconf = np.quantile(tparam, ((1 + confidence) / 2))
     >>>         uppconf = np.quantile(tparam, (1 - ((1 + confidence) / 2)))
     >>>         return loconf, uppconf
@@ -227,7 +225,6 @@ Now, we use inputs we want to run with the calculate method in Duration. These i
 interval we are interested in, the number of simulations for our error calculation, temporal resolution of the rebinned
 data, energy and temporal ranges, etc.
 
->>> # src FILES INPUT ################
 >>> duration_interval = (0.05, 0.95)
 >>> num_sims = 10000
 >>> confidence = 0.9
@@ -248,8 +245,6 @@ We then create a list of BackroundRates objects for each Fermi-GBM detector (or 
 in this case), fitting a second order polynomial over the data. The resulting list is created and called 'bkgds_list.'
 We need to make sure both this bkgds_list and timebins_list are the same length and each item in the list has similar
 dimensions.
-
->>> # Background FILES INPUT ################
 
 >>> bf_phaii = BackgroundFitter.from_phaii(tte, Polynomial, time_ranges=bkgd_range)
 >>> bf_phaii.fit(order=2)
