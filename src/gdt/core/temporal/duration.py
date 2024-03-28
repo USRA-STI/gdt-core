@@ -39,7 +39,6 @@ class Duration:
         self.duration_interval = duration_interval
 
     def quantiles(self, tparam, confidence):
-        # error propagation, multiplication.
         loconf = np.quantile(tparam, ((1 + confidence) / 2))
         uppconf = np.quantile(tparam, (1 - ((1 + confidence) / 2)))
         return loconf, uppconf
