@@ -135,9 +135,25 @@ class PhotonList(FitsFileContextManager):
                              overflow_deadtime=self.overflow_deadtime, **kwargs)
         return obj
 
+    def set_ebounds(self, ebounds):
+        """Set the energy calibration (ebounds) of the data. If the data already 
+        has an energy calibration, this method will update the calibration to 
+        the new ebounds.
+        
+        Args:
+            ebounds (:class:`~.data_primitives.Ebounds`): The ebounds
+        """
+        self.data.ebounds = ebounds        
+
     def slice_energy(self, energy_ranges, **kwargs):
-        """Slice the PhotonList by one or more energy range. 
-        Produces a new PhotonList object.
+        """Slice the PhotonList by one or more energy ranges. Produces a new 
+        PhotonList object.
+
+        Note::
+          If the data does not have an energy calibration (ebounds), then this
+          function will slice by energy channels, and therefore the 
+          ``energy_ranges`` argument should be a range(s) of energy channels
+          instead of energies.
         
         Args:
             energy_ranges ([(float, float), ...]): 
@@ -147,8 +163,12 @@ class PhotonList(FitsFileContextManager):
             (:class:`PhotonList`)
         """
         energy_ranges = self._assert_range_list(energy_ranges)
-        data = [self.data.energy_slice(*self._assert_range(energy_range)) \
-                for energy_range in energy_ranges]
+        if self.ebounds is not None:
+            data = [self.data.energy_slice(*self._assert_range(energy_range)) \
+                    for energy_range in energy_ranges]
+        else:
+            data = [self.data.channel_slice(*self._assert_range(energy_range)) \
+                    for energy_range in energy_ranges]
         data = EventList.merge(data, sort=True)
 
         headers = self._build_headers(self.trigtime, *data.time_range, 
@@ -195,6 +215,11 @@ class PhotonList(FitsFileContextManager):
         """Integrate the PhotonList data over one or more time ranges to 
         produce a PHA object
 
+        Note::
+          If the data does not have an energy calibration (ebounds), then a 
+          PHA object cannot be created and calling this method will raise an
+          exception.
+
         Args:
             time_ranges ([(float, float), ...], optional): 
                 The time range of the spectrum. If omitted, uses the entire 
@@ -211,6 +236,9 @@ class PhotonList(FitsFileContextManager):
         Returns:
             (:class:`~.pha.PHA`)
         """
+        if self.ebounds is None:
+            raise RuntimeError('Energy calibration required to create a PHA object')
+
         if time_ranges is None:
             time_ranges = [self.time_range]
         time_ranges = self._assert_range_list(time_ranges)
@@ -247,6 +275,10 @@ class PhotonList(FitsFileContextManager):
                  channel_range=None, phaii_class=Phaii, headers=None, **kwargs):
         """Convert the PhotonList data to PHAII data by binning the data in 
         time.
+
+        Note::
+          If the data has no energy calibration, then ``energy_range`` is 
+          ignored, and only ``channel_range`` is used.
         
         Args:
             bin_method (<function>): A binning function for unbinned data
@@ -278,8 +310,16 @@ class PhotonList(FitsFileContextManager):
         if (channel_range is not None) or (energy_range is not None):
             if channel_range is not None:
                 self._assert_range(channel_range)
-                energy_range = (self.ebounds.low_edges()[channel_range[0]],
-                                self.ebounds.high_edges()[channel_range[1]])
+
+            if self.ebounds is not None:
+                if channel_range is not None:
+                    energy_range = (self.ebounds.low_edges()[channel_range[0]],
+                                    self.ebounds.high_edges()[channel_range[1]])
+            else:
+                if channel_range is None:
+                    channel_range = self.data.channel_range
+                energy_range = channel_range
+                    
             obj = self.slice_energy(energy_ranges=self._assert_range(energy_range))
         else:
             obj = self
@@ -290,9 +330,9 @@ class PhotonList(FitsFileContextManager):
         else:
             obj = obj.slice_time(time_range)
 
-        # do the time binning to create the TimeEnergyBins
+        # do the time binning to create the TimeEnergyBins or TimeChannelBins
         bins = obj.data.bin(bin_method, *args, **kwargs)
-        if energy_range is not None:
+        if (energy_range is not None) and (self.ebounds is not None):
             bins = bins.slice_energy(*energy_range)
         
         phaii = phaii_class.from_data(bins, gti=obj.gti, 
@@ -318,13 +358,20 @@ class PhotonList(FitsFileContextManager):
         Returns:
             (:class:`~.data_primitives.EnergyBins`)
         """
-        # slice to desired energy or channel range
+        # slice to desired energy or channel range   
         if (channel_range is not None) or (energy_range is not None):
             if channel_range is not None:
                 self._assert_range(channel_range)
-                energy_range = (self.ebounds.low_edges()[channel_range[0]],
-                                self.ebounds.high_edges()[channel_range[1]])
-            temp = self.data.energy_slice(*self._assert_range(energy_range))
+                
+            if self.ebounds is not None:
+                if channel_range is not None:
+                    energy_range = (self.ebounds.low_edges()[channel_range[0]],
+                                    self.ebounds.high_edges()[channel_range[1]])
+                temp = self.data.energy_slice(*self._assert_range(energy_range))
+            else:
+                if channel_range is None:
+                    channel_range = self.data.channel_range
+                temp = self.data.channel_slice(*channel_range)
         else:
             temp = self._data
         

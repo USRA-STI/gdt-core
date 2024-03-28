@@ -27,6 +27,7 @@
 # License.
 #
 import unittest
+import warnings
 from gdt.core.headers import Header, FileHeaders
 
 # classes for unit tests
@@ -191,6 +192,11 @@ class TestFileHeaders(unittest.TestCase):
         # wrong number of headers
         with self.assertRaises(ValueError):
              MyFileHeaders.from_headers([MyHeader()])
+        
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            MyFileHeaders.from_headers([MyHeader(), MyHeader()])
+            assert len(w) == 3
 
     def test_creator(self):
         creator = self.headers.creator()

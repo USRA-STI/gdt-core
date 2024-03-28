@@ -27,6 +27,7 @@
 # License.
 #
 import numpy as np
+from ..data_primitives import ChannelBins
 from .defaults import *
 from .lib import *
 from .plot import GdtPlot, Histo, HistoErrorbars, HistoFilled, \
@@ -36,6 +37,9 @@ __all__ = ['Spectrum']
 
 class Spectrum(GdtPlot):
     """Class for plotting count spectra and count spectra paraphernalia. 
+    
+    This class can plot differential count spectra using energy information,
+    or can plot a count spectrum based on raw energy channel.
     
     Parameters:
         data (:class:`~gdt.core.data_primitives.EnergyBins`, optional): 
@@ -120,9 +124,13 @@ class Spectrum(GdtPlot):
         """Set the count spectrum plotting data. If a count spectrum already 
         exists, this triggers a replot of the count spectrum.
         
+        If an EnergyBins object is used, this will plot a differential energy
+        spectrum (count/s/keV), and if a ChannelBins object is used (i.e. no
+        energy information), the count spectrum per channel is plotted.
+        
         Args:
-            data (:class:`~gdt.core.data_primitives.EnergyBins`): 
-                The count spectrum data to plot
+            data (:class:`~gdt.core.data_primitives.EnergyBins` or 
+                  :class:`~gdt.core.data_primitives.ChannelBins`):  The data
         """
         spec_color, spec_alpha, spec_kwargs = self._spec_settings()
         self._spec = Histo(data, self._ax, color=spec_color, alpha=spec_alpha,
@@ -133,9 +141,17 @@ class Spectrum(GdtPlot):
 
         self._ax.set_xlim(data.range)
         mask = (data.rates > 0.0)
-        self._ax.set_ylim(0.9 * np.min(data.rates_per_kev[mask]),
-                          1.1 * np.max(data.rates_per_kev))
-
+        
+        if isinstance(data, ChannelBins):
+            self._ax.set_xlabel('Channel Number', fontsize=PLOTFONTSIZE)
+            self._ax.set_ylabel('Rate (count/s)', fontsize=PLOTFONTSIZE)
+            self._ax.set_xscale('linear')
+            self._ax.set_ylim(0.9 * data.rates[mask].min(),
+                              1.1 * data.rates.max())
+        else:
+            self._ax.set_ylim(0.9 * data.rates_per_kev[mask].min(),
+                              1.1 * data.rates_per_kev.max())
+    
     def remove_background(self):
         """Remove the background from the plot.
         """
