@@ -6,7 +6,7 @@
 #
 # Copyright 2017-2024 by Universities Space Research Association (USRA). All rights reserved.
 #
-# Developed by: William Cleveland, Adam Goldstein and Oliver Roberts
+# Developed by: William Cleveland, Adam Goldstein and Oliver J. Roberts
 #               Universities Space Research Association
 #               Science and Technology Institute
 #               https://sti.usra.edu
@@ -29,31 +29,55 @@
 
 import numpy as np
 
+
 class Duration:
     def __init__(self, timebins_list, bkgds_list, duration_interval):
-        # intializes with a list of TimeBins, BackgroundRates and specified duration interval.
-        # The user must specify the duration interval they want to calculate (e.g. (0.05, 0.95)).
-        # This only checks that the inputs are valid
+        # intializes with a list of TimeBins and BackgroundRates
+        # this only checks that the inputs are valid
         self.timebins_list = timebins_list
         self.bkgds_list = bkgds_list
         self.duration_interval = duration_interval
 
+    def quantiles(self, tparam, confidence):
+        # error propagation, multiplication.
+        loconf = np.quantile(tparam, ((1 + confidence) / 2))
+        uppconf = np.quantile(tparam, (1 - ((1 + confidence) / 2)))
+        return loconf, uppconf
+
+    def findtparams(self, array, dur_per, tbins):
+        paramloc = np.where(array <= dur_per * np.max(array))
+        param = np.max(tbins[paramloc[0]])
+        return param
+
+    def findtparams_err(self, num_sims, array, dur_per, tbins):
+        list_lo = []
+        for ii in range(num_sims):
+            param2 = self.findtparams(array[ii], dur_per, tbins)
+            list_lo.append(param2)
+        return list_lo
+
+    def error_prop(self, a, b):
+        # error propagation, multiplication.
+        c = np.sqrt((a ** 2) + (b ** 2))
+        return c
     def calculate(self, num_sims, confidence):
-        # Performs the calculation. The user can also define the number
+        # Performs the calculation. The user must specify the duration interval they
+        # want to calculate (e.g. (0.05, 0.95)). The user can also define the number
         # of sims and confidence region for the uncertainty calculation. This
         # will return a 3-tuple: (value, - error, + error)
 
-        ####################  Calculation  ###########################
-
         list_src_cts = []
         list_src_centroids = []
+        list_src_cts_err = []
         for xx in range(len(self.timebins_list)):
             s_rates = self.timebins_list[xx]
             s_rates_cts = s_rates.counts
+            s_rates_ct_err = s_rates.count_uncertainty
             s_rates_centroids = s_rates.centroids
             list_src_cts.append(s_rates_cts)
             list_src_centroids.append(s_rates_centroids)
-            # break
+            list_src_cts_err.append(s_rates_ct_err)
+        # break
         timebins_y = np.sum(list_src_cts, axis=0)
         timebins_x = list_src_centroids[0]
 
@@ -71,21 +95,12 @@ class Duration:
         workingrate = timebins_y.T[:, ] - br.T[:, ]
         cumflsum = workingrate.cumsum(axis=1)
         plotter_full = (timebins_x, cumflsum.T[:, ])
-        # plt.plot(plotter_full[0],plotter_full[1])
 
-        f_lower = np.where(plotter_full[1] <= self.duration_interval[0] * np.max(plotter_full[1]))
-        t_lower = np.max(timebins_x[f_lower[0]])
-        # t_lower = round(t_lower2, 2)
-
-        f_higher = np.where(plotter_full[1] <= self.duration_interval[1] * np.max(plotter_full[1]))
-        t_higher = np.max(timebins_x[f_higher[0]])
-        # t_higher = round(t_higher2, 2)
-
+        t_lower = self.findtparams(plotter_full[1], self.duration_interval[0], timebins_x)
+        t_higher = self.findtparams(plotter_full[1], self.duration_interval[1], timebins_x)
         t_diff = (t_higher - t_lower)
-        # t_diff = round(f_diff, 4)
 
-        ####################  Errors  ###########################
-
+        # Errors  #################################################################################
         p_source_err_list = np.random.poisson(lam=(np.abs(timebins_y)), size=(num_sims, len(timebins_x)))
 
         err_prop = []
@@ -103,37 +118,20 @@ class Duration:
         arr = cuflux.T[:, ]
 
         arr2 = arr.T
-        timbins2 = timebins_x.T
+        timebins2 = timebins_x.T
 
-        f_err_lower = []
-        for i in range(num_sims):
-            h_err_lower = np.where(arr2[i] <= self.duration_interval[0] * np.max(arr2[i]))
-            g_err_lower = np.max(timbins2[h_err_lower[0]])
-        f_err_lower.append(g_err_lower)
+        f_err_lower = self.findtparams_err(num_sims, arr2, self.duration_interval[0], timebins2)
+        f_err_higher = self.findtparams_err(num_sims, arr2, self.duration_interval[1], timebins2)
 
-        f_err_higher = []
-        for i in range(num_sims):
-            h_err_higher = np.where(arr2[i] <= self.duration_interval[1] * np.max(arr2[i]))
-            g_err_higher = np.max(timbins2[h_err_higher[0]])
-            f_err_higher.append(g_err_higher)
+        #  Final Numbers #################################################################################
 
-        ####################  Final Numbers  ###########################
+        tdiff_upp_lo_err = t_higher - self.quantiles(f_err_higher, confidence)[0]
+        tdiff_upp_hi_err = t_higher - self.quantiles(f_err_higher, confidence)[1]
 
-        tupp_err_loconf = np.quantile(f_err_higher,((1+confidence)/2))
-        tupp_err_hiconf = np.quantile(f_err_higher,(1-((1+confidence)/2)))
+        tdiff_low_lo_err = t_lower - self.quantiles(f_err_lower, confidence)[0]
+        tdiff_low_hi_err = t_lower - self.quantiles(f_err_lower, confidence)[1]
 
-        tlow_err_loconf = np.quantile(f_err_lower,((1+confidence)/2))
-        tlow_err_hiconf = np.quantile(f_err_lower,(1-((1+confidence)/2)))
-
-        tdiff_upp_lo_err = t_higher - tupp_err_loconf
-        tdiff_upp_hi_err = t_higher - tupp_err_hiconf
-
-        tdiff_low_lo_err = t_lower - tlow_err_loconf
-        tdiff_low_hi_err = t_lower - tlow_err_hiconf
-
-        fdiff_err_lo = np.sqrt((tdiff_upp_lo_err ** 2) + (tdiff_low_lo_err ** 2))
-        fdiff_err_hi = np.sqrt((tdiff_upp_hi_err ** 2) + (tdiff_low_hi_err ** 2))
-        tdiff_err_lo = fdiff_err_lo * -1
-        tdiff_err_hi = fdiff_err_hi
+        tdiff_err_lo = self.error_prop(tdiff_upp_lo_err, tdiff_low_lo_err) * -1
+        tdiff_err_hi = self.error_prop(tdiff_upp_hi_err, tdiff_low_hi_err)
 
         return t_diff, tdiff_err_lo, tdiff_err_hi
