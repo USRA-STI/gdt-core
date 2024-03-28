@@ -18,18 +18,32 @@ an appropriate ``label``).  This may be as simple as notifying us (and other
 users!) that there is a bug.  Perhaps you also have a proposed solution to 
 fixing the issue.  If so, then you can outline your proposed fix when you open 
 the issue, and we will give you feedback about whether we think that would be a
-useful and appropriate fix.  Once you have an affirmative, you are welcome to
-create a `Pull Request <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`_.
-We suggest this sequence of
+useful and appropriate fix.
 
-1. Issue Creation
-2. Pull Request
+**Simple typographical fixes and clarifications made in the documentation do not require
+the creation of an issue.**
 
-because it may save you precious time in the event that we do not decide to implement your 
-proposed solution.  This procedure should be considered not just for bug fixes
-but also for other types of contributions such as new features, API improvements,
-and sizable documentation changes.  Simple typographical fixes and clarifications
-made in the documentation can skip the issue creation step.
+If your proposed modifications are significant (e.g. sizable document change, API improvements,
+new feature), we highly recommend that you detail the propose change in the issue and wait for feedback.
+This is to save you precious time in the event that we decide not to accept your proposed solution.
+Often the proposed solution can break functionality elsewhere or can be simplified, and we would like to have
+a chance to provide useful feedback before you begin coding. Waiting for feedback
+is not a requirement, but merely reduces the chance of additional changes prior to having
+your pull request accepted.
+
+If you are submitting code modifications, we require that you create a unit test to confirm
+expected operation of the code if those modifications aren't already covered by an
+existing unit test.
+
+The usual sequence of events are:
+
+1. Create an issue describing the proposed changes.
+2. Waiting for feedback if desired.
+3. Fork from main branch.
+4. Use your fork to add your changes to the code base.
+5. Create unit tests showing that your changes work as intended.
+6. Create `Pull Request <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`_ with a comment explaining how it closes the issue you created.
+
 
 Opening an Issue
 -----------------
@@ -75,14 +89,17 @@ Particular care is taken in reviewing fixes/features for ``gdt-core`` since any
 change may have impacts to some or all of the missions within the GDT family.
 This means that when we consider issues like API improvements, we may balance
 this with the impact it would have on all of the mission packages.  Major API
-changes, particularly in ``gdt-core``, may require a major version change, as
+changes, particularly in ``gdt-core``, rarely get accepted for the current release.
+Instead it will have to wait for the next planned major version release, as
 it could certainly imply changes that propagate to the mission packages.
 
 Contributing to mission packages
 --------------------------------
-Generally, contributing to a mission package is a little simpler that
-contributing to ``gdt-core``.  Contributions to a mission package is a fix or 
-feature that applies to that mission, and that mission alone.  This usually 
+Generally, contributing to a mission package is a little simpler than
+contributing to ``gdt-core``.
+
+Contributions to a mission package of a fix or
+feature applies to that mission, and that mission alone.  This usually
 impacts mission-specific data or functionality that is not part of ``gdt-core``.
 In some cases, it may be possible to implement a new feature in a mission 
 package and then work to generalize that feature so that it can be implemented
