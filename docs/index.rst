@@ -28,6 +28,7 @@ The following mission packages are currently part of the GDT family:
 * `gdt-cgro <https://astro-gdt-cgro.readthedocs.io/>`_ (BATSE)
 * `gdt-fermi <https://astro-gdt.readthedocs.io/projects/astro-gdt-fermi/>`_ (GBM)
 * `gdt-hete2 <https://astro-gdt-hete2.readthedocs.io>`_ (FREGATE)
+* `gdt-integral <https://astro-gdt-integral.readthedocs.io>`_ (SPI-ACS)
 * `gdt-maxi <https://astro-gdt-maxi.readthedocs.io>`_ (GSC)
 * `gdt-rxte <https://astro-gdt-rxte.readthedocs.io>`_ (ASM)
 * `gdt-swift <https://astro-gdt-swift.readthedocs.io>`_ (BAT)

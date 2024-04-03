@@ -20,20 +20,22 @@ fixing the issue.  If so, then you can outline your proposed fix when you open
 the issue, and we will give you feedback about whether we think that would be a
 useful and appropriate fix.
 
-**Simple typographical fixes and clarifications made in the documentation do not require
-the creation of an issue.**
+**Simple typographical fixes and clarifications made in the documentation do not 
+require the creation of an issue.**
 
-If your proposed modifications are significant (e.g. sizable document change, API improvements,
-new feature), we highly recommend that you detail the propose change in the issue and wait for feedback.
-This is to save you precious time in the event that we decide not to accept your proposed solution.
-Often the proposed solution can break functionality elsewhere or can be simplified, and we would like to have
-a chance to provide useful feedback before you begin coding. Waiting for feedback
-is not a requirement, but merely reduces the chance of additional changes prior to having
-your pull request accepted.
+If your proposed modifications are significant (e.g. sizable document change, 
+API improvements, new feature), we strongly recommend that you detail the 
+proposed change in the issue and wait for feedback. This is to save you 
+precious time in the event that we decide not to accept your proposed solution.
+Often the proposed solution can break functionality elsewhere or can be 
+simplified, and we would like to have a chance to provide useful feedback 
+before you begin coding. Waiting for feedback is not a requirement, but merely 
+reduces the chance of additional changes prior to having your pull request 
+accepted.
 
-If you are submitting code modifications, we require that you create a unit test to confirm
-expected operation of the code if those modifications aren't already covered by an
-existing unit test.
+If you are submitting code modifications, we require that you create a unit test 
+to confirm expected operation of the code if those modifications aren't already 
+covered by an existing unit test.
 
 The usual sequence of events are:
 
@@ -42,7 +44,7 @@ The usual sequence of events are:
 3. Fork from main branch.
 4. Use your fork to add your changes to the code base.
 5. Create unit tests showing that your changes work as intended.
-6. Create `Pull Request <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`_ with a comment explaining how it closes the issue you created.
+6. Create a `Pull Request <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`_ with a comment explaining how it closes the issue you created.
 
 
 Opening an Issue
@@ -109,8 +111,8 @@ Contributing new missions packages
 ----------------------------------
 Users are welcome to create their own mission packages within the GDT namespace
 and host on PyPI.  We would be happy to include a reference to the mission 
-package in our :ref:`list of supported missions<mission-packages>`, making it clear who is providing
-support for that package.  In some cases, we would be willing to host and support
-new mission packages under certain conditions.  Those who are interested in that
-option should contact STI-Software@usra.edu.
+package in our :ref:`list of supported missions<mission-packages>`, making it 
+clear who is providing support for that package.  In some cases, we would be 
+willing to host and support new mission packages under certain conditions.  
+Those who are interested in that option should contact STI-Software@usra.edu.
 
