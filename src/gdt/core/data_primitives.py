@@ -501,10 +501,10 @@ class EventList():
             times = np.array([], dtype=float)
             channels = np.array([], dtype=int)
         
-        events = zip(*(times, channels))
-        self._events = np.array(list(events), 
-                                dtype=[('TIME', times.dtype.type),
-                                       ('PHA', channels.dtype.type)])
+        self._events = np.empty(times.size, dtype=[('TIME', times.dtype.type),
+                                                   ('PHA', channels.dtype.type)])
+        self._events['TIME'] = times
+        self._events['PHA'] = channels
         
         if ebounds is not None:
             if not isinstance(ebounds, Ebounds):
