@@ -78,7 +78,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         ``_cd()``, ``_ls``, ``download``, and ``download_url``.
         
     Parameters:
-        progress: The progress bar
+        progress (Progress, optional): The progress bar object
     """
 
     def __init__(self, progress: Progress = None):
@@ -229,8 +229,8 @@ class Ftp(BaseProtocol):
     """A base class for FTP interactions with the HEASARC archive.
     
     Parameters:
-        args: The set of parameters needed to define the data path
         host (str, optional): The host of the FTP archive
+        progress (Progress, optional): The progress bar object
     """
 
     def __init__(self, host='heasarc.gsfc.nasa.gov', progress: Progress = None):
@@ -373,8 +373,12 @@ class Http(BaseProtocol):
     """A base class for HTTP/HTTPS interactions with the HEASARC archive.
     
     Parameters:
-        args: The set of parameters needed to define the data path
         url (str, optional): The url of the HTTP/HTTPS archive
+        start_key (str, optional): Key used to indentify the start of file names
+        end_key (str, optional): Key used to indentify the end of file names
+        table_key (str, optional): Key used to indentify the start of the table with file names
+        progress (Progress, optional): The progress bar object
+        context (SSLContext, optional): The SSL certificates context
     """
 
     def __init__(self, url='https://heasarc.gsfc.nasa.gov/FTP',
