@@ -226,7 +226,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
 
 
 class Ftp(BaseProtocol):
-    """A base class for FTP interactions with the HEASARC archive.
+    """A class for FTP interactions with a remote archive.
     
     Parameters:
         host (str, optional): The host of the FTP archive
@@ -370,7 +370,7 @@ class Ftp(BaseProtocol):
 
 
 class Http(BaseProtocol):
-    """A base class for HTTP/HTTPS interactions with the HEASARC archive.
+    """A class for HTTP/HTTPS interactions with a remote archive.
     
     Parameters:
         url (str, optional): The url of the HTTP/HTTPS archive
@@ -487,7 +487,7 @@ class Http(BaseProtocol):
 
 
 class BaseFinder(AbstractContextManager, ABC):
-    """A base class for the interface to the HEASARC FTP archive.
+    """A base class for the interface to the HEASARC archive.
 
     Note:
         This class should not be directly instantiated, but rather inherited.
