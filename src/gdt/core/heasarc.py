@@ -51,13 +51,11 @@ from rich.progress import (
     TransferSpeedColumn,
 )
 
-__all__ = ['FtpFinder', 'BrowseCatalog', 'Http', 'Ftp', 'FileDownloader']
+#__all__ = ['FtpFinder', 'BrowseCatalog', 'Http', 'Ftp', 'FileDownloader']
+__all__ = ['ProgressMixin', 'Ftp', 'Http']
 
 
-class BaseFinder(AbstractContextManager, ABC):
-
-    def __init__(self, progress: Progress = None):
-        self._progress = progress
+class ProgressMixin:
 
     @staticmethod
     def _create_progress() -> Progress:
@@ -71,43 +69,21 @@ class BaseFinder(AbstractContextManager, ABC):
             TimeRemainingColumn(),
         )
 
-
-class FtpFinder(BaseFinder):
-    """A base class for the interface to the HEASARC FTP archive.
+class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
+    """A base class for the protocol used to access remote files.
     
     Note:
         This class should not be directly instantiated, but rather inherited.
-        The inherited class should define a method called 
-        ``_construct_path()`` that accepts ``*args``, which are the user-defined
-        parameters required to define the data path, and the method should
-        return the data path as a string
+        The inherited class should define methods called 
+        ``_cd()``, ``_ls``, ``download``, and ``download_url``.
         
     Parameters:
-        args: The set of parameters needed to define the data path
-        host (str, optional): The host of the FTP archive
+        progress: The progress bar
     """
 
-    def __init__(self, *args, host='heasarc.gsfc.nasa.gov', progress: Progress = None):
-        super().__init__(progress)
-        self._host = host
-        self._args = None
-        self._ftp = None
+    def __init__(self, progress: Progress = None):
+        self._progress = progress
         self._file_list = []
-
-        # If host is None, then let's not continue with the connection.
-        if host is not None:
-            self.connect(*args, host=host)
-        else:
-            if len(args) > 0:
-                raise ValueError('*args were given while host was None')
-
-    def __del__(self):
-        if self._ftp is not None:
-            self._ftp.close()
-
-    def __validate_connection(self):
-        if self._ftp is None:
-            raise ConnectionError('The connection is closed.')
 
     @property
     def files(self):
@@ -119,40 +95,33 @@ class FtpFinder(BaseFinder):
         """(int): Number of files in the current directory"""
         return len(self._file_list)
 
-    def cd(self, *args):
+    def cd(self, path: Union[str, Path]):
         """Change directory
         
         Args:
-            args: The set of parameters needed to define the data path
+            path: The remote directory path
         """
-        self._args = self._validate(*args)
+        self._validate_connection()
+        try:
+            self._file_list = self.ls(path)
+            self._cd(path)
+        except:
+            self._file_list = []
+            raise ValueError('{} is not a valid path'.format(path))
 
-    def filter(self, filetype, extension):
-        """Filters the directory for the requested filetype and extension
-        
-        Args:
-            filetype (str): The type of file, e.g. 'cspec'
-            extension (str): The file extension, e.g. '.pha'
-
-        Returns:
-            (list)
-        """
-        return self._file_filter(self.files, filetype, extension)
-
-    def ls(self, *args):
-        """List the directory contents of an FTP directory associated with
+    def ls(self, path: Union[str, Path]):
+        """List the contents of a directory associated with
         a data set.
         
         Args:
-            args: The set of parameters needed to define the data path
+            path: The remote directory path
 
         Returns:
             (list of str)
         """
-        self.__validate_connection()
-        path = self._construct_path(*args)
+        self._validate_connection()
         try:
-            files = self._ftp.nlst(path)
+            files = self._ls(path)
         except AttributeError:
             print('Connection appears to have failed.  Attempting to reconnect...')
             try:
@@ -165,50 +134,9 @@ class FtpFinder(BaseFinder):
             raise FileNotFoundError('{} does not exist'.format(path))
         return sorted([os.path.basename(f) for f in files])
 
-    def connect(self, *args, host: str = None):
-        """Attempt a connection
-        """
-        if host is not None:
-            self._host = host
-        self._ftp = FTP_TLS(host=self._host)
-        self._ftp.login()
-        self._ftp.prot_p()
-        if len(args) > 0:
-            self._args = self._validate(*args)
-
-    @abstractmethod
-    def _construct_path(self, *args) -> str:
-        """This method needs to be defined by the inheriting class.  The method
-        shall accept all user-defined parameters that are required to define 
-        the data path and shall return the data path as a string.
-
-        Args:
-            args: The set of parameters needed to define the data path   
-        
-        Returns:
-            (str)
-        """
-        pass
-
-    def _file_filter(self, file_list, filetype, extension):
-        """Filters the directory for the requested filetype and extension
-        
-        Args:
-            file_list (list): A list of files
-            filetype (str): The type of file, e.g. 'cspec'
-            extension (str): The file extension, e.g. '.pha'
-
-        Returns:
-            list: The filtered file list
-        """
-        files = [f for f in file_list if
-                 (filetype in f) & (f.endswith(extension))]
-
-        return files
-
     def get(self, download_dir: Union[str, Path], files: List[str],
             verbose: bool = True) -> List[Path]:
-        """Downloads a list of files from the current FTP directory.
+        """Downloads a list of files from the current directory.
         This function also returns a list of the downloaded file paths.
 
         Args:
@@ -220,99 +148,163 @@ class FtpFinder(BaseFinder):
         Returns:
             (list)
         """
-        self.__validate_connection()
-        # convert download_dir to a Path and create the directory
-        download_dir = Path(download_dir)
-        download_dir.mkdir(parents=True, exist_ok=True)
+        if not isinstance(files, list):
+            raise ValueError("files argument must be a list.")
 
-        # download each file
         filepaths = []
         for file in files:
-            # have to save in self because this can't be passed as an argument
-            # in the callback
-
-            # download file
-            self._ftp.voidcmd('TYPE I')
-            file_path = download_dir.joinpath(file)
-            with file_path.open('wb') as fp:
-                if verbose:
-                    if self._progress is None:
-                        progress = self._create_progress()
-                        progress.start()
-                    else:
-                        progress = self._progress
-
-                    task_id = progress.add_task("download", filename=file,
-                                                total=self._ftp.size(file))
-
-                    # the callback function
-                    def write_func(data: bytes):
-                        fp.write(data)
-                        progress.update(task_id, advance=len(data))
-
-                    self._ftp.retrbinary('RETR ' + file, callback=write_func)
-
-                    # If progress was created locally then stop it here.
-                    if self._progress is None:
-                        progress.stop()
-                else:
-                    self._ftp.retrbinary('RETR ' + file, callback=fp.write)
-
+            file_path = self.download(file, download_dir, verbose)
             filepaths.append(file_path)
 
         return filepaths
 
     def _reconnect(self):
-        """Attempt a reconnect in case connection was lost
-        """
-        self._ftp.close()
-        self.connect()
+        """Reconnect after connection loss. Default behavior is pass since
+        not all inheriting classes need to reconnect."""
+        pass
 
-    def _validate(self, *args):
-        """Validate arguments by constructing the FTP path and attempting to
-        change to that directory"""
-        self.__validate_connection()
-        try:
-            self._file_list = self.ls(*args)
-            self._ftp.cwd(self._construct_path(*args))
-            return args
-        except:
-            self._file_list = []
-            raise ValueError('{} are not valid arguments'.format(args))
-
-    def disconnect(self):
-        """Politely disconnect from the FTP server."""
-        if self._ftp is not None:
-            self._ftp.quit()
-            self._ftp.close()
-        self._ftp = None
-        self._file_list = []
-
-    def pwd_r(self) -> str:
-        """Retrieve the current directory."""
-        self.__validate_connection()
-        if self._ftp is not None:
-            return self._ftp.pwd()
+    def _validate_connection(self):
+        """Validate that a connection remains open. Default behavior is pass
+        since not all protocols maintain a continuous connection."""
+        pass
 
     def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
                  __traceback: Optional[TracebackType]) -> Optional[bool]:
-        self.disconnect()
-        return None
+        pass
 
-    def __repr__(self):
-        args = ', '.join([str(arg) for arg in self._args]) \
-            if self._args is not None else ''
+    @abstractmethod
+    def download(self, file: str, dest_dir: Union[str, Path], verbose: bool = True):
+        """Downloads a single file from the current directory.
 
-        return '<{0}: {1}>'.format(self.__class__.__name__, args)
+        Args:
+            file (str): The file name to download
+            dest_dir (Path): The download file location
+            verbose (bool, optional): If True, will output the download status. 
+                                      Default is True.        
+        
+        Returns:
+            (Path)
+        """
+        pass
+ 
+    @abstractmethod
+    def download_url(self, url: str, dest_dir: Union[str, Path], verbose: bool = True):
+        """Download a file from a remote site
 
+        Args:
+            url (str): The url of a file to download
+            dest_dir (Path): The directory where the file will be written
+            verbose (bool, optional): If True, will output the download status. 
+                                      Default is True.
 
-class Ftp(FtpFinder):
+        Returns:
+            (Path)
+        """
+        pass
 
-    def _construct_path(self, *args) -> str:
-        return str(args[0])
+    @abstractmethod
+    def _cd(self, path: str):
+        """Internal call to change directory
+
+        Args:
+            path: The remote directory path
+        """
+        pass
+
+    @abstractmethod
+    def _ls(self, path: str):
+        """Internal call to list the contents of a directory associated with
+        a data set.
+
+        Args:
+            path: The remote directory path
+
+        Returns:
+            (list of str)
+        """
+        pass
+
+class Ftp(BaseProtocol):
+    """A base class for FTP interactions with the HEASARC archive.
+    
+    Parameters:
+        args: The set of parameters needed to define the data path
+        host (str, optional): The host of the FTP archive
+    """
+
+    def __init__(self, host='heasarc.gsfc.nasa.gov', progress: Progress = None):
+        super().__init__(progress)
+        self._host = host
+        self._ftp = None
+
+        # If host is None, then let's not continue with the connection.
+        if host is not None:
+            self.connect(host=host)
+
+    def _ls(self, path: Union[str, Path]):
+        """List the directory contents of an FTP directory associated with
+        a data set.
+        
+        Args:
+            path: The remote directory path
+
+        Returns:
+            (list of str)
+        """
+        return self._ftp.nlst(path)
+
+    def _cd(self, path):
+        self._ftp.cwd(path)
+
+    def _validate_connection(self):
+        if self._ftp is None:
+            raise ConnectionError('The connection is closed.')
+
+    def download(self, file: str, dest_dir: Union[str, Path], verbose = True):
+        """Downloads a single file from the current directory.
+
+        Args:
+            file (str): The file name to download
+            file_path (Path): The download file location
+            verbose (bool, optional): If True, will output the download status. 
+                                      Default is True.        
+        
+        """
+        # Make sure the dest_dir is a Path
+        dest_dir = Path(dest_dir)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        file_path = dest_dir.joinpath(file)
+ 
+        self._validate_connection()
+        self._ftp.voidcmd('TYPE I')
+        with file_path.open('wb') as fp:
+            if verbose:
+                if self._progress is None:
+                    progress = self._create_progress()
+                    progress.start()
+                else:
+                    progress = self._progress
+
+                task_id = progress.add_task("download", filename=file,
+                                            total=self._ftp.size(file))
+
+                # the callback function
+                def write_func(data: bytes):
+                    fp.write(data)
+                    progress.update(task_id, advance=len(data))
+
+                self._ftp.retrbinary('RETR ' + file, callback=write_func)
+
+                # If progress was created locally then stop it here.
+                if self._progress is None:
+                    progress.stop()
+            else:
+                self._ftp.retrbinary('RETR ' + file, callback=fp.write)
+
+        return file_path
 
     def download_url(self, url: str, dest_dir: Union[str, Path], verbose: bool = True):
-        """Download a file from a FTP site"""
+        """Download a file from a remote site"""
         url_p = urlparse(url)
 
         # verify the URL is for FTP
@@ -327,11 +319,121 @@ class Ftp(FtpFinder):
             self.disconnect()
             self.connect(host=url_p.hostname)
 
-        self.cd(url_path.parent)
-        self.get(download_dir=dest_dir, files=[url_path.name], verbose=verbose)
+        self.cd(str(url_path.parent))
+        file_path = self.get(download_dir=dest_dir,
+                             files=[url_path.name],
+                             verbose=verbose)
 
+        return file_path
 
-class Http(BaseFinder):
+    def connect(self, host: str = None):
+        """Attempt a connection
+        """
+        if host is not None:
+            self._host = host
+        self._ftp = FTP_TLS(host=self._host)
+        self._ftp.login()
+        self._ftp.prot_p()
+
+    def _reconnect(self):
+        """Attempt a reconnect in case connection was lost
+        """
+        self._ftp.close()
+        self.connect()
+
+    def disconnect(self):
+        """Politely disconnect from the FTP server."""
+        if self._ftp is not None:
+            self._ftp.quit()
+            self._ftp.close()
+        self._ftp = None
+        self._file_list = []
+
+    def pwd_r(self) -> str:
+        """Retrieve the current directory."""
+        self._validate_connection()
+        if self._ftp is not None:
+            return self._ftp.pwd()
+
+    def __del__(self):
+        if self._ftp is not None:
+            self._ftp.close()
+
+    def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
+                 __traceback: Optional[TracebackType]) -> Optional[bool]:
+        self.disconnect()
+        return None
+
+    def __repr__(self):
+        return '<{0}: host {1}>'.format(self.__class__.__name__, self._host)
+
+class Http(BaseProtocol):
+    """A base class for HTTP/HTTPS interactions with the HEASARC archive.
+    
+    Parameters:
+        args: The set of parameters needed to define the data path
+        url (str, optional): The url of the HTTP/HTTPS archive
+    """
+
+    def __init__(self, *args, url='https://heasarc.gsfc.nasa.gov/FTP',
+                 start_key='<a href="', end_key='">', table_key='Parent Directory</a>',
+                 progress: Progress = None, context: ssl.SSLContext = None):
+        super().__init__(progress)
+        self._url = url
+        # keys are used to parse the HTTP/HTTPS file index
+        self._start_key = start_key
+        self._end_key = end_key
+        self._table_key = table_key
+        self._context = context
+        # need to track current directory
+        self._cwd = None
+
+    def _cd(self, path: Union[str, Path]):
+        """Change directory
+        
+        Args:
+            path: The remote directory path
+        """
+        self._cwd = path
+
+    def _ls(self, path: Union[str, Path]):
+        """List the directory contents of an FTP directory associated with
+        a data set.
+        
+        Args:
+            path: The remote directory path
+
+        Returns:
+            (list of str)
+        """
+        files = []
+        page = urlopen(self._url + path, context=self._context)
+        table = page.read().decode("utf-8").split(self._table_key)[1]
+        for line in table.split("\n"):
+            if self._start_key in line:
+                file = line.split(self._start_key)[1].split(self._end_key)[0]
+                files.append(file)
+        return files
+
+    def download(self, file: str, dest_dir: Union[str, Path], verbose: bool = True):
+        """Downloads a single file from the current directory.
+
+        Args:
+            file (str): The file name to download
+            file_path (Path): The download file location
+            verbose (bool, optional): If True, will output the download status. 
+                                      Default is True.        
+        
+        """
+        if self._cwd is None:
+            raise ValueError("User must first cd() into a directory.")
+        if self._url is None:
+            raise ValueError("User must define base url at init.")
+
+        file_path = self.download_url(
+            self._url + self._cwd + file, dest_dir, verbose)
+
+        return file_path
 
     def download_url(self, url: str, dest_dir: Union[str, Path], verbose: bool = True):
         """Download a file from a HTTP(S) site"""
@@ -341,15 +443,15 @@ class Http(BaseFinder):
         if url_p.scheme not in ('http', 'https'):
             raise ValueError('URL does not begin with http:// or https://')
 
-        url_path = Path(url_p.path)
+        file = Path(url_p.path).name
 
         # Make sure the dest_dir is a Path
         dest_dir = Path(dest_dir)
         dest_dir.mkdir(parents=True, exist_ok=True)
-        file = dest_dir.joinpath(url_path.name)
+        file_path = dest_dir.joinpath(file)
 
-        response = urlopen(url)
-        with file.open('wb') as fp:
+        response = urlopen(url, context=self._context)
+        with file_path.open('wb') as fp:
             if verbose:
                 total_size = int(response.headers["Content-Length"])
                 if self._progress is None:
@@ -358,7 +460,7 @@ class Http(BaseFinder):
                 else:
                     progress = self._progress
 
-                task_id = progress.add_task("download", filename=file.name, total=total_size)
+                task_id = progress.add_task("download", filename=file, total=total_size)
                 while True:
                     data = response.read(32768)
                     if not data:
@@ -372,219 +474,8 @@ class Http(BaseFinder):
             else:
                 shutil.copyfileobj(response, fp)
 
-    def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
-                 __traceback: Optional[TracebackType]) -> Optional[bool]:
-        pass
-
-class FileDownloader(BaseFinder):
-    """Used to download a list of files given as a URL."""
-
-    def __init__(self):
-        super().__init__(progress=self._create_progress())
-        self._progress.start()
-        self._http = Http(progress=self._progress)
-        self._ftp = Ftp(host=None, progress=self._progress)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._ftp.disconnect()
-        self._progress.stop()
-
-    def download_url(self, url: str, dest_dir: Union[str, Path], verbose: bool = True):
-        """Download a file from a URL."""
-
-        if url.startswith('ftp'):
-            self._ftp.download_url(url, dest_dir, verbose)
-        elif url.startswith('http'):
-            self._http.download_url(url, dest_dir, verbose)
-        else:
-            raise ValueError('url must begin with ftp://, http://, or https://')
-
-    def bulk_download(self, urls: List[str], dest_dir: Union[str, Path], verbose: bool = True):
-        """Download files from a list of URLs."""
-        for url in urls:
-            self.download_url(url, dest_dir, verbose)
-
-
-
-class BrowseCatalog:
-    """A class that interfaces with the HEASARC Browse API.  This can be
-    called directly, but is primarily intended as a base class.
-    
-    This class makes a query to HEASARC's w3query.pl perl script in 
-    BATCHRETRIEVALCATALOG mode.  All fields and rows are retrieved so that
-    this class, on instantiation, contains the full set of catalog data. 
-    Any queries based on row or columns selections/slices are then done locally,
-    instead of making repeated requests to the HEASARC. A cached copy of the 
-    catalog is saved locally so future instantiations can utilize the local copy
-    instead of querying HEASARC.
-    
-    Parameters:
-        cache_path (str): The path where the cached catalog will live.
-        cached (bool, optional): Set to True to read from the cached file
-                                 instead of querying HEASARC. Default is False.
-        table (str, optional): The name of the table to be passed to the 
-                               w3query.pl script.
-        verbose (bool, optional): Default is True    
-    """
-
-    def __init__(self, cache_path, table=None, verbose=True, cached=False):
-
-        if not os.path.exists(cache_path):
-            os.makedirs(cache_path)
-        self._cache_path = cache_path
-
-        self._table = str(table)
-        self._cached = bool(cached)
-        self._verbose = bool(verbose)
-
-        # just load the cached file
-        if self._cached:
-            self._header, self._data = self._read_cache()
-            return
-
-        # build the URL query
-        host = 'https://heasarc.gsfc.nasa.gov'
-        script = 'db-perl/W3Browse/w3query.pl'
-        query = 'tablehead=name=BATCHRETRIEVALCATALOG_2.0+'
-        # Retrieve all fields, all rows, and return in FITS format 
-        query += '{}&Fields=All&displaymode=FitsDisplay&ResultMax=0'.format(table)
-
-        if self._table is not None:
-            self._is_connected(host)
-            self._download_table(host + '/' + script + '?' + query)
-            self._header, self._data = self._read_cache()
-
-    @property
-    def columns(self):
-        """(np.array): The names of the columns available in the table"""
-        return self._data.dtype.names
-
-    @property
-    def num_cols(self):
-        """(int): The total number of columns (fields) in the data table"""
-        return len(self.columns)
-
-    @property
-    def num_rows(self):
-        """(int): The total number of rows in the data table"""
-        return self._data.size
-
-    def column_range(self, column):
-        """Return the data range for a given column, in the form of (low, high).
-        
-        Args:
-            column (str): The column name
-
-        Returns:
-            (tuple)
-        """
-        col_copy = np.copy(self._data[column])
-        col_copy.sort()
-        return col_copy[0], col_copy[-1]
-
-    def get_table(self, columns=None):
-        """Return the table data as a numpy record array.
-        
-        Args:
-            columns (list of str, optional): The columns to return. If omitted, 
-                                             returns all columns.
-
-        Returns:
-            (np.recarray)
-        """
-        if columns is None:
-            columns = self.columns
-
-        arrays = [self._data[col] for col in columns]
-        return np.rec.fromarrays(arrays, names=','.join(columns).upper())
-
-    def slice(self, column, lo=None, hi=None):
-        """Perform row slices of the data table based on a conditional of a
-        single column. Returns a new BrowseCatalog object.
-        
-        Args:
-            column (str): The column name
-            lo (optional): The minimum (inclusive) value of the slice. If not 
-                           set, uses the lowest range of the data in the column.
-            hi (optional): The maximum (inclusive) value of the slice. If not 
-                           set, uses the highest range of the data in the column.
-
-        Returns:
-            (:class:`BrowseCatalog`)
-        """
-        col = self._data[column]
-        if lo is None:
-            lo, _ = self.column_range(column)
-        if hi is None:
-            _, hi = self.column_range(column)
-        mask = (col >= lo) & (col <= hi)
-
-        # create a new object and fill it with the sliced data
-        obj = type(self)(self._cache_path, cached=True)
-        obj._table = self._table
-        obj._header = np.copy(self._header)
-        obj._data = self._data[mask]
-        return obj
-
-    def slices(self, columns):
-        """Perform row slices of the data table based on a conditional of 
-        multiple columns. Returns a new BrowseCatalog object.
-        
-        Args:
-            columns (list of tuples):
-                A list of tuples, where each tuple is (column, lo, hi).  The 
-                'column' is the column name, 'lo' is the lowest bounding value, 
-                and 'hi' is the highest bouding value.  If no low or high 
-                bounding is desired, set to None. See :meth:`slice()` for more 
-                info.
-
-        Returns:
-            (:class:`BrowseCatalog`)
-        """
-        numcols = len(columns)
-        obj = self
-        for i in range(numcols):
-            obj = obj.slice(columns[i][0], lo=columns[i][1], hi=columns[i][2])
-        return obj
-
-    def _download_table(self, url):
-        """Downloads the table from HEASARC
-        """
-        # secure connection
-        if self._verbose:
-            print('Sending request and awaiting response from HEASARC...')
-        t0 = time.time()
-
-        context = ssl._create_unverified_context()
-        page = urlopen(url, context=context)
-
-        if self._verbose:
-            print(f'Downloading {self._table} from HEASARC via w3query.pl...')
-
-        with open(os.path.join(self._cache_path, self._table + '.fit'),
-                  'wb') as f:
-            f.write(page.read())
-
-        if self._verbose:
-            print('Finished in {} s'.format(int(time.time() - t0)))
-
-    def _is_connected(self, host):
-        """Test the connection to the host to determine if it is reachable"""
-        try:
-            sock = socket.create_connection((host.split('/')[-1], 80))
-            sock.close()
-        except OSError:
-            raise OSError("Either you are not connected to the internet or "
-                          "{0} is down.".format(host))
-        return True
-
-    def _read_cache(self):
-        """Read the cached catalog FITS file"""
-        out_file = os.path.join(self._cache_path, self._table + '.fit')
-        with fits.open(out_file) as hdulist:
-            return hdulist[1].header, hdulist[1].data
+        return file_path
 
     def __repr__(self):
-        return '<{0}: {1} columns, {2} rows>'.format(self.__class__.__name__,
-                                                     self.num_cols,
-                                                     self.num_rows)
+        return '<{0}: url {1}>'.format(self.__class__.__name__, self._url)
+
