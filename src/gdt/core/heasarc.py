@@ -516,12 +516,28 @@ class BaseFinder(AbstractContextManager, ABC):
     @property
     def files(self):
         """(list of str): The list of files in the current directory"""
-        return self._protocol._file_list
+        return self._protocol.files
 
     @property
     def num_files(self):
         """(int): Number of files in the current directory"""
-        return self._protocol._num_files
+        return self._protocol.num_files
+
+    def get(self, download_dir: Union[str, Path], files: List[str],
+            verbose: bool = True) -> List[Path]:
+        """Downloads a list of files from the current FTP directory.
+        This function also returns a list of the downloaded file paths.
+
+        Args:
+            download_dir (str, Path): The download directory location
+            files (list of str): The list of files to download
+            verbose (bool, optional): If True, will output the download status.
+                                      Default is True.
+
+        Returns:
+            (list)
+        """
+        return self._protocol.get(download_dir, files, verbose)
 
     def cd(self, *args):
         path = self._construct_path(*args)
@@ -580,7 +596,7 @@ class BaseFinder(AbstractContextManager, ABC):
 
 class FtpFinder(BaseFinder):
     def __init__(self, *args, host='heasarc.gsfc.nasa.gov', progress: Progress = None):
-        super().__init__(*args, method='FTP', host=host, progress=progress)
+        super().__init__(*args, protocol='FTP', host=host, progress=progress)
 
 
 class FileDownloader(ProgressMixin):
