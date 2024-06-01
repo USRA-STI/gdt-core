@@ -35,6 +35,12 @@ from astropy.time import Time
 from gdt.core.coords import SpacecraftFrame, SpacecraftAxes, Quaternion
 from gdt.core.coords.spacecraft.axes import SpacecraftAxesAttribute
 
+import astropy.units as u
+import astropy.coordinates as a_coords
+from astropy.coordinates import FunctionTransform, ICRS, frame_transform_graph
+from gdt.core.coords.spacecraft import SpacecraftFrame
+from gdt.core.coords.spacecraft.frame import spacecraft_to_icrs, icrs_to_spacecraft
+
 
 class TestSpacecraftAxes(unittest.TestCase):
 
@@ -399,3 +405,27 @@ class TestSpacecraftAxesAttribute(unittest.TestCase):
         self.assertTrue(isinstance(value, SpacecraftAxes))
         self.assertFalse(converted)
         self.assertEqual(axes, value)
+
+
+class test_frame_transfer(unittest.TestCase):
+
+    def setUp(self):
+        class testFrame(SpacecraftFrame):
+            pass
+        quaternion_test = [-0.5636783622078214, 0.35243503385029756,
+                            -0.34740741282879534, 0.6613352708008627]
+        #quaternion_test = [-0.563678, 0.352435,-0.347407, 0.661335]
+        self.sc_frame = testFrame(quaternion=quaternion_test)
+        self.z_point = SkyCoord(30.271184, 6.667796, unit='deg')
+
+        @frame_transform_graph.transform(FunctionTransform, ICRS, testFrame)
+        def icrs_to_test_frame(icrs_frame, test_frame):
+            return icrs_to_spacecraft(icrs_frame, test_frame)
+
+    def test_icrs_to_spacecraft(self):
+        zaxis_test =self.z_point.transform_to(self.sc_frame)
+        self.assertAlmostEqual(zaxis_test.el.value[0], 90.0, places=3)
+       
+
+
+
