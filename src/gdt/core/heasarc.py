@@ -31,6 +31,7 @@ import socket
 import ssl
 import time
 import shutil
+import warnings
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 from ftplib import FTP_TLS
@@ -38,7 +39,7 @@ from pathlib import Path
 from types import TracebackType
 from typing import List, Union, Type, Optional
 from urllib.request import urlopen
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 import numpy as np
 import astropy.io.fits as fits
 
@@ -238,6 +239,12 @@ class Ftp(BaseProtocol):
         self._host = host
         self._ftp = None
 
+        # warn about instability of FTP HEASARC servers
+        if host == 'heasarc.gsfc.nasa.gov':
+            warnings.warn(
+                f"FTP access to {host} is unreliable due to high server loads.\n"
+                "Users should switch to HTTPS access, provided by BaseFinder.")
+
         # If host is None, then let's not continue with the connection.
         if host is not None:
             self.connect(host=host)
@@ -381,7 +388,7 @@ class Http(BaseProtocol):
         context (SSLContext, optional): The SSL certificates context
     """
 
-    def __init__(self, url='https://heasarc.gsfc.nasa.gov/FTP',
+    def __init__(self, url='https://heasarc.gsfc.nasa.gov/FTP/',
                  start_key='<a href="', end_key='">', table_key='Parent Directory</a>',
                  progress: Progress = None, context: ssl.SSLContext = None):
         super().__init__(progress)
@@ -413,13 +420,25 @@ class Http(BaseProtocol):
             (list of str)
         """
         files = []
-        page = urlopen(self._url + path, context=self._context)
+        page = urlopen(self.urljoin(path), context=self._context)
         table = page.read().decode("utf-8").split(self._table_key)[1]
         for line in table.split("\n"):
             if self._start_key in line:
                 file = line.split(self._start_key)[1].split(self._end_key)[0]
                 files.append(file)
         return files
+
+    def urljoin(self, path: str):
+        """ Join urls while fully preserving url root. This is needed
+        to provide identical ls()/cd() support as FtpProtocol.
+
+        Args:
+            path (str): The remote path
+
+        Returns:
+            (str)
+        """
+        return urljoin(self._url, path[1:] if path[0] == "/" else path)
 
     def download(self, file: str, dest_dir: Union[str, Path], verbose: bool = True):
         """Downloads a single file from the current directory.
@@ -436,8 +455,9 @@ class Http(BaseProtocol):
         if self._url is None:
             raise ValueError("User must define base url at init.")
 
+        remote_path = Path(self._cwd, file)
         file_path = self.download_url(
-            self._url + self._cwd + file, dest_dir, verbose)
+            self.urljoin(remote_path.as_posix()), dest_dir, verbose)
 
         return file_path
 
