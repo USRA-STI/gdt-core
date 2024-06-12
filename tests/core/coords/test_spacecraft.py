@@ -404,18 +404,18 @@ class TestSpacecraftAxesAttribute(unittest.TestCase):
         self.assertEqual(axes, value)
 
 
-class test_frame_transfer(unittest.TestCase):
+class TestFrameTransfer(unittest.TestCase):
 
     def setUp(self):
-        class testFrame(SpacecraftFrame):
+        class TestFrame(SpacecraftFrame):
             pass
         quaternion_test = [-0.5636783622078214, 0.35243503385029756,
                             -0.34740741282879534, 0.6613352708008627]
         
-        self.sc_frame = testFrame(quaternion=quaternion_test)
+        self.sc_frame = TestFrame(quaternion=quaternion_test)
         self.z_point = SkyCoord(30.271184, 6.667796, unit='deg')
 
-        @frame_transform_graph.transform(FunctionTransform, ICRS, testFrame)
+        @frame_transform_graph.transform(FunctionTransform, ICRS, TestFrame)
         def icrs_to_test_frame(icrs_frame, test_frame):
             return icrs_to_spacecraft(icrs_frame, test_frame)
 
