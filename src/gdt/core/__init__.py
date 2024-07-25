@@ -37,7 +37,7 @@ if sys.version_info < (3, 10):
 else:
     from importlib.resources import files
 
-gdt_data = files('gdt.data')
+_gdt_data = files('gdt.data')
 
 __version__ = '2.0.4'
 
@@ -57,8 +57,8 @@ else:
 
 # Create the data directory and copy a sample spectral data file for tutorial
 data_path.mkdir(parents=True, exist_ok=True)
-src = gdt_data / 'specfit.npz'
-dest = data_path / 'specfit.npz'
+_src = _gdt_data / 'specfit.npz'
+_dest = data_path / 'specfit.npz'
 
-if not dest.exists():
-    shutil.copyfile(src, dest)
+if not _dest.exists():
+    shutil.copyfile(_src, _dest)
