@@ -367,7 +367,7 @@ class SpectralFitter:
                     break
                 except ValueError:
                     # if we're at the bounds, we can't bracket the peak
-                    if maxval == self._function.max_values[idx[i]ex]:
+                    if maxval == self._function.max_values[idx[i]]:
                         warnings.warn("Parameter exists at its upper bound")
                         r = maxval
                         break
