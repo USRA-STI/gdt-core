@@ -1,7 +1,7 @@
 pyproj>=1.9.6
 numpy
 scipy>=1.14.0
-matplotlib>=3.7.1
+matplotlib>=3.9.1
 astropy
 healpy
 Cartopy

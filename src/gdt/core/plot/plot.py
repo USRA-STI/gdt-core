@@ -253,7 +253,7 @@ class GdtCmap():
         return self._name
     @name.setter
     def name(self, val):
-        self._cmap = copy.copy(plt.cm.get_cmap(val))
+        self._cmap = copy.copy(plt.get_cmap(val))
         self._name = val
         self._update()
         if self._callback is not None:
