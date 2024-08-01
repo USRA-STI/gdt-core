@@ -833,7 +833,6 @@ class Heatmap(PlotElement):
                           format=ticker.FuncFormatter(sci_fmt))
         cb.ax.tick_params(labelsize=10)
         cb.set_label(r'Effective Area (cm$^2$)', fontsize=12)
-        cb.patch.set_facecolor('black')
         cb.draw_all()
         return cb
 
