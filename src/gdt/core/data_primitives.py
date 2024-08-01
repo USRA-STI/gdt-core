@@ -28,7 +28,7 @@
 #
 import numpy as np
 from scipy.interpolate import interp1d
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid
 import copy
 
 __all__ = ['Range', 'TimeRange', 'EnergyRange', 'Intervals', 'Gti', 'Ebounds',
@@ -3420,7 +3420,7 @@ class ResponseMatrix():
         diff_effarea_interp[badmask] = 0.0
         
         # integrate the DRM over the photon interpolation array
-        diff_effarea_new = trapz(diff_effarea_interp, 
+        diff_effarea_new = trapezoid(diff_effarea_interp,
                                  interp_arr[:,:,np.newaxis], axis=0)
         
         # scale by ratio of photon bins

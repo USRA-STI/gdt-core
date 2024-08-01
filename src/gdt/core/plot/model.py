@@ -36,6 +36,7 @@ import matplotlib.pyplot as plt
 
 __all__ = ['ModelFit']
 
+
 class ModelFit(GdtPlot):
     """Class for plotting spectral fits.
     
@@ -302,7 +303,7 @@ class ModelFit(GdtPlot):
                 
         # fix the alphas for the legend
         legend = self._ax.legend()
-        for lh in legend.legendHandles:
+        for lh in legend.legend_handles:
             lh.set_alpha(1)
             lh.set_linewidth(1.0)
 
