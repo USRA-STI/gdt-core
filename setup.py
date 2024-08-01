@@ -68,7 +68,7 @@ if __name__ == '__main__':
             'importlib-resources;python_version<"3.10"',
             'pyproj>=1.9.6',
             'numpy>=1.17.3',
-            'scipy>=1.1.0',
+            'scipy>=1.14.0',
             'matplotlib>=3.7.1',
             'astropy>=3.1',
             'healpy>=1.12.4',
