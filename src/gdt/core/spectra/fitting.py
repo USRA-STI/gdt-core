@@ -295,6 +295,9 @@ class SpectralFitter:
         nparams = self.parameters.size
         crit = chi2.ppf(cl, nparams)
 
+        # do this only for the free parameters
+        idx = np.arange(self._function.nparams)[np.array(self._function.free)]
+
         # this is the objective function for which we are finding the root
         def the_func(param_v, index):
             params = self.parameters.copy()
@@ -319,7 +322,7 @@ class SpectralFitter:
         for i in range(nparams):
             param = self.parameters[i]
             while True:
-                if self._function.min_values[i] == -np.inf:
+                if self._function.min_values[idx[i]] == -np.inf:
                     if param < 0.0:
                         minval = 2.0 * param
                     elif param > 0.1:
@@ -327,7 +330,7 @@ class SpectralFitter:
                     else:
                         minval = param - 1.0
                 else:
-                    minval = self._function.min_values[i]
+                    minval = self._function.min_values[idx[i]]
 
                 # if we're at the bounds, we can't bracket the peak
                 try:
@@ -335,7 +338,7 @@ class SpectralFitter:
                                   full_output=True, maxiter=1000)
                     break
                 except ValueError:
-                    if minval == self._function.min_values[i]:
+                    if minval == self._function.min_values[idx[i]]:
                         warnings.warn("Parameter exists at its lower bound")
                         r = minval
                         break
@@ -348,7 +351,7 @@ class SpectralFitter:
         for i in range(nparams):
             param = self.parameters[i]
             while True:
-                if self._function.max_values[i] == np.inf:
+                if self._function.max_values[idx[i]] == np.inf:
                     if param < -0.1:
                         maxval = 0.5 * param
                     elif param > 0.0:
@@ -356,7 +359,7 @@ class SpectralFitter:
                     else:
                         maxval = 1.0 + param
                 else:
-                    maxval = self._function.max_values[i]
+                    maxval = self._function.max_values[idx[i]]
 
                 try:
                     r, o = brentq(the_func, self.parameters[i], maxval, args=(i,),
@@ -364,7 +367,7 @@ class SpectralFitter:
                     break
                 except ValueError:
                     # if we're at the bounds, we can't bracket the peak
-                    if maxval == self._function.max_values[i]:
+                    if maxval == self._function.max_values[idx[i]]:
                         warnings.warn("Parameter exists at its upper bound")
                         r = maxval
                         break

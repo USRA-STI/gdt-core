@@ -1045,3 +1045,60 @@ class TestFailures(unittest.TestCase):
     def test_spectrum(self):
         with self.assertRaises(RuntimeError):
             self.fitter.spectrum('counts')
+
+
+class TestFixedParameter(unittest.TestCase):
+    """This test is to prove that the indexing error in 
+    SpectralFitter.asymmetric_errors() has been fixed.
+    """
+    def setUp(self):
+        self.pha1 = make_first_pha()
+        self.bak1 = make_first_bak()
+        self.pha2 = make_second_pha()
+        self.bak2 = make_second_bak()
+        self.rsp1 = make_rsp('det0')
+        self.rsp2 = make_rsp('det1')
+        self.fitter = SpectralFitterPstat([self.pha1, self.pha2],
+                                          [self.bak1.data, self.bak2.data],
+                                          [self.rsp1, self.rsp2], method='TNC')
+        pl_bb = PowerLaw() + BlackBody()
+        pl_bb.max_values[1] = 10.0
+        
+        # fix the pl amplitude to 0.05
+        pl_bb.default_values[0] = 0.05
+        pl_bb.free[0] = False
+        
+        # fix the energy of the blackbody to 0.1 keV.
+        # this is not measurable using the energy range of the data, so 
+        # should result in an unconstrained blackbody amplitude
+        pl_bb.free[4] = False
+        pl_bb.default_values[4] = 0.1
+        
+        # set the maximum allowed blackbody amplitude to 10.0.
+        # this should cause the asymmetric errors method to hit this upper limit
+        # and allow us to test if the bug has been fixed.
+        pl_bb.max_values[3] = 10.0
+        self.fitter.fit(pl_bb)
+
+    def test_asymmetric_errors(self):
+        # if the indexing error is present then the returned errors will
+        # be ~[[0.04, 0.04], [20.0, 10.0]] for the pl index and 
+        # bb amplitude respectively.  Clearly the bb amplitude is incorrect
+        # because the allowable range is (1e-10, 10) and the 20 in the 
+        # incorrect errors is from the pl index default allowable parameter
+        # range, which is off by one index into the parameter list.
+        
+        # if indexing error is fixed, then the pl index errors should be 
+        # unchanged and the bb errors should be much more sensible: ~[0.1, 10]
+        errs = self.fitter.asymmetric_errors()
+        assert round(errs[0,0], 2) == 0.04
+        assert round(errs[0,1], 2) == 0.04
+        assert round(errs[1,0], 2) == 0.01
+        assert round(errs[1,1]) == 10
+    
+    def test_parameters(self):
+        assert round(self.fitter.parameters[0], 1) ==  -1.3
+
+    def test_success(self):
+        self.assertTrue(self.fitter.success)
+

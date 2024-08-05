@@ -30,7 +30,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple
 
 import numpy as np
-from scipy.integrate import trapz, quad
+from scipy.integrate import trapezoid, quad
 from scipy.special import erfc
 
 __all__ = ['Band', 'BandOld', 'BlackBody', 'BrokenPowerLaw', 'Comptonized',
@@ -221,10 +221,10 @@ class Function(ABC):
 
         # photon flux
         if not energy:
-            flux = trapz(spectrum, energies)
+            flux = trapezoid(spectrum, energies)
         # energy flux
         else:
-            flux = trapz(energies * spectrum, energies) * 1.602e-9
+            flux = trapezoid(energies * spectrum, energies) * 1.602e-9
 
         return flux
 
