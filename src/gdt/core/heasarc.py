@@ -242,8 +242,8 @@ class Ftp(BaseProtocol):
         # warn about instability of FTP HEASARC servers
         if host == 'heasarc.gsfc.nasa.gov':
             warnings.warn(
-                f"FTP access to {host} is unreliable due to high server loads.\n"
-                "Users should switch to HTTPS access, provided by BaseFinder.")
+                f"FTP access to {host} is unreliable due to high server loads."
+                " Users should switch to HTTPS access.")
 
         # If host is None, then let's not continue with the connection.
         if host is not None:
@@ -529,9 +529,9 @@ class BaseFinder(AbstractContextManager, ABC):
            self._protocol = Ftp(**kwargs)
        else:
            raise ValueError("Unrecognized connection protocol " + protocol)
-       self._args = None
 
-       self.cd(*args)
+       if len(args):
+           self.cd(*args)
 
     @property
     def files(self):

@@ -28,13 +28,13 @@
 #
 import os
 import unittest
-from gdt.core.heasarc import FtpFinder, BrowseCatalog
+from gdt.core.heasarc import BaseFinder, FtpFinder, BrowseCatalog
 
 this_dir = os.path.dirname(__file__)
 
 # classes for unit tests
 
-class MyFtpFinder(FtpFinder):
+class MyFinder(BaseFinder):
     _root = '/fermi/data/gbm/triggers'
     def _construct_path(self, str_trigger_num):
         year = '20' + str_trigger_num[0:2]
@@ -52,11 +52,15 @@ class MyBadCatalog(BrowseCatalog):
 
 # ------------------------------------------------------------------------------
 
-@unittest.skipIf(
-    os.environ.get('SKIP_HEASARC_FTP_TESTS', False), 'Skipping HEASARC FTP tests'
-)
-class TestFtpFinder(unittest.TestCase):
-    
+class TestFinder(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls._test_protocols = ['FTP', 'HTTPS']
+        if os.environ.get('SKIP_HEASARC_FTP_TESTS', False):
+            print('Skipping HEASARC FTP tests')
+            cls._test_protocols = ['HTTPS']
+
     def tearDown(self):
         try:
             os.remove(os.path.join(this_dir, 
@@ -65,34 +69,38 @@ class TestFtpFinder(unittest.TestCase):
             pass
     
     def test_initialize(self):
-        finder = MyFtpFinder('170817529')
-        self.assertGreater(finder.num_files, 1)
-        self.assertGreater(len(finder.files), 1)
+        for protocol in self._test_protocols:
+            finder = MyFinder('170817529', protocol=protocol)
+            self.assertGreater(finder.num_files, 1)
+            self.assertGreater(len(finder.files), 1)
         
-        files = finder.filter('trigdat', 'fit')
-        self.assertListEqual(files, ['glg_trigdat_all_bn170817529_v01.fit'])
-        finder.get(this_dir, files)
-        self.assertTrue(os.path.exists(os.path.join(this_dir, files[0])))
+            files = finder.filter('trigdat', 'fit')
+            self.assertListEqual(files, ['glg_trigdat_all_bn170817529_v01.fit'])
+            finder.get(this_dir, files)
+            self.assertTrue(os.path.exists(os.path.join(this_dir, files[0])))
     
     def test_cd(self):
-        finder = MyFtpFinder()
-        finder.cd('170817529')
-        self.assertGreater(finder.num_files, 1)
-        self.assertGreater(len(finder.files), 1)
+        for protocol in self._test_protocols:
+            finder = MyFinder(protocol=protocol)
+            finder.cd('170817529')
+            self.assertGreater(finder.num_files, 1)
+            self.assertGreater(len(finder.files), 1)
 
-        files = finder.filter('trigdat', 'fit')
-        finder.get(this_dir, files, verbose=False)
+            files = finder.filter('trigdat', 'fit')
+            finder.get(this_dir, files, verbose=False)
     
     def test_ls(self):
-        finder = MyFtpFinder('170817529')
-        self.assertListEqual(finder.files, finder.ls('170817529'))
+        for protocol in self._test_protocols:
+            finder = MyFinder('170817529', protocol=protocol)
+            self.assertListEqual(finder.files, finder.ls('170817529'))
 
     def test_errors(self):
-        with self.assertRaises(ValueError):
-            MyFtpFinder('oops i did it again')
+        for protocol in self._test_protocols:
+            with self.assertRaises(ValueError):
+                MyFinder('oops i did it again', protocol=protocol)
             
-        with self.assertRaises(FileNotFoundError):
-            MyFtpFinder().ls('...and again')
+            with self.assertRaises(FileNotFoundError):
+                MyFinder(protocol=protocol).ls('...and again')
 
 
 class TestBrowseCatalog(unittest.TestCase):
