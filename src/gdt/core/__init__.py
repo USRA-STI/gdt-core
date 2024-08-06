@@ -39,7 +39,7 @@ else:
 
 _gdt_data = files('gdt.data')
 
-__version__ = '2.0.4'
+__version__ = '2.0.5'
 
 suite_path = Path(__file__).parent.parent
 
