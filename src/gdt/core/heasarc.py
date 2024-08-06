@@ -222,6 +222,10 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         """
         pass
 
+    @abstractmethod
+    def initialized(self):
+        """(bool): True if the protocol has been initialized"""
+        pass
 
 class Ftp(BaseProtocol):
     """A class for FTP interactions with a remote archive.
@@ -383,6 +387,11 @@ class Ftp(BaseProtocol):
         if self._ftp is not None:
             return self._ftp.pwd()
 
+    @property
+    def initialized(self):
+        """(bool): True if the protocol has been initialized with a host address"""
+        return self._host is not None
+
     def __del__(self):
         """Destructor"""
         if self._ftp is not None:
@@ -541,6 +550,11 @@ class Http(BaseProtocol):
 
         return file_path
 
+    @property
+    def initialized(self):
+        """(bool): True if the protocol has been initialized with a url"""
+        return self._url is not None
+
     def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
                  __traceback: Optional[TracebackType]) -> Optional[bool]:
         """Exit current context"""
@@ -567,17 +581,20 @@ class BaseFinder(AbstractContextManager, ABC):
         **kwargs: keyword arguments passed to protocol constructor
     """
     def __init__(self, *args, protocol='HTTPS', **kwargs):
-       """Constructor"""
-       self.protocol = protocol
-       if protocol in ['HTTP', 'HTTPS']:
-           self._protocol = Http(**kwargs)
-       elif protocol == 'FTP':
-           self._protocol = Ftp(**kwargs)
-       else:
-           raise ValueError("Unrecognized connection protocol " + protocol)
+        """Constructor"""
+        self._args = None
+        self.protocol = protocol
+        if protocol in ['HTTP', 'HTTPS']:
+            self._protocol = Http(**kwargs)
+        elif protocol == 'FTP':
+            self._protocol = Ftp(**kwargs)
+        else:
+            raise ValueError("Unrecognized connection protocol " + protocol)
 
-       if len(args):
-           self.cd(*args)
+        if len(args):
+            if not self._protocol.initialized:
+                raise ValueError('*args were given while host or url kwarg was None')
+            self.cd(*args)
 
     @property
     def files(self):
@@ -611,6 +628,7 @@ class BaseFinder(AbstractContextManager, ABC):
         Args:
             args (tuple): The arguments needed to construct the remote path
         """
+        self._args = args
         path = self._construct_path(*args)
         self._protocol.cd(path)
 
@@ -669,6 +687,13 @@ class BaseFinder(AbstractContextManager, ABC):
                  __traceback: Optional[TracebackType]) -> Optional[bool]:
         """Exit current context"""
         pass
+
+    def __repr__(self):
+        """(str): string represenation of the class"""
+        args = ', '.join([str(arg) for arg in self._args]) \
+            if self._args is not None else ''
+
+        return '<{0}: {1}>'.format(self.__class__.__name__, args)
 
 
 class FtpFinder(BaseFinder):
@@ -908,6 +933,7 @@ class BrowseCatalog:
             return hdulist[1].header, hdulist[1].data
 
     def __repr__(self):
+        """(str): string represenation of the class"""
         return '<{0}: {1} columns, {2} rows>'.format(self.__class__.__name__,
                                                      self.num_cols,
                                                      self.num_rows)

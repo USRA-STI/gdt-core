@@ -202,12 +202,17 @@ class TestFinder(TestMixin, unittest.TestCase):
             self.assertListEqual(finder.files, finder.ls('170817529'))
 
     def test_errors(self):
+        keyword = {"HTTP": "url", "HTTPS": "url", "FTP": "host"}
         for protocol in self._test_protocols:
             with self.assertRaises(ValueError):
                 MyFinder('oops i did it again', protocol=protocol)
             
             with self.assertRaises(FileNotFoundError):
                 MyFinder(protocol=protocol).ls('...and again')
+
+            with self.assertRaises(ValueError):
+                MyFinder('...and again', protocol=protocol,
+                         **{keyword[protocol]: None})
 
         with self.assertRaises(ValueError):
             MyFinder(protocol='bad')
@@ -217,6 +222,9 @@ class TestFinder(TestMixin, unittest.TestCase):
             with MyFinder(protocol=protocol) as finder:
                 pass
 
+    def test_repr(self):
+        finder = MyFinder('170817529')
+        self.assertEqual(str(finder), '<MyFinder: 170817529>')
 
 class TestFileDownloader(TestMixin, unittest.TestCase):
 
