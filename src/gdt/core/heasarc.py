@@ -56,7 +56,7 @@ __all__ = ['ProgressMixin', 'Ftp', 'Http', 'BaseFinder', 'FtpFinder', 'FileDownl
 
 
 class ProgressMixin:
-
+    """A mixin class for providing progress bar behavior through inheritance"""
     @staticmethod
     def _create_progress() -> Progress:
         """Creates a default progress object."""
@@ -83,6 +83,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
     """
 
     def __init__(self, progress: Progress = None):
+        """Constructor"""
         self._progress = progress
         self._file_list = []
 
@@ -96,11 +97,11 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         """(int): Number of files in the current directory"""
         return len(self._file_list)
 
-    def cd(self, path: Union[str, Path]):
+    def cd(self, path: str):
         """Change directory
         
         Args:
-            path: The remote directory path
+            path (str): The remote directory path
         """
         self._validate_connection()
         try:
@@ -110,12 +111,12 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
             self._file_list = []
             raise ValueError('{} is not a valid path'.format(path))
 
-    def ls(self, path: Union[str, Path]):
+    def ls(self, path: str):
         """List the contents of a directory associated with
         a data set.
         
         Args:
-            path: The remote directory path
+            path (str): The remote directory path
 
         Returns:
             (list of str)
@@ -175,7 +176,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
 
         Args:
             file (str): The file name to download
-            dest_dir (Path): The download file location
+            dest_dir (str, Path): The download file location
             verbose (bool, optional): If True, will output the download status. 
                                       Default is True.        
         
@@ -190,7 +191,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
 
         Args:
             url (str): The url of a file to download
-            dest_dir (Path): The directory where the file will be written
+            dest_dir (str, Path): The directory where the file will be written
             verbose (bool, optional): If True, will output the download status. 
                                       Default is True.
 
@@ -204,7 +205,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         """Internal call to change directory
 
         Args:
-            path: The remote directory path
+            path (str): The remote directory path
         """
         pass
 
@@ -214,7 +215,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         a data set.
 
         Args:
-            path: The remote directory path
+            path (str): The remote directory path
 
         Returns:
             (list of str)
@@ -231,6 +232,7 @@ class Ftp(BaseProtocol):
     """
 
     def __init__(self, host='heasarc.gsfc.nasa.gov', progress: Progress = None):
+        """Constructor"""
         super().__init__(progress)
         self._host = host
         self._ftp = None
@@ -245,34 +247,43 @@ class Ftp(BaseProtocol):
         if host is not None:
             self.connect(host=host)
 
-    def _ls(self, path: Union[str, Path]):
+    def _ls(self, path: str):
         """List the directory contents of an FTP directory associated with
         a data set.
         
         Args:
-            path: The remote directory path
+            path (str): The remote directory path
 
         Returns:
             (list of str)
         """
         return self._ftp.nlst(path)
 
-    def _cd(self, path):
+    def _cd(self, path: str):
+        """Change to FTP directory associated with
+        a data set.
+
+        Args:
+            path (str): The remote directory path
+        """
         self._ftp.cwd(path)
 
     def _validate_connection(self):
+        """Check if the FTP connection is open"""
         if self._ftp is None:
             raise ConnectionError('The connection is closed.')
 
     def download(self, file: str, dest_dir: Union[str, Path], verbose = True):
-        """Downloads a single file from the current directory.
+        """Downloads a single file from the current directory on a FTP site.
 
         Args:
             file (str): The file name to download
             file_path (Path): The download file location
             verbose (bool, optional): If True, will output the download status. 
-                                      Default is True.        
-        
+                                      Default is True.
+
+        Returns:
+            (Path)
         """
         # Make sure the dest_dir is a Path
         dest_dir = Path(dest_dir)
@@ -308,7 +319,17 @@ class Ftp(BaseProtocol):
         return file_path
 
     def download_url(self, url: str, dest_dir: Union[str, Path], verbose: bool = True):
-        """Download a file from a remote site"""
+        """Download a file from a FTP site url.
+
+        Args:
+            url (str): The url of a file to download
+            dest_dir (str, Path): The directory where the file will be written
+            verbose (bool, optional): If True, will output the download status.
+                                      Default is True.
+
+        Returns:
+            (Path)
+        """
         url_p = urlparse(url)
 
         # verify the URL is for FTP
@@ -332,6 +353,9 @@ class Ftp(BaseProtocol):
 
     def connect(self, host: str = None):
         """Attempt a connection
+
+        Args:
+            host (str): The host of the FTP archive
         """
         if host is not None:
             self._host = host
@@ -354,21 +378,24 @@ class Ftp(BaseProtocol):
         self._file_list = []
 
     def pwd_r(self) -> str:
-        """Retrieve the current directory."""
+        """(str): the current directory."""
         self._validate_connection()
         if self._ftp is not None:
             return self._ftp.pwd()
 
     def __del__(self):
+        """Destructor"""
         if self._ftp is not None:
             self._ftp.close()
 
     def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
                  __traceback: Optional[TracebackType]) -> Optional[bool]:
+        """Exit current context"""
         self.disconnect()
         return None
 
     def __repr__(self):
+        """(str): string represenation of the class"""
         return '<{0}: host {1}>'.format(self.__class__.__name__, self._host)
 
 
@@ -387,6 +414,7 @@ class Http(BaseProtocol):
     def __init__(self, url='https://heasarc.gsfc.nasa.gov/FTP/',
                  start_key='<a href="', end_key='">', table_key='Parent Directory</a>',
                  progress: Progress = None, context: ssl.SSLContext = None):
+        """Constructor"""
         super().__init__(progress)
         self._url = url
         # keys are used to parse the HTTP/HTTPS file index
@@ -397,20 +425,22 @@ class Http(BaseProtocol):
         # need to track current directory
         self._cwd = None
 
-    def _cd(self, path: Union[str, Path]):
-        """Change directory
+    def _cd(self, path: str):
+        """Mimics change to HTTP(S) directory associated with
+        a data set. This provides parity with `_cd()` from
+        :class:`~gdt.core.heasarc.Ftp`.
         
         Args:
-            path: The remote directory path
+            path (str): The remote directory path
         """
         self._cwd = path
 
-    def _ls(self, path: Union[str, Path]):
-        """List the directory contents of an FTP directory associated with
+    def _ls(self, path: str):
+        """List the directory contents of an HTTP(S) directory associated with
         a data set.
         
         Args:
-            path: The remote directory path
+            path (str): The remote directory path
 
         Returns:
             (list of str)
@@ -426,7 +456,8 @@ class Http(BaseProtocol):
 
     def urljoin(self, path: str):
         """ Join urls while fully preserving url root. This is needed
-        to provide identical ls()/cd() support as FtpProtocol.
+        to provide identical `ls()`/`cd()` support as the
+        :class:`~gdt.core.heasarc.Ftp` protocol.
 
         Args:
             path (str): The remote path
@@ -437,14 +468,16 @@ class Http(BaseProtocol):
         return urljoin(self._url, path[1:] if path[0] == "/" else path)
 
     def download(self, file: str, dest_dir: Union[str, Path], verbose: bool = True):
-        """Downloads a single file from the current directory.
+        """Download a file from the current directory of a HTTP(S) site.
 
         Args:
             file (str): The file name to download
             file_path (Path): The download file location
-            verbose (bool, optional): If True, will output the download status. 
+            verbose (bool, optional): If True, will output the download status.
                                       Default is True.        
         
+        Returns:
+            (Path)
         """
         if self._cwd is None:
             raise ValueError("User must first cd() into a directory.")
@@ -458,7 +491,17 @@ class Http(BaseProtocol):
         return file_path
 
     def download_url(self, url: str, dest_dir: Union[str, Path], verbose: bool = True):
-        """Download a file from a HTTP(S) site"""
+        """Download a file from a HTTP(S) site url.
+
+        Args:
+            url (str): The url of a file to download
+            dest_dir (str, Path): The directory where the file will be written
+            verbose (bool, optional): If True, will output the download status.
+                                      Default is True.
+
+        Returns:
+            (Path)
+        """
         url_p = urlparse(url)
 
         # verify the URL is for HTTP(S)
@@ -500,9 +543,11 @@ class Http(BaseProtocol):
 
     def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
                  __traceback: Optional[TracebackType]) -> Optional[bool]:
+        """Exit current context"""
         pass
 
     def __repr__(self):
+        """(str): string represenation of the class"""
         return '<{0}: url {1}>'.format(self.__class__.__name__, self._url)
 
 
@@ -522,6 +567,7 @@ class BaseFinder(AbstractContextManager, ABC):
         **kwargs: keyword arguments passed to protocol constructor
     """
     def __init__(self, *args, protocol='HTTPS', **kwargs):
+       """Constructor"""
        self.protocol = protocol
        if protocol in ['HTTP', 'HTTPS']:
            self._protocol = Http(**kwargs)
@@ -560,10 +606,20 @@ class BaseFinder(AbstractContextManager, ABC):
         return self._protocol.get(download_dir, files, verbose)
 
     def cd(self, *args):
+        """Change directory
+
+        Args:
+            args (tuple): The arguments needed to construct the remote path
+        """
         path = self._construct_path(*args)
         self._protocol.cd(path)
 
     def ls(self, *args):
+        """List the contents of a directory
+
+        Args:
+            args (tuple): The arguments needed to construct the remote path
+        """
         path = self._construct_path(*args)
         return self._protocol.ls(path)
 
@@ -611,27 +667,48 @@ class BaseFinder(AbstractContextManager, ABC):
 
     def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
                  __traceback: Optional[TracebackType]) -> Optional[bool]:
+        """Exit current context"""
         pass
 
 
 class FtpFinder(BaseFinder):
+    """Class providing backwards compatibility for code written prior to v2.0.5
+    where the FtpFinder handled most interactions with HEASARC
+
+    Parameters:
+        args: The set of parameters needed to define the data path
+        host (str, optional): The host of the FTP archive
+        progress (Progress, optional): The progress bar object
+    """
     def __init__(self, *args, host='heasarc.gsfc.nasa.gov', progress: Progress = None):
+        """Constructor"""
         super().__init__(*args, protocol='FTP', host=host, progress=progress)
 
 
 class FileDownloader(AbstractContextManager):
-    """Used to download a list of files given as a URL."""
+    """Used to download a list of files given as a URL.
 
+    Parameters:
+        progress (Progress, optional): The progress bar object
+    """
     def __init__(self, progress: Progress = None):
+        """Constructor"""
         self._http = Http('', progress=progress)
         self._ftp = Ftp(host=None, progress=progress)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit current context"""
         self._ftp.disconnect()
 
     def download_url(self, url: str, dest_dir: Union[str, Path], verbose: bool = True):
-        """Download a file from a URL."""
+        """Download a file from a URL.
 
+        Args:
+            url (str): The url of a file to download
+            dest_dir (str, Path): The directory where the file will be written
+            verbose (bool, optional): If True, will output the download status.
+                                      Default is True.
+        """
         if url.startswith('ftp'):
             self._ftp.download_url(url, dest_dir, verbose)
         elif url.startswith('http'):
@@ -640,10 +717,16 @@ class FileDownloader(AbstractContextManager):
             raise ValueError('url must begin with ftp://, http://, or https://')
 
     def bulk_download(self, urls: List[str], dest_dir: Union[str, Path], verbose: bool = True):
-        """Download files from a list of URLs."""
+        """Download files from a list of URLs.
+
+        Args:
+            url (list of str): The urls of files to download
+            dest_dir (str, Path): The directory where the file will be written
+            verbose (bool, optional): If True, will output the download status.
+                                      Default is True.
+        """
         for url in urls:
             self.download_url(url, dest_dir, verbose)
-
 
 
 class BrowseCatalog:
