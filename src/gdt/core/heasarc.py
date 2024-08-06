@@ -128,7 +128,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
             try:
                 self._reconnect()
                 print('Reconnected.')
-                return self.ls(id)
+                return self.ls(path)
             except:
                 raise RuntimeError('Failed to reconnect.')
         except:
@@ -167,10 +167,6 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
     def _validate_connection(self):
         """Validate that a connection remains open. Default behavior is pass
         since not all protocols maintain a continuous connection."""
-        pass
-
-    def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
-                 __traceback: Optional[TracebackType]) -> Optional[bool]:
         pass
 
     @abstractmethod
@@ -502,6 +498,10 @@ class Http(BaseProtocol):
 
         return file_path
 
+    def __exit__(self, __exc_type: Optional[Type[BaseException]], __exc_value: Optional[BaseException],
+                 __traceback: Optional[TracebackType]) -> Optional[bool]:
+        pass
+
     def __repr__(self):
         return '<{0}: url {1}>'.format(self.__class__.__name__, self._url)
 
@@ -619,18 +619,15 @@ class FtpFinder(BaseFinder):
         super().__init__(*args, protocol='FTP', host=host, progress=progress)
 
 
-class FileDownloader(ProgressMixin):
+class FileDownloader(AbstractContextManager):
     """Used to download a list of files given as a URL."""
 
-    def __init__(self):
-        super().__init__(progress=self._create_progress())
-        self._progress.start()
-        self._http = Http(progress=self._progress)
-        self._ftp = Ftp(host=None, progress=self._progress)
+    def __init__(self, progress: Progress = None):
+        self._http = Http('', progress=progress)
+        self._ftp = Ftp(host=None, progress=progress)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._ftp.disconnect()
-        self._progress.stop()
 
     def download_url(self, url: str, dest_dir: Union[str, Path], verbose: bool = True):
         """Download a file from a URL."""
