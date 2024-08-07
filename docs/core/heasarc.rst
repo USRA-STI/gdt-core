@@ -1,5 +1,9 @@
 .. _core-heasarc:
+.. |Ftp| replace:: :class:`~gdt.core.heasarc.Ftp`
+.. |Http| replace:: :class:`~gdt.core.heasarc.Http`
+.. |FileDownloader| replace:: :class:`~gdt.core.heasarc.FileDownloader`
 .. |FtpFinder| replace:: :class:`~gdt.core.heasarc.FtpFinder`
+.. |BaseFinder| replace:: :class:`~gdt.core.heasarc.BaseFinder`
 .. |BrowseCatalog| replace:: :class:`~gdt.core.heasarc.BrowseCatalog`
 .. |BrowseCatalog.slices()| replace:: :meth:`~gdt.core.heasarc.BrowseCatalog.slices`
 
@@ -20,31 +24,37 @@ HEASARC.
 
 .. _core-heasarc-finder:
 
-The FtpFinder Class
-===================
-The |FtpFinder| in the GDT provides functionality for accessing, navigating, 
-and downloading data from HEASARC for a given mission.  One problem with finding
+The BaseFinder Class
+====================
+The |BaseFinder| in the GDT provides functionality for accessing, navigating,
+and downloading data from HEASARC for a given mission. One problem with finding
 the data you need for an investigation is that the directory structure for each 
-mission can be very different and may require different inputs.  The FtpFinder 
+mission can be very different and may require different inputs.  The BaseFinder
 base class aims to fix this problem.  For a given mission and data archive, the
 important parameter may be a time or an observation ID or a trigger number. And
 the directory structure may be organized such that navigating it manually is
-a nuisance. By inheriting the FtpFinder and defining one function, we can 
+a nuisance. By inheriting the BaseFinder and defining one function, we can
 immediately access the data we need and download it for a given mission.
+
+|BaseFinder| offers file access through either HTTPS or FTP protocols. The
+default protocol is HTTPS, which is recommended due to its wider support
+across secure networks as well as the higher reliability of HEASARC's HTTPS
+servers. If necessary, the protocol type can manually selected by passing a
+``protocol`` keyword during initialization of inherited classes.
 
 For Developers:
 ---------------
 In this example, we will make a data finder for Fermi GBM trigger data.  To
-do so, we will inherit |FtpFinder|, define the root directory for the data 
+do so, we will inherit |BaseFinder|, define the root directory for the data
 archive on the FTP server, and define a private function called 
 ``_construct_path()`` that will construct the correct directory path given the
 required input parameters.
 
   >>> import os
-  >>> from gdt.core.heasarc import FtpFinder
-  >>> class MyFtpFinder(FtpFinder):
+  >>> from gdt.core.heasarc import BaseFinder
+  >>> class MyFinder(BaseFinder):
   >>>     _root = '/fermi/data/gbm/triggers'
-  >>>    
+  >>>
   >>>     def _construct_path(self, str_trigger_num):
   >>>         year = '20' + str_trigger_num[0:2]
   >>>         path = os.path.join(self._root, year, 'bn' + str_trigger_num, 'current')
@@ -56,12 +66,12 @@ path to the data for the given trigger number, and it returns that path.
 
 Examples
 --------
-Now we can create an instance of ``MyFtpFinder`` and initialize it with a 
+Now we can create an instance of ``MyFinder`` and initialize it with a
 trigger number:
 
-  >>> finder = MyFtpFinder('170817529')
+  >>> finder = MyFinder('170817529')
   >>> finder
-  <MyFtpFinder: 170817529>
+  <MyFinder: 170817529>
   
 To see how many files or what files are available in the directory:
 
@@ -100,7 +110,7 @@ You can also change to a different directory with the same object:
 
   >>> finder.cd('080916009')
   >>> finder
-  <MyFtpFinder: 080916009>
+  <MyFinder: 080916009>
   
 If you don't want to change directories but instead just list what is in a
 different directory, you can do that too:
@@ -220,6 +230,68 @@ force the loading of the cached file:
 Note that this will only load the latest version of the catalog you downloaded 
 from HEASARC, so if it is a catalog that you expect will be updated before your 
 next use, you should still update from HEASARC.
+
+Lower Level Classes
+===================
+
+Developers looking for more direct interactions with HEASARC or other
+remote servers are encouraged to use the lower level |Http| and |Ftp|
+classes. These classes can download files from any URL without
+additional formatting. A third |FileDownloader| class offers similar
+download functionality without needing to specify the protocol. It
+automatically determines the appropriate protocol based on the scheme
+defined in the URL itself.
+
+Examples
+--------
+The following will download a file to the current directory using a HTTPS protocol with the |Http| class
+
+    >>> from gdt.core.heasarc import Http
+    >>> http = Http()
+    >>> http.download_url('https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/bursts/2017/bn170817529/current/glg_trigdat_all_bn170817529_v01.fit', '.')
+
+The same can be done using a FTP protocol with the |Ftp| class
+
+    >>> from gdt.core.heasarc import Ftp
+    >>> ftp = Ftp()
+    >>> ftp.download_url('ftp://heasarc.gsfc.nasa.gov/fermi/data/gbm/bursts/2017/bn170817529/current/glg_trigdat_all_bn170817529_v01.fit', '.')
+
+Note that the URL schemes ``ftp://`` and ``https:://`` must match the protocol format of the |Ftp| and |Http| classes in these examples.
+
+The |FileDownloader| class can download either URL scheme
+
+    >>> from gdt.core.heasarc import FileDownloader
+    >>> downloader = FileDownloader()
+    >>> downloader.download_url('ftp://heasarc.gsfc.nasa.gov/fermi/data/gbm/bursts/2017/bn170817529/current/glg_trigdat_all_bn170817529_v01.fit', '.')
+    >>> downloader.download_url('https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/bursts/2017/bn170817529/current/glg_trigdat_all_bn170817529_v01.fit', '.')
+
+See the documentation of these classes for additional functionality, including
+the ability to download multiple files at once through methods like
+:meth:`Http.get() <gdt.core.heasarc.Http.get>`, :meth:`Ftp.get() <gdt.core.heasarc.Ftp.get>`,
+and :meth:`FileDownloader.bulk_download() <gdt.core.heasarc.FileDownloader.bulk_download>`.
+
+Backwards Compatability
+=======================
+
+The |FtpFinder| class inherits from the |BaseFinder| class to define identical
+FTP access support as the original FtpFinder class from API version 2.0.4 and
+earlier. Existing code that depends upon the FtpFinder class will still work
+as intended, but we recommend migrating to the new BaseFinder class given the
+wider support of HTTPS across secure networks and the higher reliability of
+HEASARC's HTTPS servers.
+
+    >>> import os
+    >>> from gdt.core.heasarc import FtpFinder
+    >>> class MyFtpFinder(FtpFinder):
+    >>> from gdt.core.heasarc import BaseFinder
+    >>> class MyFinder(BaseFinder):
+    >>>     _root = '/fermi/data/gbm/triggers'
+    >>>
+    >>>     def _construct_path(self, str_trigger_num):
+    >>>         year = '20' + str_trigger_num[0:2]
+    >>>         path = os.path.join(self._root, year, 'bn' + str_trigger_num, 'current')
+    >>>         return path
+
 
 Reference/API
 =============
