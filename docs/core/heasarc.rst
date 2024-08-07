@@ -15,10 +15,10 @@ Introduction
 ============
 The High-Energy Astrophysics Science Archive Research Center (HEASARC) is a
 repository for data and catalogs for many high-energy astrophysics
-missions.  Science and auxiliary data files are hosted on a FTP server, while
+missions.  Science and auxiliary data files are hosted on FTP and HTTPS servers, while
 a variety of catalogs are accessible via the HEASARC's Browse interface.
 
-The GDT provides a base class for accessing and navigating the FTP directories
+The GDT provides a base class for accessing and navigating the directories
 of mission data, as well as a base class for interfacing with catalogs on 
 HEASARC.
 
@@ -39,8 +39,8 @@ immediately access the data we need and download it for a given mission.
 |BaseFinder| offers file access through either HTTPS or FTP protocols. The
 default protocol is HTTPS, which is recommended due to its wider support
 across secure networks as well as the higher reliability of HEASARC's HTTPS
-servers. If necessary, the protocol type can manually selected by passing a
-``protocol`` keyword during initialization of inherited classes.
+servers. If necessary, the protocol type can be selected manually by passing a
+``protocol`` keyword during initialization of classes derived from BaseFinder.
 
 For Developers:
 ---------------
@@ -122,6 +122,14 @@ different directory, you can do that too:
    'glg_cspec_b1_bn090510016_v00.pha',
    'glg_cspec_b1_bn090510016_v00.rsp2',
    ...]
+
+Finally, you can enable file transfer over FTP instead of
+HTTPS by setting the protocol keyword argument:
+
+  >>> finder = MyFinder('170817529', protocol='FTP')
+
+However, it is recommended that you use the default HTTPS setting for
+HEASARC.
 
 .. _core-heasarc-browse:
 
@@ -244,13 +252,13 @@ defined in the URL itself.
 
 Examples
 --------
-The following will download a file to the current directory using a HTTPS protocol with the |Http| class
+The following will download a file to the current directory using a HTTPS protocol with the |Http| class:
 
     >>> from gdt.core.heasarc import Http
     >>> http = Http()
     >>> http.download_url('https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/bursts/2017/bn170817529/current/glg_trigdat_all_bn170817529_v01.fit', '.')
 
-The same can be done using a FTP protocol with the |Ftp| class
+The same can be done using a FTP protocol with the |Ftp| class:
 
     >>> from gdt.core.heasarc import Ftp
     >>> ftp = Ftp()
@@ -258,7 +266,7 @@ The same can be done using a FTP protocol with the |Ftp| class
 
 Note that the URL schemes ``ftp://`` and ``https:://`` must match the protocol format of the |Ftp| and |Http| classes in these examples.
 
-The |FileDownloader| class can download either URL scheme
+The |FileDownloader| class can download either URL scheme:
 
     >>> from gdt.core.heasarc import FileDownloader
     >>> downloader = FileDownloader()
