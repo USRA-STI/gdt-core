@@ -578,7 +578,8 @@ class BaseFinder(AbstractContextManager, ABC):
     Parameters:
         args: The set of parameters needed to define the data path
         protocol (str, optional): The connection protocol. Default is HTTPS.
-        **kwargs: keyword arguments passed to protocol constructor
+        **kwargs: Options passed to :class:`Http` class for HTTPS protocol and 
+                  :class:`Ftp` class for FTP protocol.
     """
     def __init__(self, *args, protocol='HTTPS', **kwargs):
         """Constructor"""
@@ -702,12 +703,11 @@ class FtpFinder(BaseFinder):
 
     Parameters:
         args: The set of parameters needed to define the data path
-        host (str, optional): The host of the FTP archive
-        progress (Progress, optional): The progress bar object
+        **kwargs:  Options passed to :class:`Ftp` class
     """
-    def __init__(self, *args, host='heasarc.gsfc.nasa.gov', progress: Progress = None):
+    def __init__(self, *args, **kwargs):
         """Constructor"""
-        super().__init__(*args, protocol='FTP', host=host, progress=progress)
+        super().__init__(*args, protocol='FTP', **kwargs)
 
 
 class FileDownloader(AbstractContextManager):
