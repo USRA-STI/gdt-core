@@ -278,15 +278,15 @@ the ability to download multiple files at once through methods like
 :meth:`Http.get() <gdt.core.heasarc.Http.get>`, :meth:`Ftp.get() <gdt.core.heasarc.Ftp.get>`,
 and :meth:`FileDownloader.bulk_download() <gdt.core.heasarc.FileDownloader.bulk_download>`.
 
-Backwards Compatability
+Backwards Compatibility
 =======================
 
 The |FtpFinder| class inherits from the |BaseFinder| class to define identical
 FTP access support as the original FtpFinder class from API version 2.0.4 and
-earlier. Existing code that depends upon the FtpFinder class will still work
+earlier. Existing code that depends on the FtpFinder class will still work
 as intended, but we recommend migrating to the new BaseFinder class given the
-wider support of HTTPS across secure networks and the higher reliability of
-HEASARC's HTTPS servers.
+wider support of HTTPS file transfer across secure networks and the higher
+reliability of HEASARC's HTTPS servers.
 
     >>> import os
     >>> from gdt.core.heasarc import FtpFinder
