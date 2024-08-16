@@ -199,7 +199,17 @@ class TestFinder(TestMixin, unittest.TestCase):
     def test_ls(self):
         for protocol in self._test_protocols:
             finder = MyFinder('170817529', protocol=protocol)
-            self.assertListEqual(finder.files, finder.ls('170817529'))
+            values = finder.ls('170817529')
+            self.assertListEqual(finder.files, values)
+
+    def test_ls_fullpath(self):
+        for protocol in self._test_protocols:
+            finder = MyFinder('170817529', protocol=protocol)
+            cwd = finder.cwd
+            values = finder.ls('170817529', fullpath=True)
+            expected = [os.path.join(cwd, f) for f in finder.files]
+            self.assertListEqual(expected, values)
+
 
     def test_errors(self):
         keyword = {"HTTP": "url", "HTTPS": "url", "FTP": "host"}

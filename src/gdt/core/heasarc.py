@@ -105,18 +105,19 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         """
         self._validate_connection()
         try:
-            self._file_list = self.ls(path)
+            self._file_list = self.ls(path, fullpath=False)
             self._cd(path)
         except:
             self._file_list = []
             raise ValueError('{} is not a valid path'.format(path))
 
-    def ls(self, path: str):
+    def ls(self, path: str, *, fullpath: bool = False) -> List[str]:
         """List the contents of a directory associated with
         a data set.
         
         Args:
             path (str): The remote directory path
+            fullpath (bool, optional): If ``True``, the contents of the directory will be returned with their full path
 
         Returns:
             (list of str)
@@ -134,7 +135,13 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
                 raise RuntimeError('Failed to reconnect.')
         except:
             raise FileNotFoundError('{} does not exist'.format(path))
-        return sorted([os.path.basename(f) for f in files])
+
+        result = []
+        for f in files:
+            if f.endswith('/'):
+                f = f[:-1]
+            result.append( f if fullpath else os.path.basename(f))
+        return sorted(result)
 
     def get(self, download_dir: Union[str, Path], files: List[str],
             verbose: bool = True) -> List[Path]:
@@ -460,7 +467,7 @@ class Http(BaseProtocol):
         for line in table.split("\n"):
             if self._start_key in line:
                 file = line.split(self._start_key)[1].split(self._end_key)[0]
-                files.append(file)
+                files.append(os.path.join(path, file))
         return files
 
     def urljoin(self, path: str):
@@ -585,6 +592,7 @@ class BaseFinder(AbstractContextManager, ABC):
         """Constructor"""
         self._args = None
         self.protocol = protocol
+        self._cwd = ''
         if protocol in ['HTTP', 'HTTPS']:
             self._protocol = Http(**kwargs)
         elif protocol == 'FTP':
@@ -596,6 +604,10 @@ class BaseFinder(AbstractContextManager, ABC):
             if not self._protocol.initialized:
                 raise ValueError('*args were given while host or url kwarg was None')
             self.cd(*args)
+
+    @property
+    def cwd(self) -> str:
+        return self._cwd
 
     @property
     def files(self):
@@ -630,17 +642,18 @@ class BaseFinder(AbstractContextManager, ABC):
             args (tuple): The arguments needed to construct the remote path
         """
         self._args = args
-        path = self._construct_path(*args)
-        self._protocol.cd(path)
+        self._cwd = self._construct_path(*args)
+        self._protocol.cd(self._cwd)
 
-    def ls(self, *args):
+    def ls(self, *args, fullpath: bool = False):
         """List the contents of a directory
 
         Args:
             args (tuple): The arguments needed to construct the remote path
+            fullpath (bool, optional): If True, will list all files in the current with their full path.
         """
         path = self._construct_path(*args)
-        return self._protocol.ls(path)
+        return self._protocol.ls(path, fullpath=fullpath)
 
     def filter(self, filetype, extension):
         """Filters the directory for the requested filetype and extension
