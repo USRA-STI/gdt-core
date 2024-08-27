@@ -33,6 +33,8 @@ from .lib import *
 from .defaults import *
 import warnings
 import matplotlib.pyplot as plt
+import packaging.version as vers
+
 
 __all__ = ['ModelFit']
 
@@ -56,9 +58,12 @@ class ModelFit(GdtPlot):
 
     def __init__(self, fitter=None, canvas=None, view='counts', resid=True,
                  interactive=True):
-        
-        warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
-        
+
+        if vers.Version(np.__version__) < vers.Version('2.0.0'):
+            warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+        else:
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+
         self._figure, axes = plt.subplots(2, 1, sharex=True, sharey=False, 
                                           figsize=(5.7, 6.7), dpi=100, 
                                           gridspec_kw={'height_ratios': [3,1]})
