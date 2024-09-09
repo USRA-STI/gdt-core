@@ -175,7 +175,8 @@ class Rsp(FitsFileContextManager):
         headers = self._build_headers(new_drm.num_chans, new_drm.num_ebins)
         
         rsp = self.from_data(new_drm, start_time=tstart, stop_time=tstop, 
-                             trigger_time=self.trigtime, headers=headers)
+                             trigger_time=self.trigtime, headers=headers,
+                             detector=self.detector)
         rsp._ngrp = self._ngrp
         rsp._fchan = self._fchan
         rsp._nchan = self._nchan
@@ -228,7 +229,8 @@ class Rsp(FitsFileContextManager):
         headers = self._build_headers(new_drm.num_chans, new_drm.num_ebins)
         
         rsp = self.from_data(new_drm, start_time=tstart, stop_time=tstop, 
-                             trigger_time=self.trigtime, headers=headers)
+                             trigger_time=self.trigtime, headers=headers,
+                             detector=self.detector)
         rsp._ngrp = self._ngrp
         rsp._fchan = self._fchan
         rsp._nchan = self._nchan
