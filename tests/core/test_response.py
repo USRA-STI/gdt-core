@@ -127,6 +127,7 @@ class TestRsp(unittest.TestCase):
         self.assertAlmostEqual(rebinned.tstart, -129.0260, places=4)
         self.assertAlmostEqual(rebinned.tstop, -79.8732, places=4)
         self.assertEqual(rebinned.trigtime, 356223561.133346)
+        self.assertEqual(rebinned.detector, 'det0')
 
     def test_resample(self):
         resampled = self.rsp.resample(num_photon_bins=3)
@@ -135,6 +136,7 @@ class TestRsp(unittest.TestCase):
         self.assertAlmostEqual(resampled.tstart, -129.0260, places=4)
         self.assertAlmostEqual(resampled.tstop, -79.8732, places=4)
         self.assertEqual(resampled.trigtime, 356223561.133346)
+        self.assertEqual(resampled.detector, 'det0')
 
     def test_write(self):
         with self.assertRaises(NameError):
