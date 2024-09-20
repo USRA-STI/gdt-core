@@ -53,4 +53,4 @@ Changes from GBM Data Tools include:
 - Mission Elapsed Time is stored within AstroPy Time which handles the conversion to other time systems.
 - Spacecraft coordinates is now using Astropy Coordinate Frames.
 - Quaternions use Numpy to vectorize operations and SciPy Rotation to translate between Quaternions and Direction Cosine Matrixes.
-- Fits files are now support context management and perform header verification.
+- Fits files now support context management and perform header verification.
