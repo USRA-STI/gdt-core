@@ -57,7 +57,7 @@ class ModelFit(GdtPlot):
     def __init__(self, fitter=None, canvas=None, view='counts', resid=True,
                  interactive=True):
         
-        warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+        warnings.filterwarnings("ignore", category=np.exceptions.VisibleDeprecationWarning)
         
         self._figure, axes = plt.subplots(2, 1, sharex=True, sharey=False, 
                                           figsize=(5.7, 6.7), dpi=100, 
