@@ -81,7 +81,7 @@ class Header(fits.Header):
     def __setitem__(self, key, val):
         
         # pass-through for COMMENT
-        if isinstance(key, tuple):
+        if isinstance(val, tuple):
             super().__setitem__(key, val)
             return
         
