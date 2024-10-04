@@ -79,9 +79,9 @@ class Header(fits.Header):
             self['EXTNAME'] = self.name
 
     def __setitem__(self, key, val):
-        
+
         # pass-through for COMMENT
-        if isinstance(val, tuple):
+        if isinstance(key, tuple) or isinstance(val, tuple):
             super().__setitem__(key, val)
             return
         
