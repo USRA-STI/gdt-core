@@ -28,21 +28,21 @@
 #
 import unittest
 
-from gdt.core.fits import exponential_card, fixed_card
+from gdt.core.fits import scientific_card, fixed_card
 
 class TestFitCards(unittest.TestCase):
     def test_fixed_card(self):
         val = 7.428703703703703e-4
         card = fixed_card('FIXEDV', val, comment='fixed floating point')
-        assert card.image == "FIXEDV  = 0.00074              / fixed floating point                           "
+        assert card.image == "FIXEDV  =              0.00074 / fixed floating point                           "
 
-    def test_exponential_card_float(self):
+    def test_scientific_card(self):
         val = 7.428703703703703e-4
-        card = exponential_card('FLOATV', val, comment='exponential floating point')
-        assert card.image == "FLOATV  = 7.42870E-4           / exponential floating point                     "
+        card = scientific_card('FLOATV', val, comment='exponential floating point')
+        assert card.image == "FLOATV  =           7.42870E-4 / exponential floating point                     "
 
-    def test_exponential_card_double(self):
+    def test_scientific_card_use_d(self):
         val = 7.428703703703703e-4
-        card = exponential_card('DOUBLV', val, places=15, use_double=True,
+        card = scientific_card('DOUBLV', val, places=15, use_d=True,
                                 comment='exponential floating point (as double)')
         assert card.image == "DOUBLV  = 7.428703703703703D-4 / exponential floating point (as double)         "
