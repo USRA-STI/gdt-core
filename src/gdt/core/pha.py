@@ -515,9 +515,10 @@ class Pha(FitsFileContextManager):
                                             header=self.headers['GTI'])
         
         for key, val in self.headers['GTI'].items():
-            hdu.header[key] = val        
-        hdu.header.comments['TZERO1'] = 'Offset, equal to TRIGTIME'
-        hdu.header.comments['TZERO2'] = 'Offset, equal to TRIGTIME'
+            hdu.header[key] = val
+        if self.trigtime is not None:
+            hdu.header.comments['TZERO1'] = 'Offset, equal to TRIGTIME'
+            hdu.header.comments['TZERO2'] = 'Offset, equal to TRIGTIME'
         return hdu
 
     def __repr__(self):
