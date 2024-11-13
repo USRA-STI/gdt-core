@@ -472,11 +472,8 @@ class HealPixLocalization(HealPix):
         # use matplotlib contour to produce a path object
         contour = Contour(ra, dec, sig_arr, [clevel])
 
-        # get the contour path, which is made up of segments
-        paths = contour.collections[0].get_paths()
-
         # extract all the vertices
-        pts = [path.vertices for path in paths]
+        pts = contour.allsegs[0]
 
         # unfortunately matplotlib will plot this, so we need to remove
         for c in contour.collections:
