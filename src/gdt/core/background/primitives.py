@@ -27,9 +27,9 @@
 # License.
 #
 import numpy as np
-from gdt.core.data_primitives import TimeEnergyBins, EnergyBins, Gti, Ebounds
+from gdt.core.data_primitives import TimeEnergyBins,TimeChannelBins,EnergyBins,ChannelBins, Gti, Ebounds
 
-__all__ = ['BackgroundRates', 'BackgroundSpectrum']
+__all__ = ['BackgroundRates', 'BackgroundSpectrum','BackgroundChannelRates','BackgroundChannelSpectrum']
 
 
 class BackgroundRates(TimeEnergyBins):
@@ -385,3 +385,343 @@ class BackgroundSpectrum(EnergyBins):
                        histos[0].hi_edges, exposure)
         return sum_bins
 
+
+class BackgroundChannelRates(TimeChannelBins):
+    """Class containing the background rate data for non-energy calibrated data.
+
+    Parameters:
+        rates (np.array): The array of background rates in each bin
+        rate_uncertainty (np.array): The array of background rate uncertainties 
+                                     in each bin
+        tstart (np.array): The low-value edges of the time bins
+        tstop (np.array): The high-value edges of the time bins
+        chan_nums (np.array): The channel numbers in ascending order
+        exposure (np.array, optional): The exposure of each bin    
+    """
+    def __init__(self, rates, rate_uncertainty, tstart, tstop, chan_nums,
+                 exposure=None):
+        
+        try:
+            iter(rates)
+            rates = np.asarray(rates)
+        except:
+            raise TypeError('rates must be an iterable')
+        if rates.ndim != 2:
+            raise TypeError('rates must be a 2-dimensional array')
+
+        try:
+            iter(rate_uncertainty)
+            rate_uncertainty = np.asarray(rate_uncertainty)
+        except:
+            raise TypeError('rate_uncertainty must be an iterable')
+        if rate_uncertainty.ndim != 2:
+            raise TypeError('rate_uncertainty must be a 2-dimensional array')
+        if rate_uncertainty.shape != rates.shape:
+            raise TypeError('rate_uncertainty must be the same shape as rates')
+        
+        try:
+            iter(chan_nums)
+            self._chan_nums = np.asarray(chan_nums, dtype=int).flatten()
+        except:
+            raise TypeError('chan_nums must be an iterable')
+        
+        if exposure is None:
+            exposure = np.zeros_like(tstart)
+        else:
+            exposure = np.asarray(exposure)
+
+        counts = np.squeeze(rates * exposure[:, np.newaxis])
+        if counts.ndim == 1:
+            counts = counts.reshape(tstart.size, chan_nums.size)
+        super().__init__(counts, tstart, tstop, exposure, chan_nums)
+        self._count_uncertainty = np.squeeze(rate_uncertainty * exposure[:, np.newaxis])
+        self._rates = rates.squeeze()
+        self._rate_uncertainty = rate_uncertainty.squeeze()
+
+    @property
+    def count_uncertainty(self):
+        """(np.array): The counts uncertainty in each bin"""
+        return self._count_uncertainty
+
+    @property
+    def rate_uncertainty(self):
+        """(np.array): The rate uncertainty in each bin"""
+        return self._rate_uncertainty
+
+    @property
+    def rates(self):
+        """(np.array): The rates in each Time-Energy Bin"""
+        return self._rates
+
+    def integrate_channels(self, chan_min=None, chan_max=None):
+        """Integrate the over the energy channels.
+        Limits on the integration smaller than the full range can be set.
+        
+        Args:
+            chan_min (int, optional): 
+                The low end of the integration range. If not set, uses the 
+                lowest energy channel of the histogram
+            chan_max (int, optional): 
+                The high end of the integration range. If not set, uses the 
+                highest energy channel of the histogram
+        
+        Returns:
+            (:class:`BackgroundChannelRates`)
+        """
+        if chan_min is None:
+            chan_min = self.chan_nums[0]
+        if chan_max is None:
+            chan_max = self.chan_nums[-1]
+
+        mask = (self.chan_nums <= chan_max) & (self.chan_nums >= chan_min)
+
+        rates = np.nansum(self.rates[:,mask], axis=1).reshape(-1,1)
+        rate_uncert = np.sqrt(
+            np.nansum(self.rate_uncertainty[:,mask] ** 2, axis=1)).reshape(-1,1)
+
+        obj = BackgroundChannelRates(rates, rate_uncert, self.tstart, self.tstop,
+                              np.asarray([1]), exposure=self.exposure)
+        return obj
+
+    def integrate_time(self, tstart=None, tstop=None):
+        """Integrate the background over the time axis (producing a count rate
+        spectrum). Limits on the integration smaller than the full range can 
+        be set.
+        
+        Args:
+            tstart (float, optional): The low end of the integration range.  
+                          If not set, uses the lowest time edge of the histogram
+            tstop (float, optional): The high end of the integration range. 
+                         If not set, uses the highest time edge of the histogram
+        
+        Returns:
+            (:class:`BackgroundSpectrum`)
+        """
+        if tstart is None:
+            tstart = self.time_range[0]
+        if tstop is None:
+            tstop = self.time_range[1]
+
+        mask = self._slice_time_mask(tstart, tstop)
+        exposure = np.nansum(self.exposure[mask])
+        rates = np.nansum(self.counts[mask, :], axis=0) / exposure
+        rate_uncert = np.sqrt(np.nansum(self.count_uncertainty[mask, :] ** 2,
+                                        axis=0)) / exposure
+        exposure = np.full(rates.size, exposure)
+
+        obj = BackgroundSpectrum(rates, rate_uncert, self.chan_nums, exposure)
+        return obj
+
+    def rebin_energy(self, method, *args, emin=None, emax=None):
+        """Not implemented for BackgroundChannelRates"""
+        raise NotImplementedError
+
+    def rebin_time(self, method, *args, tstart=None, tstop=None):
+        """Not implemented for BackgroundChannelRates"""
+        raise NotImplementedError
+
+    def slice_channels(self, chan_min, chan_max):
+        """Perform a slice over the channel range and return a new BackgroundChannelRates 
+        object. Note that chan_min and chan_max values that fall inside a bin will 
+        result in that bin being included.
+        
+        Args:
+            chan_min (int): The start of the slice
+            chan_max (int): The end of the slice
+        
+        Returns:           
+            (:class:`BackgroundChannelRates`)
+        """
+        mask = (self.chan_nums <= chan_max) & (self.chan_nums >= chan_min)
+        obj = BackgroundChannelRates(self.rates[:, mask], self.rate_uncertainty[:, mask], 
+                  self.tstart, self.tstop, self.chan_nums[mask], 
+                  exposure=self.exposure)
+        return obj
+
+    def slice_time(self, tstart, tstop):
+        """Perform a slice over a time range and return a new BackgroundRates 
+        object. Note that tstart and tstop values that fall inside a bin will 
+        result in that bin being included.
+        
+        Args:
+            tstart (float): The start of the slice
+            tstop (float): The end of the slice
+        
+        Returns:           
+            (:class:`BackgroundRates`)
+        """
+        mask = self._slice_time_mask(tstart, tstop)
+        cls = type(self)
+        obj = cls(self.rates[mask, :], self.rate_uncertainty[mask,:], 
+                  self.tstart[mask], self.tstop[mask], self.chan_nums, 
+                  exposure=self.exposure[mask])
+        return obj
+
+    def to_bak(self, time_range=None, **kwargs):
+        """Not implemented for BackgroundChannelRates"""
+        raise NotImplementedError("No Energy Calibration")
+
+    @classmethod
+    def merge_time(cls, histos):
+        """Merge multiple BackroundChannelRates together along the time axis.
+        
+        Args:
+            histos (list of :class:`BackgroundChannelRates`): 
+                A list containing the BackgroundChannelRates to be merged
+        
+        Returns:
+            (:class:`BackgroundChannelRates`)
+        """
+        rates = np.vstack([histo.rates for histo in histos])
+        rate_uncertainty = np.vstack([histo.rate_uncertainty \
+                                      for histo in histos])
+        bins = TimeChannelBins.merge_time(histos)
+        obj = cls(rates, rate_uncertainty, bins.tstart, bins.tstop,
+                  bins.chan_nums, exposure=bins.exposure)
+        return obj
+
+    @classmethod
+    def sum_time(cls, bkgds):
+        """Sum multiple BackgroundChannelRates together if they have the same time 
+        range.  Example use would be summing two backgrounds from two detectors.
+        
+        Args:
+            bkgds (list of :class:`BackgroundChannelRates`):
+                A list containing the BackgroundChannelRates to be summed
+        
+        Returns:
+            (:class:`BackgroundChannelRates`)
+        """
+        rates = np.zeros_like(bkgds[0].rates)
+        rates_var = np.zeros_like(bkgds[0].rates)
+        for bkgd in bkgds:
+            assert bkgd.num_times == bkgds[0].num_times, \
+                "The backgrounds must all have the same support"
+            rates += bkgd.rates
+            rates_var += bkgd.rate_uncertainty ** 2
+
+        chan_nums = bkgds[0].chan_nums
+        for bkgd in bkgds[1:]:
+            c_n= bkgd.chan_nums
+            for chan in c_n:
+                if chan not in chan_nums:
+                    chan_nums = np.append(chan_nums,chan)
+        chan_nums = np.sort(chan_nums)
+            
+
+        # averaged exposure, sampling times
+        exposure = np.mean([bkgd.exposure for bkgd in bkgds], axis=0)
+        tstart = np.mean([bkgd.tstart for bkgd in bkgds], axis=0)
+        tstop = np.mean([bkgd.tstop for bkgd in bkgds], axis=0)
+        sum_bkgd = cls(rates, np.sqrt(rates_var), tstart, tstop, chan_nums,
+                       exposure=exposure)
+        return sum_bkgd
+    
+class BackgroundChannelSpectrum(ChannelBins):
+    """A class defining a Background Channel Spectrum.
+
+    Parameters:
+        rates (np.array): The array of background rates in each bin
+        rate_uncertainty (np.array): The array of background rate uncertainties 
+                                     in each bin
+        chan_nums (np.array): The channel numbers in ascending order
+        exposure (np.array): The exposure of each bin
+    """
+    def __init__(self, rates, rate_uncertainty, chan_nums, exposure):
+        
+        try:
+            iter(rates)
+            rates = np.asarray(rates)
+        except:
+            raise TypeError('rates must be an iterable')
+
+        try:
+            iter(rate_uncertainty)
+            rate_uncertainty = np.asarray(rate_uncertainty)
+        except:
+            raise TypeError('rate_uncertainty must be an iterable')
+        if rate_uncertainty.shape != rates.shape:
+            raise TypeError('rate_uncertainty must be the same shape as rates')
+        
+        try:
+            iter(chan_nums)
+            self._chan_nums = np.asarray(chan_nums, dtype=int).flatten()
+        except:
+            raise TypeError('chan_nums must be an iterable')
+        
+        counts = rates * exposure
+        super().create(counts, chan_nums, exposure)
+        self._count_uncertainty = rate_uncertainty * exposure
+        self._rates = rates
+        self._rate_uncertainty = rate_uncertainty
+
+    @property
+    def count_uncertainty(self):
+        """(np.array): The count uncertainty in each bin"""
+        return self._count_uncertainty
+
+    @property
+    def rate_uncertainty(self):
+        """(np.array): The count rate uncertainty of each bin"""
+        return self._rate_uncertainty
+
+    @property
+    def rates(self):
+        """(np.array): count rate of each bin"""
+        return self._rates
+
+    @classmethod
+    def merge(cls, histos, **kwargs):
+        """Not implemented for BackgroundChannelSpectrum"""
+        raise NotImplementedError
+    
+    def rebin(self, method, *args, emin=None, emax=None):
+        """Not implemented for BackgroundChannelSpectrum"""
+        raise NotImplementedError
+
+    def slice(self, chan_min, chan_max):
+        """Perform a slice over an energy range and return a new 
+        BackgroundChannelSpectrum object. Note inclusive of chan_min and chan_max.
+
+        Args:
+            chan_min (int): Minimum channel number to be included
+            chan_max (int): Maximum channel number to be included
+        
+        Returns:
+            (:class:`BackgroundChannelSpectrum`)
+        """
+
+        mask = (self.chan_nums <= chan_max) & (self.chan_nums >= chan_min)
+        obj = self.__class__(self.rates[mask], self.rate_uncertainty[mask],
+                             self.chan_nums[mask], self.exposure[mask])
+        return obj
+
+    @classmethod
+    def sum(cls, histos):
+        """Sum multiple BackgroundChannelSpectrums together if they have the same 
+        channel range (support).
+        
+        Args:
+            histos (list of :class:`BackgroundChannelSpectrum`):  
+                A list containing the background channel spectra to be summed
+        
+        Returns:        
+            (:class:`BackgroundChannelSpectrum`)
+        """
+        counts = np.zeros(histos[0].size)
+        count_variance = np.zeros(histos[0].size)
+        exposure = 0.0
+        for histo in histos:
+            assert histo.size == histos[0].size, \
+                "The histograms must all have the same size"
+            assert np.all(histo.chan_nums == histos[0].chan_nums), \
+                "The histograms must all have the same support"
+            counts += histo.counts
+            count_variance += histo.count_uncertainty**2
+            exposure += histo.exposure
+        
+        rates = counts/exposure
+        rate_uncertainty = np.sqrt(count_variance)/exposure
+        
+        sum_bins = cls(rates, rate_uncertainty, histos[0].chan_nums, exposure)
+        return sum_bins

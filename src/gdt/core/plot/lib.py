@@ -35,8 +35,9 @@ from matplotlib.patches import Polygon
 from scipy.spatial.transform import Rotation
 
 from .defaults import *
-from gdt.core.data_primitives import EnergyBins
+from gdt.core.data_primitives import EnergyBins, ChannelBins
 from gdt.core.coords import SpacecraftFrame
+from gdt.core.background.primitives import BackgroundChannelRates,BackgroundChannelSpectrum
 
 __all__ = ['earth_line', 'earth_points', 'effective_area', 'errorband', 
            'galactic_plane', 'histo', 'histo_errorbars', 'histo_filled', 
@@ -224,7 +225,10 @@ def lightcurve_background(backrates, ax, cent_color=None, err_color=None,
          matplotlib.collections.PolyCollection)   
     """
     if backrates.num_chans > 1:
-        backrates = backrates.integrate_energy()
+        if isinstance(backrates,BackgroundChannelRates):
+            backrates = backrates.integrate_channels()
+        else:
+            backrates = backrates.integrate_energy()
     times = backrates.time_centroids
     rates = backrates.rates
     uncert = backrates.rate_uncertainty
@@ -256,16 +260,22 @@ def spectrum_background(backspec, ax, cent_color=None, err_color=None,
         (list of matplotlib.lines.Line2D and \
          matplotlib.collections.PolyCollection)   
     """
-    rates = backspec.rates_per_kev
-    uncert = backspec.rate_uncertainty_per_kev
-    edges = np.append(backspec.lo_edges, backspec.hi_edges[-1])
+    if isinstance(backspec,BackgroundChannelSpectrum):
+        rates = backspec.rates
+        uncert = backspec.rate_uncertainty
+        edges = backspec.chan_nums
+        energies=backspec.chan_nums
+    else:
+        rates = backspec.rates_per_kev
+        uncert = backspec.rate_uncertainty_per_kev
+        edges = np.append(backspec.lo_edges, backspec.hi_edges[-1])
+        energies = np.array(
+        (backspec.lo_edges, backspec.hi_edges)).T.flatten()
     # plot the centroid of the model
     p1 = ax.step(edges, np.append(rates, rates[-1]), where='post',
                  color=cent_color, alpha=cent_alpha, **kwargs)
 
     # construct the stepped errorband to fill between
-    energies = np.array(
-        (backspec.lo_edges, backspec.hi_edges)).T.flatten()
     upper = np.array((rates + uncert, rates + uncert)).T.flatten()
     lower = np.array((rates - uncert, rates - uncert)).T.flatten()
     
