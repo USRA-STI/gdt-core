@@ -209,7 +209,8 @@ def lightcurve_background(backrates, ax, cent_color=None, err_color=None,
     """Plot a lightcurve background model with an error band.
     
     Args:
-        backrates (:class:`~gdt.background.primitives.BackgroundRates`):
+        backrates (:class:`~gdt.background.primitives.BackgroundRates` or
+            :class:`~gdt.background.primitives.BackgroundChannelRates`):
             The background rates object integrated over energy. If there is more
             than one remaining energy channel, the background will be integrated
             over the remaining energy channels.
@@ -245,7 +246,8 @@ def spectrum_background(backspec, ax, cent_color=None, err_color=None,
     """Plot a count spectrum background model with an error band.
     
     Args:
-        backspec (:class:`~gdt.background.primitives.BackgroundSpectrum`):
+        backspec (:class:`~gdt.background.primitives.BackgroundSpectrum` or
+            :class:`~gdt.background.primitives.BackgroundChannelSpectrum`):
             The background rates object integrated over energy. If there is more
             than one remaining energy channel, the background will be integrated
             over the remaining energy channels.
@@ -263,8 +265,8 @@ def spectrum_background(backspec, ax, cent_color=None, err_color=None,
     if isinstance(backspec,BackgroundChannelSpectrum):
         rates = backspec.rates
         uncert = backspec.rate_uncertainty
-        edges = backspec.chan_nums
-        energies=backspec.chan_nums
+        edges = np.append(backspec.chan_nums,backspec.chan_nums[-1]+1)
+        energies=np.asarray([(c,c+1) for c in backspec.chan_nums]).flatten()
     else:
         rates = backspec.rates_per_kev
         uncert = backspec.rate_uncertainty_per_kev

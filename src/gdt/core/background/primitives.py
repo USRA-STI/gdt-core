@@ -454,16 +454,16 @@ class BackgroundChannelRates(TimeChannelBins):
         return self._rates
 
     def integrate_channels(self, chan_min=None, chan_max=None):
-        """Integrate the over the energy channels.
-        Limits on the integration smaller than the full range can be set.
+        """Integrate the rates over the energy channels.
+        Limits on the integration smaller than the full range of channels can be set.
         
         Args:
             chan_min (int, optional): 
-                The low end of the integration range. If not set, uses the 
-                lowest energy channel of the histogram
+                The low end of the integration range (inclusive). 
+                If not set, uses the lowest energy channel of the histogram
             chan_max (int, optional): 
-                The high end of the integration range. If not set, uses the 
-                highest energy channel of the histogram
+                The high end of the integration range (inclusive).
+                If not set, uses the highest energy channel of the histogram
         
         Returns:
             (:class:`BackgroundChannelRates`)
@@ -479,6 +479,9 @@ class BackgroundChannelRates(TimeChannelBins):
         rate_uncert = np.sqrt(
             np.nansum(self.rate_uncertainty[:,mask] ** 2, axis=1)).reshape(-1,1)
 
+        #Returned object only has one channel, the numbering of which is arbitrary
+        #This makes sense since the goal is to create a bkg lightcurve
+        #otherwise the plotting component will kick up an error
         obj = BackgroundChannelRates(rates, rate_uncert, self.tstart, self.tstop,
                               np.asarray([1]), exposure=self.exposure)
         return obj
@@ -509,7 +512,7 @@ class BackgroundChannelRates(TimeChannelBins):
                                         axis=0)) / exposure
         exposure = np.full(rates.size, exposure)
 
-        obj = BackgroundSpectrum(rates, rate_uncert, self.chan_nums, exposure)
+        obj = BackgroundChannelSpectrum(rates, rate_uncert, self.chan_nums, exposure)
         return obj
 
     def rebin_energy(self, method, *args, emin=None, emax=None):
@@ -539,7 +542,7 @@ class BackgroundChannelRates(TimeChannelBins):
         return obj
 
     def slice_time(self, tstart, tstop):
-        """Perform a slice over a time range and return a new BackgroundRates 
+        """Perform a slice over a time range and return a new BackgroundChannelRates 
         object. Note that tstart and tstop values that fall inside a bin will 
         result in that bin being included.
         
@@ -650,7 +653,7 @@ class BackgroundChannelSpectrum(ChannelBins):
             raise TypeError('chan_nums must be an iterable')
         
         counts = rates * exposure
-        super().create(counts, chan_nums, exposure)
+        super().__init__(counts,chan_nums, chan_nums+1, exposure)
         self._count_uncertainty = rate_uncertainty * exposure
         self._rates = rates
         self._rate_uncertainty = rate_uncertainty

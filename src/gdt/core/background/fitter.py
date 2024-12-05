@@ -147,7 +147,8 @@ class BackgroundFitter:
                       method 
         
         Returns:
-            (:class:`~gdt.background.primitives.BackgroundRates`)
+            (:class:`~gdt.background.primitives.BackgroundRates` or 
+            :class:`~gdt.background.primitives.BackgroundRates`)
         """
         # do the interpolation
         rate, rate_uncert = self._method.interpolate(tstart, tstop, **kwargs)
@@ -178,7 +179,8 @@ class BackgroundFitter:
                       method 
         
         Returns:
-            (:class:`~gdt.background.primitives.BackgroundRates`)
+            (:class:`~gdt.background.primitives.BackgroundRates` or
+            :class:`~gdt.background.primitives.BackgroundChannelRates`)
         """
         # do the interpolation
         rate, rate_uncert = self._method.interpolate(times, times, **kwargs)
