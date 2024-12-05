@@ -157,7 +157,6 @@ class BackgroundFitter:
         exposure = np.array([self._data_obj.get_exposure((tstart[i], tstop[i])) \
                              for i in range(numtimes)])
         # create the rates object
-        #Docstring is technically incorrect due to varying return type
         if isinstance(self._data_obj.data, TimeChannelBins):
             rates = BackgroundChannelRates(rate, rate_uncert, tstart, tstop,
                                 self._data_obj.data.chan_nums, exposure=exposure)
