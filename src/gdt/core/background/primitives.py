@@ -551,7 +551,7 @@ class BackgroundChannelRates(TimeChannelBins):
             tstop (float): The end of the slice
         
         Returns:           
-            (:class:`BackgroundRates`)
+            (:class:`BackgroundChannelRates`)
         """
         mask = self._slice_time_mask(tstart, tstop)
         cls = type(self)
