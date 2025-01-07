@@ -488,8 +488,8 @@ class BackgroundChannelRates(TimeChannelBins):
 
     def integrate_time(self, tstart=None, tstop=None):
         """Integrate the background over the time axis (producing a count rate
-        spectrum). Limits on the integration smaller than the full range can 
-        be set.
+        channel spectrum). Limits on the integration smaller than the full range 
+        can be set.
         
         Args:
             tstart (float, optional): The low end of the integration range.  
@@ -498,7 +498,7 @@ class BackgroundChannelRates(TimeChannelBins):
                          If not set, uses the highest time edge of the histogram
         
         Returns:
-            (:class:`BackgroundSpectrum`)
+            (:class:`BackgroundChannelSpectrum`)
         """
         if tstart is None:
             tstart = self.time_range[0]
@@ -515,7 +515,7 @@ class BackgroundChannelRates(TimeChannelBins):
         obj = BackgroundChannelSpectrum(rates, rate_uncert, self.chan_nums, exposure)
         return obj
 
-    def rebin_energy(self, method, *args, emin=None, emax=None):
+    def rebin_channels(self, method, *args, chan_min=None, chan_max=None):
         """Not implemented for BackgroundChannelRates"""
         raise NotImplementedError
 
@@ -652,8 +652,13 @@ class BackgroundChannelSpectrum(ChannelBins):
         except:
             raise TypeError('chan_nums must be an iterable')
         
+        try:
+            iter(exposure)
+        except:
+            exposure = np.full(rates.shape, exposure)
+        
         counts = rates * exposure
-        super().__init__(counts,chan_nums, chan_nums+1, exposure)
+        super().__init__(counts,self._chan_nums, self._chan_nums+1, exposure)
         self._count_uncertainty = rate_uncertainty * exposure
         self._rates = rates
         self._rate_uncertainty = rate_uncertainty
