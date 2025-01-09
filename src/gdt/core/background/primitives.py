@@ -406,16 +406,18 @@ class BackgroundChannelRates(TimeChannelBins):
             rates = np.asarray(rates)
         except:
             raise TypeError('rates must be an iterable')
-        if rates.ndim != 2:
-            raise TypeError('rates must be a 2-dimensional array')
+        #Removing this 2 dimensional check since it is possible for this to be a 1D array, if channel integrated
+        #This scenario occurs if the user is trying to create a lightcurve and integrates the channels before slicing in time
+        if rates.ndim > 2:
+            raise TypeError('rates must be a 1 or 2-dimensional array')
 
         try:
             iter(rate_uncertainty)
             rate_uncertainty = np.asarray(rate_uncertainty)
         except:
             raise TypeError('rate_uncertainty must be an iterable')
-        if rate_uncertainty.ndim != 2:
-            raise TypeError('rate_uncertainty must be a 2-dimensional array')
+        if rate_uncertainty.ndim > 2:
+            raise TypeError('rate_uncertainty must be a 1 or 2-dimensional array')
         if rate_uncertainty.shape != rates.shape:
             raise TypeError('rate_uncertainty must be the same shape as rates')
         
@@ -429,8 +431,12 @@ class BackgroundChannelRates(TimeChannelBins):
             exposure = np.zeros_like(tstart)
         else:
             exposure = np.asarray(exposure)
-
-        counts = np.squeeze(rates * exposure[:, np.newaxis])
+        #If the channels have been integrated and rates is 1d, performing the original (else case) operation
+        #will result in an error when trying to create the TimeChannelBins object
+        if rates.ndim == 1:
+            counts= rates * exposure
+        else:
+            counts = np.squeeze(rates * exposure[:, np.newaxis])
         if counts.ndim == 1:
             counts = counts.reshape(tstart.size, chan_nums.size)
         super().__init__(counts, tstart, tstop, exposure, chan_nums)
@@ -555,9 +561,15 @@ class BackgroundChannelRates(TimeChannelBins):
         """
         mask = self._slice_time_mask(tstart, tstop)
         cls = type(self)
-        obj = cls(self.rates[mask, :], self.rate_uncertainty[mask,:], 
+        if self.rate_uncertainty.ndim == 1:
+            obj=cls(self.rates[mask], self.rate_uncertainty[mask], 
                   self.tstart[mask], self.tstop[mask], self.chan_nums, 
                   exposure=self.exposure[mask])
+        
+        else:
+            obj = cls(self.rates[mask, :], self.rate_uncertainty[mask,:], 
+                    self.tstart[mask], self.tstop[mask], self.chan_nums, 
+                    exposure=self.exposure[mask])
         return obj
 
     def to_bak(self, time_range=None, **kwargs):
