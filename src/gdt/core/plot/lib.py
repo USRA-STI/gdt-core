@@ -935,18 +935,13 @@ def sky_heatmap(x, y, heatmap, ax, cmap='RdPu', norm=None, flipped=True,
     if frame == 'spacecraft':
         flipped = False
         
-        # plots from azimuth (0, +180)
+        # plots from azimuth (0->180)
         phi1 = phi + np.pi
-        phi1_mask = phi1 > np.pi
-        phi1[phi1_mask] = 2.0*np.pi - phi1[phi1_mask]
         image1 = ax.pcolormesh(phi1, theta, heatmap, rasterized=True, cmap=cmap,
                                norm=norm)
         
-        # plots from azimuth (-180, 0)
+        # plots from azimuth (180->0)
         phi2 = phi - np.pi
-        phi2_mask = phi2 < -np.pi
-        phi2[phi2_mask] = 2.0*np.pi + phi2[phi2_mask]
-
         image2 = ax.pcolormesh(phi2, theta, heatmap, rasterized=True, cmap=cmap,
                                norm=norm)
         return [image1, image2]
