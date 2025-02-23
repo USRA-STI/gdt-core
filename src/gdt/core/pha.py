@@ -156,7 +156,9 @@ class Pha(FitsFileContextManager):
     def energy_range(self):
         """(float, float): The energy range of the spectrum"""
         if self._data is not None:
-            return self._data.range
+            lo = self._data.lo_edges[self._channel_mask][0]
+            hi = self._data.hi_edges[self._channel_mask][-1]
+            return (lo, hi)
 
     @property
     def exposure(self):
