@@ -217,6 +217,7 @@ class TestPhaii(unittest.TestCase):
         self.assertAlmostEqual(pha.exposure, 0.3188)
         self.assertTupleEqual(pha.time_range, (0.0, 0.320))
         self.assertEqual(pha.num_chans, 8)
+        self.assertEqual(pha.energy_range, (49.60019, 538.1436))
         self.assertListEqual(pha.valid_channels.tolist(), [3, 4, 5])
 
         # subset of the channel range
@@ -224,6 +225,7 @@ class TestPhaii(unittest.TestCase):
         self.assertAlmostEqual(pha.exposure, 0.3188)
         self.assertTupleEqual(pha.time_range, (0.0, 0.320))
         self.assertEqual(pha.num_chans, 8)
+        self.assertEqual(pha.energy_range, (49.60019, 538.1436))
         self.assertListEqual(pha.valid_channels.tolist(), [3, 4, 5])
 
     def test_write(self):        
