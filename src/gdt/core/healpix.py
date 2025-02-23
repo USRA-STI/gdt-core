@@ -317,7 +317,8 @@ class HealPixEffectiveArea(HealPix):
         
         angles = coord.separation(coords)
         eff_area = eff_area_normal * np.cos(coeff * angles.to('rad')).value
-        mask = coeff * angles.value > 90.0
+        eff_area[(eff_area < 0.0)] = 0.0
+        mask = angles.value > 90.0 / coeff
         eff_area[mask] = 0.0
         return cls.from_data(eff_area, filename=filename, **kwargs)
 
