@@ -273,6 +273,23 @@ class Intervals():
         edges = [interval._high for interval in self._intervals]
         return edges
 
+    def index(self, value):
+        """Return the index of the interval that contains the value.
+        
+        Note :
+            If the value is precisely on the boundary of two intervals, the
+            first interval index will be returned.
+        
+        Args:
+            value (float): The input value
+        
+        Returns:
+            (int)
+        """
+        for i, interval in enumerate(self._intervals):
+            if interval.contains(value, inclusive=True):
+                return i        
+    
     def insert(self, interval):
         """Insert a new interval
         
