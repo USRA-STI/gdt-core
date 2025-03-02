@@ -245,7 +245,7 @@ class Pha(FitsFileContextManager):
     @classmethod
     def from_data(cls, data, gti=None, trigger_time=None, filename=None,
                   headers=None, channel_mask=None, header_type=PhaHeaders,
-                  **kwargs):
+                  valid_channels=None, **kwargs):
         """Create a PHA object from an 
         :class:`~.data_primitives.EnergyBins` object.
 
@@ -266,7 +266,11 @@ class Pha(FitsFileContextManager):
             header_type (:class:`~.headers.FileHeaders`): 
                 Default file header class. Only used if ``headers`` is not 
                 defined
-        
+            valid_channels (np.array(dtype=int)): An integer array indicating
+                                                  which channels are valid. This
+                                                  is overriden if `channel_mask`
+                                                  is set.
+            
         Returns:
             (:class:`Pha`)
         """
@@ -310,10 +314,21 @@ class Pha(FitsFileContextManager):
         obj._headers['SPECTRUM']['EXPOSURE'] = obj._data.exposure[0]
         
         # set the channel mask
-        # if no channel mask is given, assume zero-count channels are bad
         if channel_mask is None:
             channel_mask = np.zeros(data.size, dtype=bool)
-            channel_mask[data.counts > 0] = True
+            # if no channel mask is given, check to see if there is a list of
+            # valid channels
+            if valid_channels is not None:
+                try:
+                    iter(valid_channels)
+                    valid_channels = np.asarray(valid_channels).flatten().astype(int)
+                    channel_mask[valid_channels] = True
+                except:
+                    raise TypeError('valid_channels must be an integer array')
+            
+            else: # otherwise assume zero-count channels are bad
+                channel_mask[data.counts > 0] = True
+            
         try:
             iter(channel_mask)
             channel_mask = np.asarray(channel_mask).flatten().astype(bool)
