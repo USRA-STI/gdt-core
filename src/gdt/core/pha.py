@@ -319,21 +319,24 @@ class Pha(FitsFileContextManager):
             # if no channel mask is given, check to see if there is a list of
             # valid channels
             if valid_channels is not None:
+                if not isinstance(valid_channels, (np.ndarray, list, tuple, set)):
+                    raise TypeError('valid_channels must be an iterable')
                 try:
-                    iter(valid_channels)
                     valid_channels = np.asarray(valid_channels).flatten().astype(int)
-                    channel_mask[valid_channels] = True
-                except:
-                    raise TypeError('valid_channels must be an integer array')
+                except ValueError:
+                    raise ValueError('valid_channels must contain integer values')
+                channel_mask[valid_channels] = True
             
             else: # otherwise assume zero-count channels are bad
                 channel_mask[data.counts > 0] = True
             
+        if not isinstance(channel_mask, (np.ndarray, list, tuple, set)):
+            raise TypeError('channel_mask must be an iterable')
         try:
-            iter(channel_mask)
-            channel_mask = np.asarray(channel_mask).flatten().astype(bool)
-        except:
-            raise TypeError('channel_mask must be a Boolean array')
+            channel_mask = np.asarray(channel_mask).flatten().astype(bool)        
+        except ValueError: 
+            raise ValueError('channel_mask must contain booleans')
+        
         if channel_mask.size != obj._data.size:
             raise ValueError('channel_mask must be the same size as the ' \
                              'number of data bins')

@@ -244,6 +244,17 @@ class TestPhaChannelMask(unittest.TestCase):
     def test_valid_channels(self):
         assert self.pha.valid_channels.tolist() == [1, 2, 3, 4, 5]
 
+    def test_errors(self):
+        with self.assertRaises(TypeError):
+            Pha.from_data(self.pha.data, self.pha.gti, channel_mask=True)
+        
+        with self.assertRaises(ValueError):
+            Pha.from_data(self.pha.data, self.pha.gti, channel_mask=('test',))
+
+        with self.assertRaises(ValueError):
+            Pha.from_data(self.pha.data, self.pha.gti, channel_mask=[True, False])
+            
+
 
 class TestPhaValidChannels(unittest.TestCase):
     
@@ -272,6 +283,13 @@ class TestPhaValidChannels(unittest.TestCase):
     def test_valid_channels(self):
         assert self.pha.valid_channels.tolist() == [1, 2, 4, 5]
 
+    def test_errors(self):
+        with self.assertRaises(TypeError):
+            Pha.from_data(self.pha.data, self.pha.gti, valid_channels=0)
+        
+        with self.assertRaises(ValueError):
+            Pha.from_data(self.pha.data, self.pha.gti, valid_channels=('test',))
+            
 
 class TestPhaZeroCounts(unittest.TestCase):
     
