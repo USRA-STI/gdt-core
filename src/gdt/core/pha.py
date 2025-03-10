@@ -52,8 +52,7 @@ class PrimaryHeader(Header):
                 ('DATE', '', 'file creation date (YYYY-MM-DDThh:mm:ss UT)'),
                 ('TSTART', 0.0, 'Observation start time'),
                 ('TSTOP', 0.0, 'Observation stop time'),
-                _trigtime_card,
-                ('FILENAME', '', 'Name of this file')]
+                _trigtime_card,]
 
 class EboundsHeader(Header):
     name = 'EBOUNDS'
@@ -309,7 +308,6 @@ class Pha(FitsFileContextManager):
             obj._headers['PRIMARY']['TSTOP'] = tstop
             obj._headers['EBOUNDS']['DETCHANS'] = data.size  
             obj._headers['SPECTRUM']['DETCHANS'] = data.size
-        obj._headers['PRIMARY']['FILENAME'] = filename
         obj._headers['PRIMARY']['TRIGTIME'] = trigger_time
         obj._headers['SPECTRUM']['EXPOSURE'] = obj._data.exposure[0]
         
