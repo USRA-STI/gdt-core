@@ -197,6 +197,12 @@ class TestIntervals(unittest.TestCase):
     def test_high_edges(self):
         self.assertListEqual(self.intervals.high_edges(), [10.0, 20.0, 30.0])
 
+    def test_index(self):
+        assert self.intervals.index(5.0) == 0
+        assert self.intervals.index(20.0) == 1
+        assert self.intervals.index(-5.0) is None
+        assert self.intervals.index(50.0) is None
+
     def test_insert(self):
     
         # insert a duplicate

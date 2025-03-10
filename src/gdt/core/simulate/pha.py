@@ -198,7 +198,7 @@ class PhaSimulator:
             tstart (float, optional): The start time. If not set, then is zero.
             tstop (float, optional): Then end time. If not set, then is the 
                                      exposure.
-            **kwargs: Options passed to :class:`~gdt.core.pha.Pha`
+            **kwargs: Options passed to :meth:`~gdt.core.pha.Pha.from_data`
         
         Returns:
             (list of :class:`~gdt.core.pha.Pha`)
