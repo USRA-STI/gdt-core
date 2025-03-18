@@ -1,6 +1,7 @@
 .. _background_fitter:
 .. |BackgroundFitter| replace:: :class:`~gdt.core.background.fitter.BackgroundFitter`
 .. |BackgroundRates| replace:: :class:`~gdt.core.background.primitives.BackgroundRates`
+.. |BackgroundChannelRates| replace:: :class:`~gdt.core.background.primitives.BackgroundChannelRates`
 .. |Polynomial| replace:: :class:`~gdt.core.background.binned.Polynomial`
 .. |NaivePoisson| replace:: :class:`~gdt.core.background.unbinned.NaivePoisson`
 .. |unbinned| replace:: :ref:`unbinned<background_unbinned_plugins>`
