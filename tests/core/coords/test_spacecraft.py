@@ -30,7 +30,7 @@ import unittest
 import numpy as np
 import astropy.coordinates.representation as r
 import pytest
-from astropy.coordinates import SkyCoord, GCRS, get_moon
+from astropy.coordinates import SkyCoord, GCRS, get_body
 from astropy.time import Time
 from gdt.core.coords import SpacecraftFrame, SpacecraftAxes, Quaternion
 from gdt.core.coords.spacecraft.axes import SpacecraftAxesAttribute
@@ -290,9 +290,9 @@ class TestSpacecraftFrame(unittest.TestCase):
         sc_2 = SpacecraftFrame(obsgeoloc=r.CartesianRepresentation(-6353991.5, 44461.45, 2687083.5, unit='m'),
                                obstime=time_2)
 
-        self.assertTrue(sc_1.location_visible(get_moon(time_1)))
+        self.assertTrue(sc_1.location_visible(get_body("moon", time_1)))
         self.assertFalse(sc_1.sun_visible)
-        self.assertFalse(sc_2.location_visible(get_moon(time_2)))
+        self.assertFalse(sc_2.location_visible(get_body("moon", time_2)))
         self.assertTrue(sc_2.sun_visible)
 
     def test_interp_velocity(self):
