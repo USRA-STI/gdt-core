@@ -70,7 +70,7 @@ if __name__ == '__main__':
             'numpy>=1.17.3',
             'scipy>=1.14.0',
             'matplotlib>=3.9.1',
-            'astropy>=3.1',
+            'astropy>=7.0.0',
             'healpy>=1.12.4',
             'cartopy>=0.21.1',
             'rich>=13.3.3'
