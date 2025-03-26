@@ -31,7 +31,7 @@ import warnings
 from datetime import datetime
 
 import numpy as np
-from numpy.random import multivariate_normal
+#from numpy.random import multivariate_normal
 from scipy.linalg import inv
 from scipy.misc import derivative
 from scipy.optimize import minimize, brentq
@@ -92,11 +92,11 @@ class SpectralFitter:
             Note:
                 All solvers, with the exception of 'dogleg' and 'trust-exact',
                 are supported at this time.          
+        rng (Generator, optional): The RNG object
     """
 
     def __init__(self, pha_list, bkgd_list, rsp_list, statistic,
-                 channel_masks=None, method='SLSQP'):
-
+                 channel_masks=None, method='SLSQP', rng=None):
         # check that we have the right numbers of data, backgrounds, responses,
         # and fit masks
         self._num_sets = len(pha_list)
@@ -145,6 +145,9 @@ class SpectralFitter:
         self._method = method
         self._function = None
         self._res = None
+
+        # send the RNG seed for sampling fits
+        self.rng = rng or np.random.default_rng()
 
     @property
     def covariance(self):
@@ -600,8 +603,9 @@ class SpectralFitter:
         if self._res is None:
             raise RuntimeError('Fit has not been performed')
 
-        samples = multivariate_normal(self.parameters, self.covariance,
-                                      **kwargs)
+        samples = self.rng.multivariate_normal(
+            self.parameters, self.covariance, **kwargs)
+
         return samples
 
     def sample_spectrum(self, which, num_samples=1000, num_points=1000,
