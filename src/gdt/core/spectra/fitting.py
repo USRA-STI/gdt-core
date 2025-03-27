@@ -31,7 +31,6 @@ import warnings
 from datetime import datetime
 
 import numpy as np
-#from numpy.random import multivariate_normal
 from scipy.linalg import inv
 from scipy.misc import derivative
 from scipy.optimize import minimize, brentq
@@ -146,7 +145,7 @@ class SpectralFitter:
         self._function = None
         self._res = None
 
-        # send the RNG seed for sampling fits
+        # set the RNG used to sample fits
         self.rng = rng or np.random.default_rng()
 
     @property
