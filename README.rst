@@ -2,6 +2,8 @@
 Gamma-ray Data Tools - Core Components
 ======================================
 
+This software is not subject to EAR.
+
 The Gamma-ray Data Tools (GDT) is centralized toolkit for hard X-ray and
 gamma-ray astrophysics data analysis, with a focus on providing a uniform
 interface to the data provided by several different missions and instruments.
@@ -13,6 +15,7 @@ Individual mission or instrument packages can be developed using ``astro-gdt``
 and released under the ``gdt.missions`` namespace (see ``astro-gdt-fermi`` as an example).
 
 The full documentation can be found `here <https://astro-gdt.readthedocs.io/en/latest/>`_.
+
 
 Normal Installation
 -------------------

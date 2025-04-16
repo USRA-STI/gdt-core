@@ -30,16 +30,11 @@ import os
 from pathlib import Path
 import shutil
 
-# Use the backport version if importlib.resources for Python earlier than 3.10
-import sys
-if sys.version_info < (3, 10):
-    from importlib_resources import files
-else:
-    from importlib.resources import files
+from importlib.resources import files
 
 _gdt_data = files('gdt.data')
 
-__version__ = '2.1.0'
+__version__ = '2.2.0'
 
 suite_path = Path(__file__).parent.parent
 

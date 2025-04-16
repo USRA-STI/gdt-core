@@ -33,7 +33,7 @@ from datetime import datetime
 import numpy as np
 from numpy.random import multivariate_normal
 from scipy.linalg import inv
-from scipy.misc import derivative
+from gdt.misc import derivative
 from scipy.optimize import minimize, brentq
 from scipy.stats import chi2
 
