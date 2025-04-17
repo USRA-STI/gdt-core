@@ -1,5 +1,5 @@
 # Release Notes for Gamma-ray Data Tools: Core Library
-## Version 2.2.0 (Released TBD)
+## Version 2.2.0 (Released Apr 17, 20235)
 
 This release included the following updates from pull requests:  
 
