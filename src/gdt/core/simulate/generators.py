@@ -37,9 +37,12 @@ __all__ = ['EventSpectrumGenerator', 'GaussianBackgroundGenerator',
 
 class SimGenerator:
     """Base class for a simulation generator
+
+    Parameters:
+        rng (Generator, optional): The RNG object
     """
-    def __init__(self):
-        pass
+    def __init__(self, rng=None):
+        self.rng = rng or np.random.default_rng()
 
     def __iter__(self):
         return self
@@ -67,18 +70,19 @@ class PoissonBackgroundGenerator(SimGenerator):
     Parameters:
         bkgd (:class:`~gdt.background.primitives.BackgroundSpectrum`):
             A modeled background spectrum
+        seed (int, optional): The RNG seed
     
     Yields:
         (:class:`~gdt.background.primitives.BackgroundSpectrum`):
             A Poisson random deviate of the initialized spectrum
     """
-    def __init__(self, bkgd):
-        super().__init__()
+    def __init__(self, bkgd, rng=None):
+        super().__init__(rng)
         self._bkgd = bkgd
 
     def _simulate(self):
         # the poisson count deviates in each channel
-        counts = np.random.poisson(self._bkgd.counts, size=(self._bkgd.size,))
+        counts = self.rng.poisson(self._bkgd.counts, size=(self._bkgd.size,))
         # convert to rates...
         rates = counts / self._bkgd.exposure
         rate_uncert = np.sqrt(counts) / self._bkgd.exposure
@@ -103,20 +107,21 @@ class GaussianBackgroundGenerator(SimGenerator):
     Parameters:
         bkgd (:class:`~gdt.background.primitives.BackgroundSpectrum`):
             A modeled background spectrum
+        seed (int, optional): The RNG seed
 
     Yields:
         (:class:`~gdt.background.primitives.BackgroundSpectrum`):
             A Gaussian random deviate of the initialized spectrum
     """
 
-    def __init__(self, bkgd):
-        super().__init__()
+    def __init__(self, bkgd, rng=None):
+        super().__init__(rng)
         self._bkgd = bkgd
 
     def _simulate(self):
         # the gaussian rate deviates given the "centroid" rates and 
         # rate uncertainties
-        counts = np.random.normal(self._bkgd.counts, self._bkgd.count_uncertainty,
+        counts = self.rng.normal(self._bkgd.counts, self._bkgd.count_uncertainty,
                                  size=(self._bkgd.size,))
         rates = counts/self._bkgd.exposure
         return BackgroundSpectrum(rates, self._bkgd.rate_uncertainty,
@@ -143,20 +148,21 @@ class SourceSpectrumGenerator(SimGenerator):
             A photon model function
         params (iterable): The parameters for the function
         exposure (float): The source exposure
+        seed (int, optional): The RNG seed
 
     Yields:
         (:class:`~gdt.core.data_primitives.EnergyBins`):
             A Poisson random deviate of the initialized source spectrum
     """
-    def __init__(self, rsp, function, params, exposure):
-        super().__init__()
+    def __init__(self, rsp, function, params, exposure, rng=None):
+        super().__init__(rng)
         self._rates = rsp.fold_spectrum(function.fit_eval, params).rates * \
                       exposure
         self._rsp = rsp
         self._exposure = [exposure] * rsp.num_chans
 
     def _simulate(self):
-        counts = np.random.poisson(self._rates, size=(self._rsp.num_chans,))
+        counts = self.rng.poisson(self._rates, size=(self._rsp.num_chans,))
         return EnergyBins(counts, self._rsp.ebounds.low_edges(),
                           self._rsp.ebounds.high_edges(), self._exposure)
 
@@ -182,13 +188,14 @@ class VariablePoissonBackground(PoissonBackgroundGenerator):
     Parameters:
         bkgd (:class:`~gdt.background.primitives.BackgroundSpectrum`): 
             A modeled background spectrum
+        seed (int, optional): The RNG seed
 
     Yields:
         (:class:`~gdt.background.primitives.BackgroundSpectrum`):
             A Poisson random deviate of the spectrum
     """
-    def __init__(self, bkgd):
-        super().__init__(bkgd)
+    def __init__(self, bkgd, rng=None):
+        super().__init__(bkgd, rng=rng)
         self._amp = 1.0
 
     @property
@@ -209,7 +216,7 @@ class VariablePoissonBackground(PoissonBackgroundGenerator):
 
     def _simulate(self):
         # the poisson count deviates in each channel
-        counts = np.random.poisson(self._bkgd.counts * self.amp,
+        counts = self.rng.poisson(self._bkgd.counts * self.amp,
                                    size=(self._bkgd.size,))
         # convert to rates...
         rates = counts / self._bkgd.exposure
@@ -240,13 +247,14 @@ class VariableGaussianBackground(GaussianBackgroundGenerator):
     Parameters:
         bkgd (:class:`~gdt.background.primitives.BackgroundSpectrum`): 
             A modeled background spectrum
+        seed (int, optional): The RNG seed
 
     Yields:
         (:class:`~gdt.background.primitives.BackgroundSpectrum`):
             A Gaussian random deviate of the spectrum
     """
-    def __init__(self, bkgd):
-        super().__init__(bkgd)
+    def __init__(self, bkgd, rng=None):
+        super().__init__(bkgd, rng=rng)
         self._amp = 1.0
 
     @property
@@ -268,7 +276,7 @@ class VariableGaussianBackground(GaussianBackgroundGenerator):
     def _simulate(self):
         # the gaussian rate deviates given the "centroid" rates and 
         # rate uncertainties
-        rates = np.random.normal(self._bkgd.rates * self.amp,
+        rates = self.rng.normal(self._bkgd.rates * self.amp,
                                  self._bkgd.rate_uncertainty * self.amp,
                                  size=(self._bkgd.size,))
         rate_uncert = self._bkgd.rate_uncertainty * self.amp
@@ -302,15 +310,16 @@ class VariableSourceSpectrumGenerator(SourceSpectrumGenerator):
             A photon model function
         params (iterable): The parameters for the function
         exposure (float): The source exposure
+        seed (int, optional): The RNG seed
 
     Yields:
         (:class:`~gdt.core.data_primitives.EnergyBins`):
             A Poisson random deviate of the initialized source spectrum
     """
-    def __init__(self, rsp, function, params, exposure):
+    def __init__(self, rsp, function, params, exposure, rng=None):
         params_temp = [1.0]
         params_temp.extend(params[1:])
-        super().__init__(rsp, function, params_temp, exposure)
+        super().__init__(rsp, function, params_temp, exposure, rng=rng)
         self._amp = params[0]
 
     @property
@@ -332,7 +341,7 @@ class VariableSourceSpectrumGenerator(SourceSpectrumGenerator):
     def _simulate(self):
         if self.amp < 0.0:
             self.amp = 0.0
-        counts = np.random.poisson(self.amp * self._rates,
+        counts = self.rng.poisson(self.amp * self._rates,
                                    size=(self._rsp.num_chans,))
         return EnergyBins(counts, self._rsp.ebounds.low_edges(),
                           self._rsp.ebounds.high_edges(), self._exposure)
@@ -359,13 +368,14 @@ class EventSpectrumGenerator(SimGenerator):
         dt (float): The width of the time slice in seconds
         min_sep (float, optional): The minimum possible time separation between
                                    events.  Default is 2e-6 seconds.
+        seed (int, optional): The RNG seed
     
     Yields:
         (np.array, np.array): The arrival times and energy channels for each 
         event
     """
-    def __init__(self, count_spectrum, dt, min_sep=0.0):
-        super().__init__()
+    def __init__(self, count_spectrum, dt, min_sep=0.0, rng=None):
+        super().__init__(rng)
         self._min_sep = min_sep
         self._dt = dt
         self._chan_nums = None
@@ -407,11 +417,11 @@ class EventSpectrumGenerator(SimGenerator):
         # counts within a finite bounded window, repeat this until all arrival
         # times are within our window
         while (True):
-            times = np.random.exponential(self._beta,
-                                          size=(self.spectrum.sum(),))
+            times = self.rng.exponential(self._beta,
+                                         size=(self.spectrum.sum(),))
             times = times.cumsum()
-            chans = np.random.choice(self._chan_nums, self._chan_nums.size,
-                                     replace=False) 
+            chans = self.rng.choice(self._chan_nums, self._chan_nums.size,
+                                    replace=False)
 
             # at least one event is outside our window
             if (times[-1] > self._dt):
