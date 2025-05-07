@@ -31,3 +31,7 @@ Contributing Code or Documentation
 
 If you plan to help with the development or documentation of astro-gdt, then please visit our github site at
 https://github.com/USRA-STI/gdt-core.
+
+Notes
+-----
+This software is not subject to EAR.
