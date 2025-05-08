@@ -62,6 +62,16 @@ class PhaSimulator:
                                                 exposure, self.rng)
         self.set_background(bkgd, bkgd_distrib)
 
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self.rng = rng
+        self._src_gen.rng = self.rng
+        self._bkgd_gen.rng = self.rng
+
     def set_background(self, bkgd, bkgd_distrib):
         """Set/change the background model.
         
