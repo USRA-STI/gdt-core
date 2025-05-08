@@ -157,8 +157,9 @@ class BackgroundFitter:
                              for i in range(numtimes)])
         # create the rates object
         rates = BackgroundRates(rate, rate_uncert, tstart, tstop,
-                                self._data_obj.data.emin,
-                                self._data_obj.data.emax, exposure=exposure)
+                                np.array(self._data_obj.ebounds.low_edges()),
+                                np.array(self._data_obj.ebounds.high_edges()),
+                                exposure=exposure)
 
         return rates
 
