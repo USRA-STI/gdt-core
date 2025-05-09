@@ -197,15 +197,17 @@ class TteBackgroundSimulator:
         deadtime (float, optional): The dead time in seconds for each recorded 
                                     count during which another count cannot be 
                                     recorded. Default is 0.
+        rng (Generator, optional): The RNG object
     """
     def __init__(self, bkgd_spectrum, distrib, time_func, time_params,
-                 sample_period=0.001, deadtime=0.0):
+                 sample_period=0.001, deadtime=0.0, rng=None):
         
         if sample_period <= 0.0:
             raise ValueError('Sample period must be positive')
         if deadtime < 0.0:
             raise ValueError('Deadtime must be non-negative')
-        
+
+        self._rng = rng or np.random.default_rng()
         self._spec_gen = None
         self._bkgd = bkgd_spectrum
         self._time_func = time_func
@@ -216,6 +218,14 @@ class TteBackgroundSimulator:
                                                  self._sample_per, 
                                                  min_sep=deadtime)
         self.set_background(bkgd_spectrum, distrib)
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng
 
     def set_background(self, bkgd_spectrum, distrib):
         """Set/change the spectrum.
@@ -302,7 +312,7 @@ class TteBackgroundSimulator:
         # because we can end up with fractional counts for the background
         # (the *rate* is what is typically modeled, and so no guarantee that
         #  counts will come out to whole integers)
-        u = np.random.random(counts.size)
+        u = self._rng.random(counts.size)
         whole_counts = counts.astype(int)
         mask = (counts - whole_counts) > u
         whole_counts[mask] += 1

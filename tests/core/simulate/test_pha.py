@@ -183,6 +183,13 @@ class TestPhaSimulator(TestCase):
         for i in range(4):
             self.assertAlmostEqual(rates_mean[i], ref_rates[i], delta=0.5)        
 
+    def test_set_rng(self):
+        self.sim.set_rng(np.random.default_rng(seed=1))
+        phas = self.sim.to_pha(1)
+        ref_counts = [29, 59, 25, 7]
+        for i in range(len(ref_counts)):
+            self.assertEqual(phas[0].data.counts[i], ref_counts[i])
+
     def test_errors(self):
         with self.assertRaises(TypeError):
             self.sim.set_background(0, 'Poisson')
@@ -199,4 +206,4 @@ class TestPhaSimulator(TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-      
+
