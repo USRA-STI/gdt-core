@@ -207,7 +207,7 @@ class TteBackgroundSimulator:
         if deadtime < 0.0:
             raise ValueError('Deadtime must be non-negative')
 
-        self.rng = rng or np.random.default_rng()
+        self._rng = rng or np.random.default_rng()
         self._spec_gen = None
         self._bkgd = bkgd_spectrum
         self._time_func = time_func
@@ -218,6 +218,14 @@ class TteBackgroundSimulator:
                                                  self._sample_per, 
                                                  min_sep=deadtime)
         self.set_background(bkgd_spectrum, distrib)
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng
 
     def set_background(self, bkgd_spectrum, distrib):
         """Set/change the spectrum.
@@ -304,7 +312,7 @@ class TteBackgroundSimulator:
         # because we can end up with fractional counts for the background
         # (the *rate* is what is typically modeled, and so no guarantee that
         #  counts will come out to whole integers)
-        u = self.rng.random(counts.size)
+        u = self._rng.random(counts.size)
         whole_counts = counts.astype(int)
         mask = (counts - whole_counts) > u
         whole_counts[mask] += 1

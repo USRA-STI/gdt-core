@@ -146,7 +146,15 @@ class SpectralFitter:
         self._res = None
 
         # set the RNG used to sample fits
-        self.rng = rng or np.random.default_rng()
+        self._rng = rng or np.random.default_rng()
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng
 
     @property
     def covariance(self):
@@ -602,7 +610,7 @@ class SpectralFitter:
         if self._res is None:
             raise RuntimeError('Fit has not been performed')
 
-        samples = self.rng.multivariate_normal(
+        samples = self._rng.multivariate_normal(
             self.parameters, self.covariance, **kwargs)
 
         return samples

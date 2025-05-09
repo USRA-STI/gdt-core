@@ -42,7 +42,7 @@ class SimGenerator:
         rng (Generator, optional): The RNG object
     """
     def __init__(self, rng=None):
-        self.rng = rng or np.random.default_rng()
+        self._rng = rng or np.random.default_rng()
 
     def __iter__(self):
         return self
@@ -52,6 +52,14 @@ class SimGenerator:
 
     def _simulate(self):
         pass
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng
 
 
 class PoissonBackgroundGenerator(SimGenerator):
@@ -82,7 +90,7 @@ class PoissonBackgroundGenerator(SimGenerator):
 
     def _simulate(self):
         # the poisson count deviates in each channel
-        counts = self.rng.poisson(self._bkgd.counts, size=(self._bkgd.size,))
+        counts = self._rng.poisson(self._bkgd.counts, size=(self._bkgd.size,))
         # convert to rates...
         rates = counts / self._bkgd.exposure
         rate_uncert = np.sqrt(counts) / self._bkgd.exposure
@@ -121,8 +129,8 @@ class GaussianBackgroundGenerator(SimGenerator):
     def _simulate(self):
         # the gaussian rate deviates given the "centroid" rates and 
         # rate uncertainties
-        counts = self.rng.normal(self._bkgd.counts, self._bkgd.count_uncertainty,
-                                 size=(self._bkgd.size,))
+        counts = self._rng.normal(self._bkgd.counts, self._bkgd.count_uncertainty,
+                                  size=(self._bkgd.size,))
         rates = counts/self._bkgd.exposure
         return BackgroundSpectrum(rates, self._bkgd.rate_uncertainty,
                                   self._bkgd.lo_edges, self._bkgd.hi_edges,
@@ -162,7 +170,7 @@ class SourceSpectrumGenerator(SimGenerator):
         self._exposure = [exposure] * rsp.num_chans
 
     def _simulate(self):
-        counts = self.rng.poisson(self._rates, size=(self._rsp.num_chans,))
+        counts = self._rng.poisson(self._rates, size=(self._rsp.num_chans,))
         return EnergyBins(counts, self._rsp.ebounds.low_edges(),
                           self._rsp.ebounds.high_edges(), self._exposure)
 
@@ -216,7 +224,7 @@ class VariablePoissonBackground(PoissonBackgroundGenerator):
 
     def _simulate(self):
         # the poisson count deviates in each channel
-        counts = self.rng.poisson(self._bkgd.counts * self.amp,
+        counts = self._rng.poisson(self._bkgd.counts * self.amp,
                                    size=(self._bkgd.size,))
         # convert to rates...
         rates = counts / self._bkgd.exposure
@@ -276,7 +284,7 @@ class VariableGaussianBackground(GaussianBackgroundGenerator):
     def _simulate(self):
         # the gaussian rate deviates given the "centroid" rates and 
         # rate uncertainties
-        rates = self.rng.normal(self._bkgd.rates * self.amp,
+        rates = self._rng.normal(self._bkgd.rates * self.amp,
                                  self._bkgd.rate_uncertainty * self.amp,
                                  size=(self._bkgd.size,))
         rate_uncert = self._bkgd.rate_uncertainty * self.amp
@@ -341,7 +349,7 @@ class VariableSourceSpectrumGenerator(SourceSpectrumGenerator):
     def _simulate(self):
         if self.amp < 0.0:
             self.amp = 0.0
-        counts = self.rng.poisson(self.amp * self._rates,
+        counts = self._rng.poisson(self.amp * self._rates,
                                    size=(self._rsp.num_chans,))
         return EnergyBins(counts, self._rsp.ebounds.low_edges(),
                           self._rsp.ebounds.high_edges(), self._exposure)
@@ -417,11 +425,11 @@ class EventSpectrumGenerator(SimGenerator):
         # counts within a finite bounded window, repeat this until all arrival
         # times are within our window
         while (True):
-            times = self.rng.exponential(self._beta,
-                                         size=(self.spectrum.sum(),))
+            times = self._rng.exponential(self._beta,
+                                          size=(self.spectrum.sum(),))
             times = times.cumsum()
-            chans = self.rng.choice(self._chan_nums, self._chan_nums.size,
-                                    replace=False)
+            chans = self._rng.choice(self._chan_nums, self._chan_nums.size,
+                                     replace=False)
 
             # at least one event is outside our window
             if (times[-1] > self._dt):
