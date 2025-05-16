@@ -50,7 +50,7 @@ class PhaSimulator:
             A modeled background spectrum
         bkgd_distrib (str): The distribution from which the background is
                             simulated; either 'Poisson' or 'Gaussian'
-        rng (Generator, optional): The RNG object
+        rng (numpy.random.Generator, optional): random number generator
     """
     def __init__(self, rsp, function, params, exposure, bkgd, bkgd_distrib, rng=None):
         self._rng = rng or np.random.default_rng()

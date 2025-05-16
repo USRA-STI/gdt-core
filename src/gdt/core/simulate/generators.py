@@ -376,7 +376,7 @@ class EventSpectrumGenerator(SimGenerator):
         dt (float): The width of the time slice in seconds
         min_sep (float, optional): The minimum possible time separation between
                                    events.  Default is 2e-6 seconds.
-        seed (int, optional): The RNG seed
+        rng (np.random.Generator, optional): The random generator
     
     Yields:
         (np.array, np.array): The arrival times and energy channels for each 
