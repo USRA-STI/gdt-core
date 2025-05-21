@@ -193,8 +193,10 @@ And finally, we can bin it into a Phaii object and plot:
 
 .. image:: tte_figs/ttefig3.png
 
-Seeding the Simulation 
-======================
+.. _sim-tte-seed:
+
+Seeding Event Data
+==================
 Users can set the random generator used to create each simulation with the
 ``rng`` keyword when initializing the |TteSourceSimulator| and
 |TteBackgroundSimulator| classes:
@@ -207,7 +209,7 @@ Users can set the random generator used to create each simulation with the
 This is useful in cases where reproducibility with a known seed is desired,
 such as for publicly shared simulation results.
 
-Additionally, the random generator can be modified after initilization
+Additionally, the random generator can be modified after initialization
 with the |source_set_rng| and |background_set_rng| functions:
 
     >>> src_sim.set_rng(rng)

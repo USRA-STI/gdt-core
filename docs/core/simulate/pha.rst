@@ -179,8 +179,10 @@ spectrum.
 Once initialized, the background, response, and source spectrum can
 be updated using |set_background|, |set_rsp|, and |set_source|, respectively.
 
-Seeding the Simulation 
-======================
+.. _sim-pha-seed:
+
+Seeding PHA Data
+================
 Users can set the random generator used to create each simulation with the
 ``rng`` keyword when initializing the |PhaSimulator| class:
 
@@ -191,7 +193,7 @@ Users can set the random generator used to create each simulation with the
 This is useful in cases where reproducibility with a known seed is desired,
 such as for publicly shared simulation results.
 
-Additionally, the random generator can be modified after initilization
+Additionally, the random generator can be modified after initialization
 with the |set_rng| function:
 
     >>> sim.set_rng(rng)

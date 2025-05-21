@@ -30,7 +30,8 @@ import numpy as np
 from gdt.core.background.primitives import BackgroundSpectrum
 from gdt.core.data_primitives import EnergyBins
 
-__all__ = ['EventSpectrumGenerator', 'GaussianBackgroundGenerator', 
+__all__ = ['SimGenerator', 'EventSpectrumGenerator',
+           'GaussianBackgroundGenerator',
            'PoissonBackgroundGenerator','SourceSpectrumGenerator', 
            'VariableGaussianBackground', 'VariablePoissonBackground', 
            'VariableSourceSpectrumGenerator']
