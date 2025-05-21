@@ -112,7 +112,7 @@ class Duration:
         br_err = np.sqrt(br_ind_errs)
 
         mu11, sigma11 = br[:, 0], br_err  # mean and standard deviation
-        p_bkd_err_list = np.random.normal(mu11, sigma11, size=(num_sims, len(timebins_x)))
+        p_bkd_err_list = self._rng.normal(mu11, sigma11, size=(num_sims, len(timebins_x)))
 
         diff_rate = p_source_err_list - p_bkd_err_list
         cuflux = diff_rate.cumsum(axis=1)
