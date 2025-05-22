@@ -805,7 +805,7 @@ class BrowseCatalog:
 
         # build the URL query
         host = 'https://heasarc.gsfc.nasa.gov'
-        script = 'db-perl/W3Browse/w3query.pl'
+        script = 'cgi-bin/W3Browse/w3query.pl'
         query = 'tablehead=name=BATCHRETRIEVALCATALOG_2.0+'
         # Retrieve all fields, all rows, and return in FITS format
         query += '{}&Fields=All&displaymode=FitsDisplay&ResultMax=0'.format(table)
