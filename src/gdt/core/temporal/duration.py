@@ -31,9 +31,10 @@ import numpy as np
 
 
 class Duration:
-    def __init__(self, timebins_list, bkgds_list, duration_interval):
+    def __init__(self, timebins_list, bkgds_list, duration_interval, rng=None):
         # intializes with a list of TimeBins and BackgroundRates
         # this only checks that the inputs are valid
+        self._rng = rng or np.random.default_rng()
         self.timebins_list = timebins_list
         self.bkgds_list = bkgds_list
         self.duration_interval = duration_interval
@@ -101,7 +102,7 @@ class Duration:
         t_diff = (t_higher - t_lower)
 
         # Errors  #################################################################################
-        p_source_err_list = np.random.poisson(lam=(np.abs(timebins_y)), size=(num_sims, len(timebins_x)))
+        p_source_err_list = self._rng.poisson(lam=(np.abs(timebins_y)), size=(num_sims, len(timebins_x)))
 
         err_prop = []
         for i, name in enumerate(list_bkg_cts_err):
@@ -111,7 +112,7 @@ class Duration:
         br_err = np.sqrt(br_ind_errs)
 
         mu11, sigma11 = br[:, 0], br_err  # mean and standard deviation
-        p_bkd_err_list = np.random.normal(mu11, sigma11, size=(num_sims, len(timebins_x)))
+        p_bkd_err_list = self._rng.normal(mu11, sigma11, size=(num_sims, len(timebins_x)))
 
         diff_rate = p_source_err_list - p_bkd_err_list
         cuflux = diff_rate.cumsum(axis=1)
@@ -135,3 +136,11 @@ class Duration:
         tdiff_err_hi = self.error_prop(tdiff_upp_hi_err, tdiff_low_hi_err)
 
         return t_diff, tdiff_err_lo, tdiff_err_hi
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng

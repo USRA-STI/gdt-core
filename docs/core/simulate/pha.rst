@@ -16,6 +16,7 @@
 .. |set_background| replace:: :meth:`~gdt.core.simulate.pha.PhaSimulator.set_background`
 .. |set_rsp| replace:: :meth:`~gdt.core.simulate.pha.PhaSimulator.set_rsp`
 .. |set_source| replace:: :meth:`~gdt.core.simulate.pha.PhaSimulator.set_source`
+.. |set_rng| replace:: :meth:`~gdt.core.simulate.pha.PhaSimulator.set_rng`
 
 ************************************************************
 Simulating PHA Spectral Data (:mod:`~gdt.core.simulate.pha`)
@@ -175,10 +176,79 @@ deviate, and so the variation seen results from the Poisson variance of the
 source spectrum as well as the Poisson/Gaussian variance of the background 
 spectrum.
 
-Finally, once initialized, the background, response, and source spectrum can
+Once initialized, the background, response, and source spectrum can
 be updated using |set_background|, |set_rsp|, and |set_source|, respectively.
-    
 
+.. _sim-pha-seed:
+
+Seeding PHA Data
+================
+Users can set the random generator used to create each simulation with the
+``rng`` keyword when initializing the |PhaSimulator| class:
+
+    >>> import numpy as np
+    >>> rng = np.random.default_rng(seed=1)
+    >>> sim = PhaSimulator(rsp, Band(), band_params, 0.256, back_spec, 'Gaussian', rng=rng)
+
+This is useful in cases where reproducibility with a known seed is desired,
+such as for publicly shared simulation results.
+
+Additionally, the random generator can be modified after initialization
+with the |set_rng| function:
+
+    >>> sim.set_rng(rng)
+
+In cases where the user does not provide their own generator, |PhaSimulator| uses
+``np.random.default_rng()`` to create a default generator seeded by the
+computer's clock time. This default generator will produce a different result
+whenever the simulation is performed at a different time. Simulations run at
+the same time will produce the same result, which can be problematic for users
+trying to run simulations as parallel processes. To avoid this, users should
+provide unique seeds to each simulation process when running in parallel.
+Below is an example of this for two parallel processes launched within a main
+function using Python's ``multiprocessing`` module:
+
+    >>> import numpy as np
+    >>> import multiprocessing
+    >>>
+    >>> from gdt.core.data_primitives import ResponseMatrix
+    >>> from gdt.core.response import Rsp
+    >>> from gdt.core.background.primitives import BackgroundSpectrum
+    >>> from gdt.core.simulate.pha import PhaSimulator
+    >>> from gdt.core.spectra.functions import Band
+    >>>
+    >>> def simulate(proc_id: int, n: int, rng: np.random.Generator, results: dict, sim: PhaSimulator):
+    >>>     sim.set_rng(rng)
+    >>>     results[proc_id] = sim.simulate_source(n)
+    >>>
+    >>> if __name__ == "__main__":
+    >>>
+    >>>     rsp = ...
+    >>>     back_spec = ...
+    >>>     band_params = ...
+    >>>
+    >>>     sim = PhaSimulator(rsp, Band(), band_params, 0.256, back_spec, 'Gaussian')
+    >>>
+    >>>     manager = multiprocessing.Manager()
+    >>>     results = manager.dict()
+    >>>
+    >>>     # perform 20 simulations split across 2 parallel processes
+    >>>     rngs = np.random.default_rng().spawn(2)
+    >>>     procs = [multiprocessing.Process(target=simulate, args=(i, 10, rng, results, sim))
+    >>>              for i, rng in enumerate(rngs)]
+    >>>     [proc.start() for proc in procs]
+    >>>     [proc.join() for proc in procs]
+    >>>
+    >>>     for proc_id in sorted(results.keys()):
+    >>>         print(proc_id, results[proc_id])
+
+Note that this requires the ``simulate()`` target method to be defined outside
+the main scope. Users looking for more flexibility or the ability to perform
+parallel processing within a Notebook should consider using the
+`multiprocess <https://pypi.org/project/multiprocess/>`_
+dependency instead. This dependency is an extension of ``mulitprocessing``
+that allows ``Manager()`` and ``Process()`` to be used in more scenarios,
+including within Notebooks.
 
 
 Reference/API
