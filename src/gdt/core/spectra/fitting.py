@@ -26,13 +26,13 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import sys
 import warnings
 from datetime import datetime
 
 import numpy as np
-from numpy.random import multivariate_normal
 from scipy.linalg import inv
-from scipy.misc import derivative
+from gdt.misc import derivative
 from scipy.optimize import minimize, brentq
 from scipy.stats import chi2
 
@@ -91,11 +91,11 @@ class SpectralFitter:
             Note:
                 All solvers, with the exception of 'dogleg' and 'trust-exact',
                 are supported at this time.          
+        rng (Generator, optional): The RNG object
     """
 
     def __init__(self, pha_list, bkgd_list, rsp_list, statistic,
-                 channel_masks=None, method='SLSQP'):
-
+                 channel_masks=None, method='SLSQP', rng=None):
         # check that we have the right numbers of data, backgrounds, responses,
         # and fit masks
         self._num_sets = len(pha_list)
@@ -144,6 +144,17 @@ class SpectralFitter:
         self._method = method
         self._function = None
         self._res = None
+
+        # set the RNG used to sample fits
+        self._rng = rng or np.random.default_rng()
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng
 
     @property
     def covariance(self):
@@ -294,6 +305,9 @@ class SpectralFitter:
         nparams = self.parameters.size
         crit = chi2.ppf(cl, nparams)
 
+        # do this only for the free parameters
+        idx = np.arange(self._function.nparams)[np.array(self._function.free)]
+
         # this is the objective function for which we are finding the root
         def the_func(param_v, index):
             params = self.parameters.copy()
@@ -318,7 +332,7 @@ class SpectralFitter:
         for i in range(nparams):
             param = self.parameters[i]
             while True:
-                if self._function.min_values[i] == -np.inf:
+                if self._function.min_values[idx[i]] == -np.inf:
                     if param < 0.0:
                         minval = 2.0 * param
                     elif param > 0.1:
@@ -326,7 +340,7 @@ class SpectralFitter:
                     else:
                         minval = param - 1.0
                 else:
-                    minval = self._function.min_values[i]
+                    minval = self._function.min_values[idx[i]]
 
                 # if we're at the bounds, we can't bracket the peak
                 try:
@@ -334,7 +348,7 @@ class SpectralFitter:
                                   full_output=True, maxiter=1000)
                     break
                 except ValueError:
-                    if minval == self._function.min_values[i]:
+                    if minval == self._function.min_values[idx[i]]:
                         warnings.warn("Parameter exists at its lower bound")
                         r = minval
                         break
@@ -347,7 +361,7 @@ class SpectralFitter:
         for i in range(nparams):
             param = self.parameters[i]
             while True:
-                if self._function.max_values[i] == np.inf:
+                if self._function.max_values[idx[i]] == np.inf:
                     if param < -0.1:
                         maxval = 0.5 * param
                     elif param > 0.0:
@@ -355,7 +369,7 @@ class SpectralFitter:
                     else:
                         maxval = 1.0 + param
                 else:
-                    maxval = self._function.max_values[i]
+                    maxval = self._function.max_values[idx[i]]
 
                 try:
                     r, o = brentq(the_func, self.parameters[i], maxval, args=(i,),
@@ -363,7 +377,7 @@ class SpectralFitter:
                     break
                 except ValueError:
                     # if we're at the bounds, we can't bracket the peak
-                    if maxval == self._function.max_values[i]:
+                    if maxval == self._function.max_values[idx[i]]:
                         warnings.warn("Parameter exists at its upper bound")
                         r = maxval
                         break
@@ -596,8 +610,9 @@ class SpectralFitter:
         if self._res is None:
             raise RuntimeError('Fit has not been performed')
 
-        samples = multivariate_normal(self.parameters, self.covariance,
-                                      **kwargs)
+        samples = self._rng.multivariate_normal(
+            self.parameters, self.covariance, **kwargs)
+
         return samples
 
     def sample_spectrum(self, which, num_samples=1000, num_points=1000,
@@ -975,7 +990,8 @@ class SpectralFitterPgstat(SpectralFitter):
         # perform pgstat calculation for one dataset
         return self._stat(self._data[set_num], src_model, self._exposure[set_num],
                           self._back_rates[set_num] * self._back_exp[set_num],
-                          self._back_var[set_num], self._back_exp[set_num])
+                          self._back_var[set_num] * self._back_exp[set_num]**2, 
+                          self._back_exp[set_num])
 
 
 class SpectralFitterCstat(SpectralFitter):
@@ -1030,8 +1046,6 @@ class SpectralFitterCstat(SpectralFitter):
 
 class SpectralFitterPstat(SpectralFitter):
     """Jointly-fit datasets using P-Stat (Poisson source with known background).
-    This statistic assumes non-zero counts, therefore any channels with zero
-    counts will be masked out and not used in fitting.
 
     Parameters:
         pha_list (list of :class:`~gdt.core.pha.Pha`): 
@@ -1145,10 +1159,6 @@ def pstat(obs_counts, mod_rates, exposure, back_rates):
     The "pstat" statistic from the `XSPEC Statistics Appendix
     <https://heasarc.gsfc.nasa.gov/xanadu/xspec/manual/XSappendixStatistics.html>`_.
     
-    Note:
-        Elements with zero counts are masked out and not figured in the 
-        statistic.
-    
     Args:
         obs_counts (np.array): The total observed counts
         mod_rates (np.array): The model source rates
@@ -1159,11 +1169,16 @@ def pstat(obs_counts, mod_rates, exposure, back_rates):
         (float)
     """
 
-    mask = (obs_counts > 0) & (mod_rates + back_rates > 0.0)
-    pstat_val = (exposure * (mod_rates[mask] + back_rates[mask])
-                 - obs_counts[mask] * np.log(exposure * (mod_rates[mask] + back_rates[mask]))
+    mask = (obs_counts > 0) & ((mod_rates + back_rates) > 0.0)
+    pstat = np.zeros_like(obs_counts, dtype=float)
+    pstat[mask] = (exposure * (mod_rates[mask] + back_rates[mask]) \
+                 - obs_counts[mask] * np.log(exposure * (mod_rates[mask] + back_rates[mask])) \
                  - obs_counts[mask] * (1.0 - np.log(obs_counts[mask])))
-    return -pstat_val.sum()
+    
+    # zero-count bins
+    mask = (obs_counts == 0) & ((mod_rates + back_rates) > 0.0)
+    pstat[mask] = exposure * (mod_rates[mask] + back_rates[mask])
+    return -pstat.sum()
 
 
 def pgstat(obs_counts, mod_rates, exposure, back_counts, back_var, back_exp):
@@ -1182,10 +1197,10 @@ def pgstat(obs_counts, mod_rates, exposure, back_counts, back_var, back_exp):
         (float)
     """
     mask = (obs_counts > 0)
-    pg = np.zeros_like(obs_counts)
+    pg = np.zeros_like(obs_counts, dtype=float)
     # special case for zero observed counts
     pg[~mask] = (exposure * mod_rates[~mask] + back_counts[~mask] * (exposure / back_exp)
-                 - np.sqrt(back_var[~mask]) * (exposure / back_exp) ** 2 / 2.0)
+                 - back_var[~mask] * (exposure / back_exp)**2 / 2.0)
 
     # for all other cases:
     obs_counts_nz = obs_counts[mask]
@@ -1193,15 +1208,28 @@ def pgstat(obs_counts, mod_rates, exposure, back_counts, back_var, back_exp):
     back_counts_nz = back_counts[mask]
     back_var_nz = back_var[mask]
 
-    d = np.sqrt((exposure * back_var_nz - back_exp * back_counts_nz + back_exp ** 2 * mod_rates_nz) ** 2
-                - 4.0 * back_exp ** 2 * (exposure * back_var_nz * mod_rates_nz - obs_counts_nz * back_var_nz
-                                         - back_exp * back_counts_nz * mod_rates_nz))
+    # pull out some common calculations to simply and speed up
+    q = (exposure * back_var_nz) - (back_exp * back_counts_nz) \
+        + (back_exp**2 * mod_rates_nz)
+    
+    r = (exposure * back_var_nz * mod_rates_nz) - (obs_counts_nz * back_var_nz) \
+        - (back_exp * back_counts_nz * mod_rates_nz)
 
-    f = ((-(exposure * back_var_nz - back_exp * back_counts_nz + back_exp ** 2 * mod_rates_nz) + d)
-         / (2.0 * back_exp ** 2))
+    # root, and how to decide if positive/negative is used
+    d = np.sqrt(q**2 - 4.0 * back_exp**2 * r)    
+    d[q < 0.0] *= -1.0
+    
+    
+    f = ( (-q + d) / (2.0 * back_exp**2))
+    f_alt = (2.0 * r) / (-q + d)
+    
+    # if f < 0, then use f_alt
+    fmask = f < 0.0
+    f[fmask] = f_alt[fmask]
 
-    pg[mask] = (back_exp * (mod_rates_nz + f) - obs_counts_nz * np.log(exposure * mod_rates_nz + exposure * f)
-                + (back_counts_nz - back_exp * f) ** 2 / (2.0 * back_var_nz)
+    pg[mask] = (exposure * (mod_rates_nz + f) \
+               - obs_counts_nz * np.log(exposure * mod_rates_nz + exposure * f) \
+                + (back_counts_nz - back_exp * f)**2 / (2.0 * back_var_nz) \
                 - obs_counts_nz * (1.0 - np.log(obs_counts_nz)))
-
+    
     return -pg.sum()

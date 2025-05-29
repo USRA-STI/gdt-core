@@ -253,7 +253,7 @@ class GdtCmap():
         return self._name
     @name.setter
     def name(self, val):
-        self._cmap = copy.copy(plt.cm.get_cmap(val))
+        self._cmap = copy.copy(plt.get_cmap(val))
         self._name = val
         self._update()
         if self._callback is not None:
@@ -833,8 +833,7 @@ class Heatmap(PlotElement):
                           format=ticker.FuncFormatter(sci_fmt))
         cb.ax.tick_params(labelsize=10)
         cb.set_label(r'Effective Area (cm$^2$)', fontsize=12)
-        cb.patch.set_facecolor('black')
-        cb.draw_all()
+        cb._draw_all()
         return cb
 
     def __repr__(self):
@@ -2109,4 +2108,3 @@ class PlotElementCollection(DataCollection):
     """
     def __getattr__(self, name):
         return self.get_item(name)
-    

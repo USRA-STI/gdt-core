@@ -30,7 +30,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple
 
 import numpy as np
-from scipy.integrate import trapz, quad
+from scipy.integrate import trapezoid, quad
 from scipy.special import erfc
 
 __all__ = ['Band', 'BandOld', 'BlackBody', 'BrokenPowerLaw', 'Comptonized',
@@ -221,10 +221,10 @@ class Function(ABC):
 
         # photon flux
         if not energy:
-            flux = trapz(spectrum, energies)
+            flux = trapezoid(spectrum, energies)
         # energy flux
         else:
-            flux = trapz(energies * spectrum, energies) * 1.602e-9
+            flux = trapezoid(energies * spectrum, energies) * 1.602e-9
 
         return flux
 
@@ -256,8 +256,13 @@ class Function(ABC):
             (:class:`SuperFunction`)
         """
         obj = cls._super_function(func1, func2, np.sum)
-        obj.names = [func1.name, func2.name]
-        obj.name = ' + '.join(obj.names)
+        if isinstance(func1, SuperFunction):
+            obj.names = func1.names + [func2.name]
+        elif isinstance(func2, SuperFunction):
+            obj.names = func2.names + [func1.name]
+        else:
+            obj.names = [func1.name, func2.name]        
+        obj.name = ' + '.join([func1.name, func2.name])
         return obj
 
     @classmethod
@@ -272,8 +277,13 @@ class Function(ABC):
             (:class:`SuperFunction`)
         """
         obj = cls._super_function(func1, func2, np.prod)
-        obj.names = [func1.name, func2.name]
-        obj.name = ' * '.join(obj.names)
+        if isinstance(func1, SuperFunction):
+            obj.names = func1.names + [func2.name]
+        elif isinstance(func2, SuperFunction):
+            obj.names = func2.names + [func1.name]
+        else:
+            obj.names = [func1.name, func2.name]   
+        obj.name = ' * '.join([func1.name, func2.name])
         return obj
 
     @classmethod

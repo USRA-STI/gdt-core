@@ -26,6 +26,7 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import warnings
 import astropy.io.fits as fits
 from astropy.time import Time
 
@@ -78,9 +79,9 @@ class Header(fits.Header):
             self['EXTNAME'] = self.name
 
     def __setitem__(self, key, val):
-        
+
         # pass-through for COMMENT
-        if isinstance(key, tuple):
+        if isinstance(key, tuple) or isinstance(val, tuple):
             super().__setitem__(key, val)
             return
         
@@ -182,13 +183,27 @@ class FileHeaders():
             hidx = 0
             for key in obj[i].keys():
                 if (key == 'COMMENT'):
-                    obj[i][key][cidx] = headers[i][key][cidx]
-                    cidx += 1
+                    try:
+                        obj[i][key][cidx] = headers[i][key][cidx]
+                        cidx += 1
+                    except KeyError:
+                        warnings.warn(f'{key} not found in header {obj[i].name}', 
+                                      RuntimeWarning, stacklevel=2)      
+                        
                 elif (key == 'HISTORY'):
-                    obj[i][key][hidx] = headers[i][key][hidx]
-                    hidx += 1
+                    try:
+                        obj[i][key][hidx] = headers[i][key][hidx]
+                        hidx += 1
+                    except KeyError:
+                        warnings.warn(f'{key} not found in header {obj[i].name}', 
+                                      RuntimeWarning, stacklevel=2)      
+
                 else:
-                    obj[i][key] = headers[i][key]
+                    try:
+                        obj[i][key] = headers[i][key]
+                    except KeyError:
+                        warnings.warn(f'{key} not found in header {obj[i].name}', 
+                                      RuntimeWarning, stacklevel=2)      
         
         return obj
         

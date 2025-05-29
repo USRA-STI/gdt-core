@@ -110,7 +110,7 @@ class ResponsePlot(GdtPlot):
 
         # update the background color of the colorbar
         if self._colorbar:
-            self._drm._artists[-1].patch.set_facecolor(self._background)
+            self._drm._artists[-1].ax.set_facecolor(self._background)
     
     def _init_multiplot(self):
         # initialize the multiplot

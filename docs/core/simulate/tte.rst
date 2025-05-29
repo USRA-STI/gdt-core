@@ -11,6 +11,8 @@
 .. |sim-pha| replace:: :ref:`Simulating PHA Spectral Data<sim-pha>`
 .. |rsp| replace:: :ref:`The Rsp Class<core-response>`
 .. |functions| replace:: :ref:`Spectral Functions<spectra-functions>`
+.. |source_set_rng| replace:: :meth:`TteSourceSimulator.set_rng()<gdt.core.simulate.tte.TteSourceSimulator.set_rng>`
+.. |background_set_rng| replace:: :meth:`TteBackgroundSimulator.set_rng()<gdt.core.simulate.tte.TteBackgroundSimulator.set_rng>`
 
 
 *****************************************************
@@ -190,6 +192,80 @@ And finally, we can bin it into a Phaii object and plot:
     >>> plot.show()
 
 .. image:: tte_figs/ttefig3.png
+
+.. _sim-tte-seed:
+
+Seeding Event Data
+==================
+Users can set the random generator used to create each simulation with the
+``rng`` keyword when initializing the |TteSourceSimulator| and
+|TteBackgroundSimulator| classes:
+
+    >>> import numpy as np
+    >>> rng = np.random.default_rng(seed=1)
+    >>> src_sim = TteSourceSimulator(rsp, Band(), band_params, norris, norris_params, deadtime=1e-6, rng=rng)
+    >>> back_sim = TteBackgroundSimulator(back_spec, 'Gaussian', linear, (1.0, 0.1), deadtime=1e-6, rng=rng)
+
+This is useful in cases where reproducibility with a known seed is desired,
+such as for publicly shared simulation results.
+
+Additionally, the random generator can be modified after initialization
+with the |source_set_rng| and |background_set_rng| functions:
+
+    >>> src_sim.set_rng(rng)
+    >>> back_sim.set_rng(rng)
+
+In cases where the user does not provide their own generator, |TteSourceSimulator|
+and |TteBackgroundSimulator| will use ``np.random.default_rng()`` to create a default
+generator seeded by the computer's clock time. This default generator will produce
+a different result whenever the simulation is performed at a different time. Simulations 
+run at the same time will produce the same result, which can be problematic for users
+trying to run simulations as parallel processes. To avoid this, users should
+provide unique seeds to each simulation process when running in parallel.
+Below is an example of this for two parallel processes launched within a main
+function using Python's ``multiprocessing`` module:
+
+    >>> import numpy as np
+    >>> import multiprocessing
+    >>>
+    >>> from gdt.core.data_primitives import ResponseMatrix
+    >>> from gdt.core.response import Rsp
+    >>> from gdt.core.background.primitives import BackgroundSpectrum
+    >>> from gdt.core.simulate.tte import TteBackgroundSimulator
+    >>> from gdt.core.simulate.profiles import linear
+    >>>
+    >>> def simulate(proc_id: int, n: int, rng: np.random.Generator, results: dict, sim: TteBackgroundSimulator):
+    >>>     sim.set_rng(rng)
+    >>>     results[proc_id] =  [sim.to_tte(-10, 10) for i in range(n)]
+    >>>
+    >>> if __name__ == "__main__":
+    >>>
+    >>>     rsp = ...
+    >>>     back_spec = ...
+    >>>
+    >>>     back_sim = TteBackgroundSimulator(back_spec, 'Gaussian', linear, (1.0, 0.1), deadtime=1e-6)
+    >>>
+    >>>     manager = multiprocessing.Manager()
+    >>>     results = manager.dict()
+    >>>
+    >>>     # perform 20 background simulations split across 2 parallel processes
+    >>>     rngs = np.random.default_rng().spawn(2)
+    >>>     procs = [multiprocessing.Process(target=simulate, args=(i, 10, rng, results, back_sim))
+    >>>              for i, rng in enumerate(rngs)]
+    >>>     [proc.start() for proc in procs]
+    >>>     [proc.join() for proc in procs]
+    >>>
+    >>>     for proc_id in sorted(results.keys()):
+    >>>         print(proc_id, results[proc_id])
+
+Note that this requires the ``simulate()`` target method to be defined outside
+the main scope. Users looking for more flexibility or the ability to perform
+parallel processing within a Notebook should consider using the
+`multiprocess <https://pypi.org/project/multiprocess/>`_
+dependency instead. This dependency is an extension of ``mulitprocessing``
+that allows ``Manager()`` and ``Process()`` to be used in more scenarios,
+including within Notebooks.
+
 
 
 Reference/API

@@ -33,7 +33,7 @@ from gdt.core.background.fitter import BackgroundFitter
 from gdt.core.background.binned import Polynomial
 from gdt.core.background.unbinned import NaivePoisson
 
-
+this_dir = os.path.dirname(__file__)
 
 class TestBinnedFitter(unittest.TestCase):
 
@@ -85,7 +85,19 @@ class TestBinnedFitter(unittest.TestCase):
         rates = self.fitter.interpolate_bins(self.phaii.data.tstart, 
                                              self.phaii.data.tstop)
         self.assertTupleEqual(rates.size, (6, 8))
-     
+
+    def test_write(self):
+
+        filepath = os.path.join(this_dir, 'test.bak')
+
+        rates = self.fitter.interpolate_bins(self.phaii.data.tstart,
+                                             self.phaii.data.tstop)
+        bak = rates.to_bak(time_range=(0, 1))
+        bak.write(directory=this_dir, filename=os.path.basename(filepath), overwrite=True)
+
+        self.assertTrue(os.path.exists(filepath))
+        os.remove(filepath)
+
     def test_errors(self):
         with self.assertRaises(TypeError):
             BackgroundFitter.from_phaii(0.0, Polynomial)
@@ -184,5 +196,4 @@ class TestUnbinnedFitter(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
       
-        
         
