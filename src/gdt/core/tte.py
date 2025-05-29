@@ -333,9 +333,9 @@ class PhotonList(FitsFileContextManager):
         # do the time binning to create the TimeEnergyBins or TimeChannelBins
         # Use GTI start tstart/tstop by default
         if 'tstart' not in kwargs:
-            kwargs['tstart'] = self.gti[0].tstart 
+            kwargs['tstart'] = obj.gti[0].tstart
         if 'tstop' not in kwargs:
-            kwargs['tstop'] = self.gti[-1].tstop
+            kwargs['tstop'] = obj.gti[-1].tstop
         
         bins = obj.data.bin(bin_method, *args, **kwargs)
         if (energy_range is not None) and (self.ebounds is not None):
