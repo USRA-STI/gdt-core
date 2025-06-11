@@ -603,7 +603,7 @@ class Aws(Http):
         page = urlopen(self.urljoin("?list-type=2&prefix=" + path.lstrip("/")), context=self._context)
         table = page.read().decode("utf-8").split(self._table_key)[1]
         for line in table.split(self._start_key)[1:]:
-            file = line.split(self._end_key)[0]
+            file = os.path.basename(line.split(self._end_key)[0])
             files.append(os.path.join(path, file))
         return files
 
