@@ -599,7 +599,6 @@ class Aws(Http):
         Returns:
             (list of str)
         """
-        print("Aws _ls", path)
         files = []
         page = urlopen(self.urljoin("?list-type=2&prefix=" + path.lstrip("/")), context=self._context)
         table = page.read().decode("utf-8").split(self._table_key)[1]
