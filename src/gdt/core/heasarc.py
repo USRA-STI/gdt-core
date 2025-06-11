@@ -572,6 +572,43 @@ class Http(BaseProtocol):
         return '<{0}: url {1}>'.format(self.__class__.__name__, self._url)
 
 
+class Aws(Http):
+    """A class for HTTP/HTTPS interactions with an AWS remote archive.
+
+    Parameters:
+        url (str, optional): The base url of the AWS archive
+        start_key (str, optional): Key used to indentify the start of file names
+        end_key (str, optional): Key used to indentify the end of file names
+        table_key (str, optional): Key used to indentify the start of the table with file names
+        progress (Progress, optional): The progress bar object
+        context (SSLContext, optional): The SSL certificates context
+    """
+    def __init__(self, url='https://nasa-heasarc.s3.amazonaws.com',
+                 start_key='<Key>', end_key='</Key>', table_key='</IsTruncated>',
+                 progress: Progress = None, context: ssl.SSLContext = None):
+
+        super().__init__(url, start_key, end_key, table_key, progress, context)
+
+    def _ls(self, path: str):
+        """List the directory contents of an AWS directory associated with
+        a data set.
+
+        Args:
+            path (str): The remote directory path
+
+        Returns:
+            (list of str)
+        """
+        print("Aws _ls", path)
+        files = []
+        page = urlopen(self.urljoin("?list-type=2&prefix=" + path.lstrip("/")), context=self._context)
+        table = page.read().decode("utf-8").split(self._table_key)[1]
+        for line in table.split(self._start_key)[1:]:
+            file = line.split(self._end_key)[0]
+            files.append(os.path.join(path, file))
+        return files
+
+
 class BaseFinder(AbstractContextManager, ABC):
     """A base class for the interface to the HEASARC archive.
 
@@ -597,6 +634,8 @@ class BaseFinder(AbstractContextManager, ABC):
             self._protocol = Http(**kwargs)
         elif protocol == 'FTP':
             self._protocol = Ftp(**kwargs)
+        elif protocol in 'AWS':
+            self._protocol = Aws(**kwargs)
         else:
             raise ValueError("Unrecognized connection protocol " + protocol)
 
