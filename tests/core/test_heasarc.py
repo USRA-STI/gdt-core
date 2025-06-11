@@ -170,10 +170,15 @@ class TestFinder(TestMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls._test_protocols = ['FTP', 'HTTPS']
+        cls._test_protocols = ['FTP', 'HTTPS', 'AWS']
         if os.environ.get('SKIP_HEASARC_FTP_TESTS', False):
             print('Skipping HEASARC FTP tests')
-            cls._test_protocols = ['HTTPS']
+            i = cls._test_protocols.index("FTP")
+            cls._test_protocols.pop(i)
+        if os.environ.get('SKIP_HEASARC_HTTP_TESTS', False):
+            print('Skipping HEASARC HTTP/HTTPS tests')
+            i = cls._test_protocols.index("HTTPS")
+            cls._test_protocols.pop(i)
 
     def test_initialize(self):
         for protocol in self._test_protocols:
@@ -212,7 +217,7 @@ class TestFinder(TestMixin, unittest.TestCase):
 
 
     def test_errors(self):
-        keyword = {"HTTP": "url", "HTTPS": "url", "FTP": "host"}
+        keyword = {"HTTP": "url", "HTTPS": "url", "FTP": "host", "AWS": "url"}
         for protocol in self._test_protocols:
             with self.assertRaises(ValueError):
                 MyFinder('oops i did it again', protocol=protocol)
@@ -255,6 +260,9 @@ class TestFileDownloader(TestMixin, unittest.TestCase):
             pass
 
 
+@unittest.skipIf(
+    os.environ.get('SKIP_HEASARC_HTTP_TESTS', False), 'Skipping HEASARC HTTP/HTTPS tests'
+)
 class TestBrowseCatalog(unittest.TestCase):
     
     @classmethod
