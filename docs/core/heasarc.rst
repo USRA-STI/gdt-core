@@ -20,11 +20,11 @@ HEASARC Data Finders and Catalog Access (:mod:`gdt.core.heasarc`)
     check for data availability on AWS by copying a HEASARC directory path from the
     FTP servers and converting it to an AWS link like so:
 
-    https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/2025/bn250611560/current/
+    https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/2025/bn250611560/current
 
     becomes
 
-    https://nasa-heasarc.s3.amazonaws.com/?list-type=2&prefix=fermi/data/gbm/triggers/2025/bn250101395/
+    https://nasa-heasarc.s3.amazonaws.com/?list-type=2&prefix=fermi/data/gbm/triggers/2025/bn250611560/current
 
     which provides the list of available directory files in XML format.
 
