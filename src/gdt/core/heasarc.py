@@ -603,8 +603,17 @@ class Aws(Http):
         page = urlopen(self.urljoin("?list-type=2&prefix=" + path.lstrip("/")), context=self._context)
         table = page.read().decode("utf-8").split(self._table_key)[1]
         for line in table.split(self._start_key)[1:]:
-            file = os.path.basename(line.split(self._end_key)[0])
-            files.append(os.path.join(path, file))
+            full_path = line.split(self._end_key)[0]
+            dirname = os.path.dirname(full_path)
+            file = os.path.basename(full_path)
+            if path.lstrip("/").rstrip("/") != dirname:
+                # return base directory when searching an upper level directory
+                full_dir = os.path.join(path, os.path.basename(dirname))
+                if full_dir not in files:
+                    files.append(full_dir)
+            else:
+                # otherwise return the file name
+                files.append(os.path.join(path, file))
         return files
 
 

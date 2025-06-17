@@ -125,6 +125,9 @@ class TestFtp(TestMixin, unittest.TestCase):
         self.assertEqual(str(protocol), '<Ftp: host heasarc.gsfc.nasa.gov>')
 
 
+@unittest.skipIf(
+    os.environ.get('SKIP_HEASARC_HTTP_TESTS', False), 'Skipping HEASARC HTTP tests'
+)
 class TestHttp(TestMixin, unittest.TestCase):
 
     def test_download_url(self):
@@ -238,22 +241,26 @@ class TestFinder(TestMixin, unittest.TestCase):
                 pass
 
     def test_repr(self):
-        finder = MyFinder('170817529')
-        self.assertEqual(str(finder), '<MyFinder: 170817529>')
+        for protocol in self._test_protocols:
+            finder = MyFinder('170817529', protocol=protocol)
+            self.assertEqual(str(finder), '<MyFinder: 170817529>')
 
 class TestFileDownloader(TestMixin, unittest.TestCase):
 
     def test_download(self):
         downloader = FileDownloader()
-        downloader.download_url(self.https_urls[0], this_dir)
-        downloader.download_url(self.ftp_urls[0], this_dir)
+        if not os.environ.get('SKIP_HEASARC_HTTP_TESTS', False):
+            downloader.download_url(self.https_urls[0], this_dir)
+        if not os.environ.get('SKIP_HEASARC_FTP_TESTS', False):
+            downloader.download_url(self.ftp_urls[0], this_dir)
 
         with self.assertRaises(ValueError):
             downloader.download_url('bad', this_dir)
 
     def test_bulk(self):
         downloader = FileDownloader()
-        downloader.bulk_download(self.https_urls, this_dir)
+        if not os.environ.get('SKIP_HEASARC_HTTP_TESTS', False):
+            downloader.bulk_download(self.https_urls, this_dir)
 
     def test_context(self):
         with FileDownloader() as downloader:
