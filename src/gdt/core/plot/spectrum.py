@@ -139,7 +139,6 @@ class Spectrum(GdtPlot):
         self._errorbars = HistoErrorbars(data, self._ax, color=eb_color,
                                          alpha=eb_alpha, **eb_kwargs)
 
-        self._ax.set_xlim(data.range)
         mask = (data.rates > 0.0)
         
         if isinstance(data, ChannelBins):
@@ -151,7 +150,10 @@ class Spectrum(GdtPlot):
         else:
             self._ax.set_ylim(0.9 * data.rates_per_kev[mask].min(),
                               1.1 * data.rates_per_kev.max())
-    
+
+        self._ax.set_xlim(data.range)
+
+
     def remove_background(self):
         """Remove the background from the plot.
         """
