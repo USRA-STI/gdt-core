@@ -46,8 +46,15 @@ class Polynomial():
         exposure (np.array): The exposure of each bin, shape (``num_times``,)
     """
     def __init__(self, counts, tstart, tstop, exposure):
-        self._tstart = tstart
-        self._tstop = tstop
+
+        # Remove large offset to minitage numerical errors
+        # e.g. for an order 2 polinomial, if t0 ~1e8 and coeff[2] ~1, then
+        # then you need a coeff[2] precision of 16 digits, more than 64 bits.
+        self._t0 = tstart[0]
+
+        self._tstart = tstart - self._t0
+        self._tstop = tstop - self._t0
+
         self._rate = counts / exposure[:, np.newaxis]
         self._livetime = exposure
         self._numtimes, self._numchans = self._rate.shape
@@ -165,6 +172,11 @@ class Polynomial():
             (np.array, np.array): The interpolated model value and model 
             uncertainty in each bin
         """
+
+        # Standarize
+        tstart = tstart - self._t0
+        tstop = tstop - self._t0
+        
         interp = self._eval_model(tstart, tstop)
         interp_uncert = self._eval_uncertainty(tstart, tstop)
         return interp, interp_uncert
