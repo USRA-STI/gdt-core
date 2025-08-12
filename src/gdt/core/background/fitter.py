@@ -30,10 +30,10 @@
 __all__ = ['BackgroundFitter']
 
 import numpy as np
-from gdt.core.data_primitives import EventList, TimeEnergyBins
+from gdt.core.data_primitives import EventList, TimeEnergyBins, TimeChannelBins
 from gdt.core.phaii import Phaii
 from gdt.core.tte import PhotonList
-from .primitives import BackgroundRates
+from .primitives import BackgroundRates, BackgroundChannelRates
 
 class BackgroundFitter:
     """Class for fitting a background, given a fitting algorithm,
@@ -147,7 +147,8 @@ class BackgroundFitter:
                       method 
         
         Returns:
-            (:class:`~gdt.background.primitives.BackgroundRates`)
+            (:class:`~gdt.background.primitives.BackgroundRates` or 
+            :class:`~gdt.background.primitives.BackgroundChannelRates`)
         """
         # do the interpolation
         rate, rate_uncert = self._method.interpolate(tstart, tstop, **kwargs)
@@ -156,10 +157,13 @@ class BackgroundFitter:
         exposure = np.array([self._data_obj.get_exposure((tstart[i], tstop[i])) \
                              for i in range(numtimes)])
         # create the rates object
-        rates = BackgroundRates(rate, rate_uncert, tstart, tstop,
-                                np.array(self._data_obj.ebounds.low_edges()),
-                                np.array(self._data_obj.ebounds.high_edges()),
-                                exposure=exposure)
+        if isinstance(self._data_obj.data, TimeChannelBins):
+            rates = BackgroundChannelRates(rate, rate_uncert, tstart, tstop,
+                                self._data_obj.data.chan_nums, exposure=exposure)
+        else:
+            rates = BackgroundRates(rate, rate_uncert, tstart, tstop,
+                                self._data_obj.data.emin,
+                                self._data_obj.data.emax, exposure=exposure)
 
         return rates
 
@@ -174,13 +178,18 @@ class BackgroundFitter:
                       method 
         
         Returns:
-            (:class:`~gdt.background.primitives.BackgroundRates`)
+            (:class:`~gdt.background.primitives.BackgroundRates` or
+            :class:`~gdt.background.primitives.BackgroundChannelRates`)
         """
         # do the interpolation
         rate, rate_uncert = self._method.interpolate(times, times, **kwargs)
 
         # create the rates object
-        rates = BackgroundRates(rate, rate_uncert, times, times,
+        if isinstance(self._data_obj.data, TimeChannelBins):
+            rates = BackgroundChannelRates(rate, rate_uncert, times, times,
+                                self._data_obj.data.chan_nums)
+        else:
+            rates = BackgroundRates(rate, rate_uncert, times, times,
                                 self._data_obj.ebounds.low_edges(),
                                 self._data_obj.ebounds.high_edges())
 
@@ -211,7 +220,10 @@ class BackgroundFitter:
         # Slice the PHAII data and merge if multiple slices
         data = [phaii.data.slice_time(trange[0], trange[1]) for trange in
                 time_ranges]
-        data = TimeEnergyBins.merge_time(data)
+        if isinstance(phaii.data,TimeChannelBins):
+            data = TimeChannelBins.merge_time(data)
+        else:
+            data = TimeEnergyBins.merge_time(data)
         obj._method = method(data.counts, data.tstart, data.tstop,
                              data.exposure)
         obj._type = 'binned'
