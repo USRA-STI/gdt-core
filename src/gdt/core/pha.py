@@ -52,8 +52,7 @@ class PrimaryHeader(Header):
                 ('DATE', '', 'file creation date (YYYY-MM-DDThh:mm:ss UT)'),
                 ('TSTART', 0.0, 'Observation start time'),
                 ('TSTOP', 0.0, 'Observation stop time'),
-                _trigtime_card,
-                ('FILENAME', '', 'Name of this file')]
+                _trigtime_card,]
 
 class EboundsHeader(Header):
     name = 'EBOUNDS'
@@ -156,7 +155,9 @@ class Pha(FitsFileContextManager):
     def energy_range(self):
         """(float, float): The energy range of the spectrum"""
         if self._data is not None:
-            return self._data.range
+            lo = self._data.lo_edges[self._channel_mask][0]
+            hi = self._data.hi_edges[self._channel_mask][-1]
+            return (lo, hi)
 
     @property
     def exposure(self):
@@ -243,7 +244,7 @@ class Pha(FitsFileContextManager):
     @classmethod
     def from_data(cls, data, gti=None, trigger_time=None, filename=None,
                   headers=None, channel_mask=None, header_type=PhaHeaders,
-                  **kwargs):
+                  valid_channels=None, **kwargs):
         """Create a PHA object from an 
         :class:`~.data_primitives.EnergyBins` object.
 
@@ -264,7 +265,11 @@ class Pha(FitsFileContextManager):
             header_type (:class:`~.headers.FileHeaders`): 
                 Default file header class. Only used if ``headers`` is not 
                 defined
-        
+            valid_channels (np.array(dtype=int)): An integer array indicating
+                                                  which channels are valid. This
+                                                  is overriden if `channel_mask`
+                                                  is set.
+            
         Returns:
             (:class:`Pha`)
         """
@@ -303,20 +308,33 @@ class Pha(FitsFileContextManager):
             obj._headers['PRIMARY']['TSTOP'] = tstop
             obj._headers['EBOUNDS']['DETCHANS'] = data.size  
             obj._headers['SPECTRUM']['DETCHANS'] = data.size
-        obj._headers['PRIMARY']['FILENAME'] = filename
         obj._headers['PRIMARY']['TRIGTIME'] = trigger_time
         obj._headers['SPECTRUM']['EXPOSURE'] = obj._data.exposure[0]
         
         # set the channel mask
-        # if no channel mask is given, assume zero-count channels are bad
         if channel_mask is None:
             channel_mask = np.zeros(data.size, dtype=bool)
-            channel_mask[data.counts > 0] = True
+            # if no channel mask is given, check to see if there is a list of
+            # valid channels
+            if valid_channels is not None:
+                if not isinstance(valid_channels, (np.ndarray, list, tuple, set)):
+                    raise TypeError('valid_channels must be an iterable')
+                try:
+                    valid_channels = np.asarray(valid_channels).flatten().astype(int)
+                except ValueError:
+                    raise ValueError('valid_channels must contain integer values')
+                channel_mask[valid_channels] = True
+            
+            else: # otherwise assume zero-count channels are bad
+                channel_mask[data.counts > 0] = True
+            
+        if not isinstance(channel_mask, (np.ndarray, list, tuple, set)):
+            raise TypeError('channel_mask must be an iterable')
         try:
-            iter(channel_mask)
-            channel_mask = np.asarray(channel_mask).flatten().astype(bool)
-        except:
-            raise TypeError('channel_mask must be a Boolean array')
+            channel_mask = np.asarray(channel_mask).flatten().astype(bool)        
+        except ValueError: 
+            raise ValueError('channel_mask must contain booleans')
+        
         if channel_mask.size != obj._data.size:
             raise ValueError('channel_mask must be the same size as the ' \
                              'number of data bins')

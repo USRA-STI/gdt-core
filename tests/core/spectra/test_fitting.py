@@ -369,6 +369,25 @@ class TestSpectralFitterOne(unittest.TestCase):
             self.assertAlmostEqual(samples[i, 0], 0.05, delta=0.03)
             self.assertAlmostEqual(samples[i, 1], -1.30, delta=0.3)
 
+    def test_set_rng(self):
+        self.fitter.set_rng(np.random.default_rng(seed=1))
+        samples = self.fitter.sample_parameters(size=10)
+        ref_samples = [
+            [0.05038201, -1.31701724],
+            [0.04753265, -1.31746211],
+            [0.04959364, -1.30267447],
+            [0.05050607, -1.33965221],
+            [0.04966311, -1.3165444 ],
+            [0.05017316, -1.32515669],
+            [0.04960677, -1.34478726],
+            [0.0505021,  -1.33824577],
+            [0.04903906, -1.32488927],
+            [0.04950304, -1.34595524]
+        ]
+        for i in range(len(ref_samples)):
+            self.assertAlmostEqual(samples[i][0], ref_samples[i][0])
+            self.assertAlmostEqual(samples[i][1], ref_samples[i][1])
+
     def test_sample_spectrum(self):
         energies, func = self.fitter.sample_spectrum('photon', num_samples=10,
                                                      num_points=4)

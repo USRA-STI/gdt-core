@@ -32,8 +32,8 @@ from scipy.integrate import trapezoid
 import copy
 
 __all__ = ['Range', 'TimeRange', 'EnergyRange', 'Intervals', 'Gti', 'Ebounds',
-           'EventList', 'Bins', 'ExposureBins', 'ChannelBins', 'TimeBins', 
-           'EnergyBins', 'TimeChannelBins', 'TimeEnergyBins', 'ResponseMatrix', 
+           'EventList', 'Bins', 'ExposureBins', 'ChannelBins', 'TimeBins',
+           'EnergyBins', 'TimeChannelBins', 'TimeEnergyBins', 'ResponseMatrix',
            'Parameter']
 
 class Range():
@@ -50,7 +50,7 @@ class Range():
         else:
             self._low = high
             self._high = low
-    
+
     @property
     def center(self):
         """(float): The center of the range"""
@@ -60,7 +60,7 @@ class Range():
     def width(self):
         """(float): The width of the range"""
         return self._high - self._low
-    
+
     def as_tuple(self):
         """Return the range as a tuple.
         
@@ -136,6 +136,17 @@ class Range():
         obj = cls(low, high)
         return obj
 
+    def translate(self, value):
+        """Returns a new Range that is the translated (shifted) by the given value
+
+        Args:
+            value (float): The value to shift the range by
+
+        Returns:
+            :class:`Range`: The shifted range
+        """
+        return self.__class__(self._low + value, self._high + value)
+
     def __eq__(self, other):
         return (self._low == other._low) and (self._high == other._high)
 
@@ -191,12 +202,12 @@ class EnergyRange(Range):
         emin = self._assert_float(emin)
         emax = self._assert_float(emax)
         super().__init__(emin, emax)
-        
+
     @property
     def emax(self):
         """(float): The high end of the energy range"""
         return self._high
-      
+
     @property
     def emin(self):
         """(float): The low end of the energy range"""
@@ -221,24 +232,24 @@ class Intervals():
         self._intervals = None
         if interval is not None:
             self._intervals = [interval]
-          
+
     @property
     def intervals(self):
         """(list): The list of intervals"""
         return self._intervals
-    
+
     @property
     def num_intervals(self):
         """(int): The number of intervals"""
         return len(self._intervals)
-    
+
     @property
     def range(self):
         """(float, float): The full range spanned by the intervals"""
         if self.num_intervals > 0:
-            return (self._intervals[0].as_tuple()[0], 
+            return (self._intervals[0].as_tuple()[0],
                     self._intervals[-1].as_tuple()[1])
-    
+
     def as_list(self):
         """Return the intervals as a list of tuples.
         
@@ -273,6 +284,23 @@ class Intervals():
         edges = [interval._high for interval in self._intervals]
         return edges
 
+    def index(self, value):
+        """Return the index of the interval that contains the value.
+        
+        Note :
+            If the value is precisely on the boundary of two intervals, the
+            first interval index will be returned.
+        
+        Args:
+            value (float): The input value
+        
+        Returns:
+            (int)
+        """
+        for i, interval in enumerate(self._intervals):
+            if interval.contains(value, inclusive=True):
+                return i
+
     def insert(self, interval):
         """Insert a new interval
         
@@ -284,11 +312,11 @@ class Intervals():
         for _interval in self._intervals:
             if interval == _interval:
                 return
-                
+
         # where the new range should be inserted
         idx = [i for i, j in enumerate(self._intervals) if
                j._low <= interval._low]
-        
+
         # determine if there is overlap with the lower bounding range, and if 
         # so, then merge
         if len(idx) != 0:
@@ -309,7 +337,7 @@ class Intervals():
                 interval = type(interval).union(the_range, interval)
 
         self._intervals.insert(idx, interval)
-    
+
     def low_edges(self):
         """Return a list of the low edges.
         
@@ -318,7 +346,7 @@ class Intervals():
         """
         edges = [interval._low for interval in self._intervals]
         return edges
-                        
+
     @classmethod
     def from_bounds(cls, low_bounds, high_bounds):
         """Create a new Intervals object from a list of lower and upper bounds.
@@ -335,13 +363,13 @@ class Intervals():
         num = low_bounds.size
         if num != high_bounds.size:
             raise ValueError('low_bounds and high_bounds must be of same size')
-        
+
         intervals = [cls._range_class(low_bounds[i], high_bounds[i]) \
                      for i in range(num)]
         obj = cls(intervals[0])
         obj._intervals = intervals
         return obj
-            
+
     @classmethod
     def from_list(cls, interval_list):
         """Create a new Intervals object from a list of tuples.
@@ -375,19 +403,19 @@ class Intervals():
         else:
             _intervals1 = intervals2
             _intervals2 = intervals1
-        
+
         new_intervals = []
         for interval1 in _intervals1.intervals:
             for interval2 in _intervals2.intervals:
                 if not interval1.contains(interval2._low) and \
                    not interval1.contains(interval2._high):
                     continue
-                new_intervals.append(cls._range_class.intersection(interval1, 
+                new_intervals.append(cls._range_class.intersection(interval1,
                                                                    interval2))
         obj = cls()
         obj._intervals = new_intervals
         return obj
-    
+
     @classmethod
     def merge(cls, intervals1, intervals2):
         """Return a new Intervals object that is a merge of two existing 
@@ -406,7 +434,7 @@ class Intervals():
         obj = cls(cls._range_class(*interval_list.pop(0)))
         for interval in interval_list:
             obj.insert(cls._range_class(*interval))
-        return obj    
+        return obj
 
     def __repr__(self):
         s = '<{0}: {1} intervals; range {2}>'.format(self.__class__.__name__,
@@ -429,7 +457,7 @@ class Gti(Intervals):
     Parameters:
         interval (:class:`TimeRange`, optional): An interval to initialize with
     """
-    _range_class = TimeRange        
+    _range_class = TimeRange
 
     @classmethod
     def from_boolean_mask(cls, times, mask):
@@ -447,7 +475,7 @@ class Gti(Intervals):
         """
         times = np.asarray(times)
         mask = np.asarray(mask)
-        
+
         # split a boolean mask array into segments based on True/False
         indices = np.nonzero(mask[1:] != mask[:-1])[0] + 1
         time_segs = np.split(times, indices)
@@ -466,7 +494,7 @@ class Gti(Intervals):
                 segs = [(times.min(), times.max())]
             else:
                 return None
-        
+
         return cls.from_list(segs)
 
 
@@ -479,7 +507,7 @@ class Ebounds(Intervals):
         interval (:class:`EnergyRange`, optional): An interval to initialize with
     """
     _range_class = EnergyRange
-    
+
 
 class EventList():
     """A primitive class defining an event list.
@@ -491,7 +519,7 @@ class EventList():
                                               energy channels
     """
     def __init__(self, times=None, channels=None, ebounds=None):
-        
+
         if (times is not None) and (channels is not None):
             times = np.asarray(times).flatten()
             channels = np.asarray(channels).flatten()
@@ -500,17 +528,17 @@ class EventList():
         else:
             times = np.array([], dtype=float)
             channels = np.array([], dtype=int)
-        
+
         self._events = np.empty(times.size, dtype=[('TIME', times.dtype.type),
                                                    ('PHA', channels.dtype.type)])
         self._events['TIME'] = times
         self._events['PHA'] = channels
-        
+
         if ebounds is not None:
             if not isinstance(ebounds, Ebounds):
                 raise TypeError('ebounds must be of type Ebounds')
         self._ebounds = ebounds
-        
+
     @property
     def channel_range(self):
         """(int, int): The range of the channels in the list"""
@@ -521,20 +549,20 @@ class EventList():
     def channels(self):
         """(np.array): The PHA channel array"""
         return self._events['PHA']
-    
+
     @property
     def ebounds(self):
         """(:class:`Ebounds`): The energy bounds of the energy channels.
                                This property can be set.
         """
         return self._ebounds
-    
+
     @ebounds.setter
     def ebounds(self, val):
         if not isinstance(val, Ebounds):
             raise TypeError('ebounds must be an Ebounds object')
         self._ebounds = val
-        
+
     @property
     def emax(self):
         """(float): The maximum energy"""
@@ -570,7 +598,7 @@ class EventList():
     def size(self):
         """(int): The number of events in the list"""
         return self._events.size
-    
+
     @property
     def time_range(self):
         """(float, float): The range of the times in the list"""
@@ -581,7 +609,7 @@ class EventList():
     def times(self):
         """(np.array): The event times"""
         return self._events['TIME']
-    
+
     def bin(self, method, *args, tstart=None, tstop=None,
             event_deadtime=2.6e-6, overflow_deadtime=1.0e-5, **kwargs):
         """Bin the EventList in time given a binning function and return a
@@ -641,13 +669,13 @@ class EventList():
         deadtime = counts.sum(axis=1) * event_deadtime + \
                    overflow_counts * (overflow_deadtime - event_deadtime)
         exposure = (hi_edges - lo_edges) - deadtime
-        
+
         if self.ebounds is None:
             bins = TimeChannelBins(counts, lo_edges, hi_edges, exposure,
                                    chan_list[:-1])
         else:
             bins = TimeEnergyBins(counts, lo_edges, hi_edges, exposure,
-                                  self.ebounds.low_edges(), 
+                                  self.ebounds.low_edges(),
                                   self.ebounds.high_edges())
         return bins
 
@@ -688,16 +716,16 @@ class EventList():
         """
         if self.ebounds is not None:
             chan_list = np.arange(self.ebounds.num_intervals + 1)
-        else:    
+        else:
             chan_list = np.arange(self.channel_range[1] + 2)
         counts = np.histogram(self.channels, bins=chan_list)[0]
         exposure = np.full(chan_list.size-1, self.get_exposure(time_ranges=None,
                                                                **kwargs))
-        
+
         if self.ebounds is None:
             bins = ChannelBins.create(counts, chan_list[:-1], exposure)
         else:
-            bins = EnergyBins(counts, self.ebounds.low_edges(), 
+            bins = EnergyBins(counts, self.ebounds.low_edges(),
                               self.ebounds.high_edges(), exposure)
         return bins
 
@@ -720,9 +748,9 @@ class EventList():
         emaxs = np.array([ebound.emax for ebound in self._ebounds.intervals])
         mask = (emins < emax) & (emaxs > emin)
         chan_nums = np.arange(self.channel_range[0], self.channel_range[1]+1)
-        chan_nums = chan_nums[mask]        
+        chan_nums = chan_nums[mask]
         return self.channel_slice(chan_nums[0], chan_nums[-1])
-    
+
     def get_exposure(self, time_ranges=None, event_deadtime=0.0,
                      overflow_deadtime=0.0):
         """Calculate the total exposure, in seconds, of a time range or time 
@@ -756,12 +784,12 @@ class EventList():
             mask = (np.abs(self.times - tcent) <= dt)
             # mask = (self.time >= tstart) & (self.time < tstop)
             deadtime = mask.sum() * event_deadtime
-            
+
             if self.ebounds is not None:
                 of_chan = self.ebounds.num_intervals-1
             else:
                 of_chan = self.channel_range[1]
-            
+
             deadtime += np.sum(self.channels[mask] == of_chan) * \
                         (overflow_deadtime - event_deadtime)
             exposure += (tstop - tstart) - deadtime
@@ -790,7 +818,7 @@ class EventList():
             counts_fill[chans] = counts
             counts = counts_fill
         edges = np.arange(self.num_chans + 1)
-        
+
         # call the binning algorithm and get the new edges
         _, _, new_edges = method(counts, exposure, edges, *args)
 
@@ -827,7 +855,7 @@ class EventList():
         """
         idx = np.argsort(self._events['PHA'])
         self._events = self._events[:][idx]
-    
+
     def time_slice(self, tstart, tstop):
         """Perform a slice in time of the EventList and return a new EventList
         
@@ -863,12 +891,12 @@ class EventList():
         Returns:
             (:class:`EventList`)
         """
-                
+
         # put in time order
         idx = np.argsort([eventlist.times.min() for eventlist in eventlists])
         eventlists = [eventlists[i] for i in idx]
-        
-        
+
+
         # mark: TODO add check for ebounds consistency
         ebounds_idx = 0
         for i in range(len(eventlists)):
@@ -877,14 +905,14 @@ class EventList():
             else:
                 ebounds_idx = i
                 break
-        
+
         new_times = np.array([])
         new_chans = np.array([])
         for eventlist in eventlists:
             # skip empty EventLists
             if eventlist.size == 0:
                 continue
-            
+
             # if not forcing to be unique, just make sure there is no time overlap
             if (not force_unique) and (new_times.size > 0):
                 mask = (eventlist.times > new_times.max())
@@ -900,8 +928,8 @@ class EventList():
         if force_unique:
             new_times, uidx = np.unique(new_times, return_index=True)
             new_chans = new_chans[uidx]
-            
-        obj = cls(times=new_times, channels=new_chans, 
+
+        obj = cls(times=new_times, channels=new_chans,
                   ebounds=copy.deepcopy(eventlists[ebounds_idx].ebounds))
 
         # do a sort
@@ -914,7 +942,7 @@ class EventList():
         assert valrange[0] <= valrange[1], \
             'Range must be in increasing order: (lo, hi)'
         return valrange
-    
+
     def __repr__(self):
         s = '<EventList: {0} events;\n'.format(self.size)
         s += ' time range {0};\n channel range {1}>'.format(self.time_range,
@@ -931,7 +959,7 @@ class Bins():
         hi_edges (np.array): The high-value edges of the bins
     """
     def __init__(self, counts, lo_edges, hi_edges):
-        
+
         try:
             iter(counts)
             self._counts = np.asarray(counts).flatten()
@@ -953,7 +981,7 @@ class Bins():
         if (self._counts.size != self._lo_edges.size) or \
            (self._lo_edges.size != self._hi_edges.size):
             raise ValueError('counts, lo_edges, and hi_edges must all be ' \
-                             'the same length')        
+                             'the same length')
 
     @property
     def centroids(self):
@@ -1057,7 +1085,7 @@ class Bins():
         s = '<Bins: {0} bins;\n'.format(self.size)
         s += ' range {0}>'.format(self.range)
         return s
-        
+
 
 class ExposureBins(Bins):
     """A class defining a set of bins containing exposure information.
@@ -1071,7 +1099,7 @@ class ExposureBins(Bins):
                                                 bin segments on initialization.
                                                 Default is True.
     """
-    def __init__(self, counts, lo_edges, hi_edges, exposure, 
+    def __init__(self, counts, lo_edges, hi_edges, exposure,
                  precalc_good_segments=True):
         super().__init__(counts, lo_edges, hi_edges)
 
@@ -1082,8 +1110,8 @@ class ExposureBins(Bins):
             raise TypeError('exposure must be an iterable')
 
         if (self._counts.size != self._exposure.size):
-            raise ValueError('exposure must be the same size as counts')        
-        
+            raise ValueError('exposure must be the same size as counts')
+
         self._good_segments = None
         if precalc_good_segments:
             self._good_segments = self._calculate_good_segments()
@@ -1108,7 +1136,7 @@ class ExposureBins(Bins):
         mask = (self.exposure > 0.0)
         r[mask] = self.count_uncertainty[mask] / self.exposure[mask]
         return r
-    
+
     def contiguous_bins(self):
         """Return a list of ExposureBins, each one containing a continuous 
         segment of data.  This is done by comparing the edges of each bin, and 
@@ -1161,8 +1189,8 @@ class ExposureBins(Bins):
             tstart = trange[0]
         if tstop > trange[1]:
             tstop = trange[1]
-        
-        
+
+
         bins = self.contiguous_bins()
         new_histos = []
         for bin in bins:
@@ -1177,7 +1205,7 @@ class ExposureBins(Bins):
                 histo = empty
             elif tstop == trange[1]:
                 if tstart > trange[0]:
-                    pre = bin.slice(trange[0], self.closest_edge(tstart, 
+                    pre = bin.slice(trange[0], self.closest_edge(tstart,
                                                                  which='low'))
                 histo = bin.slice(self.closest_edge(tstart, which='low'),
                                   trange[1])
@@ -1185,15 +1213,15 @@ class ExposureBins(Bins):
                 histo = bin.slice(trange[0],
                                   self.closest_edge(tstop, which='high'))
                 if tstop < trange[1]:
-                    post = bin.slice(self.closest_edge(tstop, which='high'), 
+                    post = bin.slice(self.closest_edge(tstop, which='high'),
                                      trange[1])
 
             elif (tstart > trange[0]) or (tstop < trange[1]):
-                pre = bin.slice(trange[0], 
+                pre = bin.slice(trange[0],
                                 self.closest_edge(tstart, which='low'))
                 histo = bin.slice(self.closest_edge(tstart, which='low'),
                                   self.closest_edge(tstop, which='high'))
-                post = bin.slice(self.closest_edge(tstop, which='high'), 
+                post = bin.slice(self.closest_edge(tstop, which='high'),
                                  trange[1])
             else:
                 histo = bin
@@ -1214,13 +1242,13 @@ class ExposureBins(Bins):
             # now merge the split histo back together again
             histos_to_merge = [i for i in (pre, new_histo, post) if
                                i.size > 0]
-            
-            if len(histos_to_merge) > 0: 
+
+            if len(histos_to_merge) > 0:
                 new_histos.append(self.__class__.merge(histos_to_merge))
 
         new_histo = self.__class__.merge(new_histos)
         return new_histo
-    
+
     def slice(self, tstart, tstop):
         """Perform a slice over a range and return a new ExposureBins object. 
         Note that tstart and tstop values that fall inside a bin will result in 
@@ -1237,7 +1265,7 @@ class ExposureBins(Bins):
         tstop_snap = self.closest_edge(tstop, which='high')
 
         mask = (self.lo_edges < tstop_snap) & (self.hi_edges > tstart_snap)
-        
+
         obj = self.__class__(self.counts[mask], self.lo_edges[mask],
                              self.hi_edges[mask], self.exposure[mask])
         return obj
@@ -1264,7 +1292,7 @@ class ExposureBins(Bins):
         # sort by start time
         tstarts = np.concatenate([[histo.lo_edges[0]] for histo in histos])
         idx = np.argsort(tstarts)
-        
+
         # concatenate the histos in order
         counts = histos[idx[0]].counts
         lo_edges = histos[idx[0]].lo_edges
@@ -1277,7 +1305,7 @@ class ExposureBins(Bins):
             if (~mask).sum() > 0:
                 raise ValueError('Overlapping bins cannot be merged.  Only' \
                                  'non-overlapping bins can be merged.')
-            
+
             counts = np.concatenate((counts, histos[idx[i]].counts[mask]))
             lo_edges = np.concatenate(
                 (lo_edges, histos[idx[i]].lo_edges[mask]))
@@ -1342,13 +1370,13 @@ class ExposureBins(Bins):
 
 class ChannelBins(ExposureBins):
     """A class defining a set of Energy Channel bins.
-    """    
+    """
     @property
     def chan_nums(self):
         """(np.array): The channel numbers"""
         if self.size > 0:
             return self.lo_edges
-            
+
     @classmethod
     def create(cls, counts, chan_nums, exposure, **kwargs):
         """Create a :class:`ChannelBins` object from a list of channel numbers.
@@ -1369,17 +1397,17 @@ class ChannelBins(ExposureBins):
         except:
             counts = np.asarray(counts)
             exposure = np.full(counts.shape, exposure)
-        
+
         chan_nums = np.asarray(chan_nums)
         return cls(counts, chan_nums, chan_nums + 1, exposure, **kwargs)
-    
+
     @property
     def range(self):
         """(int, int): The channel range"""
         if self.size > 0:
-            return (self.chan_nums[0], self.chan_nums[-1]) 
+            return (self.chan_nums[0], self.chan_nums[-1])
 
-    def rebin(self, method, *args, chan_min=None, chan_max=None):        
+    def rebin(self, method, *args, chan_min=None, chan_max=None):
         """Rebin the ChannelBins object given a binning function and return 
         a new ChannelBins object 
         
@@ -1419,7 +1447,7 @@ class ChannelBins(ExposureBins):
             chan_min = crange[0]
         if chan_max > crange[1]:
             chan_max = crange[1]
-        
+
         bins = self.contiguous_bins()
         new_histos = []
         for bin in bins:
@@ -1431,12 +1459,12 @@ class ChannelBins(ExposureBins):
             post = empty
             if (chan_max < crange[0]) or (chan_min > crange[1]):
                 histo = empty
-            
+
             elif chan_max == crange[1]:
                 if chan_min > crange[0]:
                     pre = bin.slice(crange[0], chan_min-1)
                 histo = bin.slice(chan_min, crange[1])
-            
+
             elif chan_min == crange[0]:
                 histo = bin.slice(crange[0], chan_max)
                 if chan_max < crange[1]:
@@ -1446,7 +1474,7 @@ class ChannelBins(ExposureBins):
                 pre = bin.slice(crange[0], chan_min-1)
                 histo = bin.slice(chan_min, chan_max)
                 post = bin.slice(chan_max+1, crange[1])
-            
+
             else:
                 histo = bin
 
@@ -1466,8 +1494,8 @@ class ChannelBins(ExposureBins):
             # now merge the split histo back together again
             histos_to_merge = [i for i in (pre, new_histo, post) if
                                i.size > 0]
-            
-            if len(histos_to_merge) > 0: 
+
+            if len(histos_to_merge) > 0:
                 new_histos.append(self.__class__.merge(histos_to_merge))
 
         new_histo = self.__class__.merge(new_histos)
@@ -1485,7 +1513,7 @@ class ChannelBins(ExposureBins):
             (:class:`ChannelBins`)
         """
         mask = (self.chan_nums <= chan_max) & (self.chan_nums >= chan_min)
-        obj = self.__class__.create(self.counts[mask], self.chan_nums[mask], 
+        obj = self.__class__.create(self.counts[mask], self.chan_nums[mask],
                                     self.exposure[mask])
         return obj
 
@@ -1532,7 +1560,7 @@ class EnergyBins(ExposureBins):
     def rates_per_kev(self):
         """(np.array): Differential count rate"""
         return self.rates / self.widths
-    
+
     @property
     def rate_uncertainty_per_kev(self):
         """(np.array): Differential rate uncertainty"""
@@ -1615,7 +1643,7 @@ class TimeChannelBins():
             raise TypeError('counts must be an iterable')
         if self._counts.ndim != 2:
             raise TypeError('counts must be a 2-dimensional array')
-        
+
         try:
             iter(tstart)
             self._tstart = np.asarray(tstart).flatten()
@@ -1637,18 +1665,18 @@ class TimeChannelBins():
             self._chan_nums = np.asarray(chan_nums, dtype=int).flatten()
         except:
             raise TypeError('chan_nums must be an iterable')
-                
+
         if (self._tstart.size != self._tstop.size) or \
            (self._exposure.size != self._tstart.size):
             raise ValueError('tstart, tstop, and exposure must all be ' \
-                             'the same length')        
-        
+                             'the same length')
+
         if (self._counts.shape[0] != self._tstart.size) or \
            (self._counts.shape[1] != self._chan_nums.size):
             raise ValueError('counts axis 0 must have same length as tstart, '\
                              'tstop, and exposure.  counts axis 1 must have '\
                              'same length as chan_nums.')
-        
+
         if quality is not None:
             try:
                 iter(quality)
@@ -1659,15 +1687,15 @@ class TimeChannelBins():
                 raise ValueError('quality must be same length as tstart')
         else:
             self._quality = np.zeros_like(self._tstart)
-        
-        
+
+
         self._good_time_segments = None
         self._good_channel_segments = None
         if (self.num_times > 0) and precalc_good_segments:
             self._good_time_segments = self._calculate_good_segments(
                                                                     self.tstart,
                                                                      self.tstop)
-                
+
         if (self.num_chans > 0) and precalc_good_segments:
             chans0 = self.chan_nums
             chans1 = self.chan_nums + 1
@@ -1678,13 +1706,13 @@ class TimeChannelBins():
     def chan_nums(self):
         """(np.array): The channel numbers"""
         return self._chan_nums
-    
+
     @property
     def channel_range(self):
         """(int, int): The channel number range"""
         if self.num_chans > 0:
             return (self.chan_nums[0], self.chan_nums[-1])
-    
+
     @property
     def counts(self):
         """(np.array): The array of counts in each bin"""
@@ -1694,12 +1722,12 @@ class TimeChannelBins():
     def count_uncertainty(self):
         """ (np.array): The counts uncertainty in each bin"""
         return np.sqrt(self.counts)
-    
+
     @property
     def exposure(self):
         """(np.array): The exposure of each bin"""
         return self._exposure
-    
+
     @property
     def num_chans(self):
         """(int): The number of energy channels along the energy axis"""
@@ -1750,7 +1778,7 @@ class TimeChannelBins():
     def tstart(self):
         """(np.array): The low-value edges of the time bins"""
         return self._tstart
-    
+
     @property
     def tstop(self):
         """(np.array): The high-value edges of the time bins"""
@@ -1769,15 +1797,15 @@ class TimeChannelBins():
         """
         if not isinstance(ebounds, Ebounds):
             raise TypeError('ebounds must be an Ebounds object')
-        
+
         if ebounds.num_intervals != self.num_chans:
             raise ValueError('ebounds must have the same number of channels ' \
                              'as this object.')
-        
-        return TimeEnergyBins(self.counts, self.tstart, self.tstop, 
+
+        return TimeEnergyBins(self.counts, self.tstart, self.tstop,
                               self.exposure, ebounds.low_edges(),
                               ebounds.high_edges())
-    
+
     def closest_time_edge(self, val, which='either'):
         """Return the closest time bin edge
         
@@ -1813,7 +1841,7 @@ class TimeChannelBins():
             good_segments = self._good_channel_segments
         bins = [self.slice_channels(seg[0], seg[1]) for seg in good_segments]
         return bins
-    
+
     def contiguous_time_bins(self):
         """Return a list of TimeChannelBins, each one containing a contiguous
         time segment of data.  This is done by comparing the edges of each time
@@ -1972,25 +2000,25 @@ class TimeChannelBins():
             crange = bin.channel_range
             if (chan_max < crange[0]) or (chan_min > crange[1]):
                 histo = empty
-            
+
             elif chan_max == crange[1]:
                 if chan_min > crange[0]:
                     pre = bin.slice_channels(crange[0], chan_min-1)
                 histo = bin.slice_channels(chan_min, crange[1])
-                
+
             elif chan_min == crange[0]:
                 histo = bin.slice_channels(crange[0], chan_max)
                 if chan_max < crange[1]:
                     post = bin.slice_channels(chan_max+1, crange[1])
-            
+
             elif (chan_min > crange[0]) and (chan_max < crange[1]):
                 pre = bin.slice_channels(crange[0], chan_min-1)
                 histo = bin.slice_channels(chan_min, chan_max)
                 post = bin.slice_channels(chan_max+1, crange[1])
-            
+
             else:
                 histo = bin
-                
+
             # perform the rebinning and create a new histo with the 
             # rebinned rates
             if histo.num_chans > 0:
@@ -2004,18 +2032,18 @@ class TimeChannelBins():
                                                    edges, *args)
                     new_counts.append(new_cts)
                 new_counts = np.array(new_counts)
-                new_histo = TimeChannelBins(new_counts, bin.tstart, 
-                                               bin.tstop, bin.exposure, 
+                new_histo = TimeChannelBins(new_counts, bin.tstart,
+                                               bin.tstop, bin.exposure,
                                                new_edges[:-1])
-            
+
             else:
                 new_histo = bin
-            
+
             # now merge the split histo back together again
             histos_to_merge = [i for i in (pre, new_histo, post) if
                                i.num_chans > 0]
-            
-            if len(histos_to_merge) > 0: 
+
+            if len(histos_to_merge) > 0:
                 new_histos.append(TimeChannelBins.merge_channels(histos_to_merge))
 
         new_histo = TimeChannelBins.merge_channels(new_histos)
@@ -2073,8 +2101,8 @@ class TimeChannelBins():
                 histo = empty
             elif tstop == trange[1]:
                 if tstart > trange[0]:
-                    pre = bin.slice_time(trange[0], 
-                                         self.closest_time_edge(tstart, 
+                    pre = bin.slice_time(trange[0],
+                                         self.closest_time_edge(tstart,
                                                                 which='low'))
                 histo = bin.slice_time(self.closest_time_edge(tstart,
                                                               which='low'),
@@ -2084,21 +2112,21 @@ class TimeChannelBins():
                                        self.closest_time_edge(tstop,
                                                               which='high'))
                 if tstop < trange[1]:
-                    post = bin.slice_time(self.closest_time_edge(tstop, 
-                                                                  which='high'), 
+                    post = bin.slice_time(self.closest_time_edge(tstop,
+                                                                  which='high'),
                                           trange[1])
-                           
+
             elif (tstart > trange[0]) and (tstop < trange[1]):
-                pre = bin.slice_time(trange[0], 
+                pre = bin.slice_time(trange[0],
                                     self.closest_time_edge(tstart, which='low'))
                 histo = bin.slice_time(
                                    self.closest_time_edge(tstart, which='low'),
                                    self.closest_time_edge(tstop, which='high'))
-                post = bin.slice_time(self.closest_time_edge(tstop, which='high'), 
+                post = bin.slice_time(self.closest_time_edge(tstop, which='high'),
                                       trange[1])
             else:
                 histo = bin
-            
+
             # perform the rebinning and create a new histo with the 
             # rebinned rates
             if histo.num_times > 0:
@@ -2113,7 +2141,7 @@ class TimeChannelBins():
                 new_counts = np.array(new_counts).T
 
                 new_histo = TimeChannelBins(new_counts, new_edges[:-1],
-                                           new_edges[1:], new_exposure, 
+                                           new_edges[1:], new_exposure,
                                            bin.chan_nums)
             else:
                 new_histo = bin
@@ -2121,8 +2149,8 @@ class TimeChannelBins():
             # now merge the split histo back together again
             histos_to_merge = [i for i in (pre, new_histo, post) if
                                i.num_times > 0]
-            
-            if len(histos_to_merge) > 0: 
+
+            if len(histos_to_merge) > 0:
                 new_histos.append(TimeChannelBins.merge_time(histos_to_merge))
 
         new_histo = TimeChannelBins.merge_time(new_histos)
@@ -2161,8 +2189,8 @@ class TimeChannelBins():
         """
         mask = self._slice_time_mask(tstart, tstop)
         cls = type(self)
-        obj = cls(self.counts[mask, :], self.tstart[mask], self.tstop[mask], 
-                  self.exposure[mask], self.chan_nums, 
+        obj = cls(self.counts[mask, :], self.tstart[mask], self.tstop[mask],
+                  self.exposure[mask], self.chan_nums,
                   quality=self.quality[mask])
         return obj
 
@@ -2201,7 +2229,7 @@ class TimeChannelBins():
             chan_nums = np.concatenate((chan_nums, histos[idx[i]].chan_nums[mask]))
 
         # new TimeChannelBins object
-        merged_bins = cls(counts, tstart, tstop, exposure, chan_nums, 
+        merged_bins = cls(counts, tstart, tstop, exposure, chan_nums,
                           quality=quality, **kwargs)
         return merged_bins
 
@@ -2244,7 +2272,7 @@ class TimeChannelBins():
             quality = np.concatenate((quality, histos[idx[i]].quality[mask]))
 
         # new TimeChannelBins object
-        merged_bins = cls(counts, tstart, tstop, exposure, chan_nums, 
+        merged_bins = cls(counts, tstart, tstop, exposure, chan_nums,
                           quality=quality, **kwargs)
         return merged_bins
 
@@ -2252,7 +2280,7 @@ class TimeChannelBins():
         assert valrange[0] <= valrange[1], \
             'Range must be in increasing order: (lo, hi)'
         return valrange
-    
+
     def _calculate_good_segments(self, lo_edges, hi_edges):
         """Calculates the ranges of data that are contiguous segments
         
@@ -2303,17 +2331,17 @@ class TimeChannelBins():
         return mask
 
     def __repr__(self):
-        s = '<{0}: {1} time bins;\n'.format(self.__class__.__name__, 
+        s = '<{0}: {1} time bins;\n'.format(self.__class__.__name__,
                                             self.num_times)
         s += ' time range {0};\n'.format(self.time_range)
         if self._good_time_segments is not None:
             s += ' {0} time segments;\n'.format(len(self._good_time_segments))
-        
+
         s += ' {0} channels;\n'.format(self.num_chans)
         s += ' channel range {0}'.format(self.channel_range)
         if self._good_channel_segments is not None:
             s += ';\n {0} channel segments'.format(len(self._good_channel_segments))
-        
+
         return s+'>'
 
 
@@ -2342,7 +2370,7 @@ class TimeEnergyBins():
             raise TypeError('counts must be an iterable')
         if self._counts.ndim != 2:
             raise TypeError('counts must be a 2-dimensional array')
-        
+
         try:
             iter(tstart)
             self._tstart = np.asarray(tstart).flatten()
@@ -2369,21 +2397,21 @@ class TimeEnergyBins():
             self._emax = np.asarray(emax).flatten()
         except:
             raise TypeError('emax must be an iterable')
-        
+
         if (self._tstart.size != self._tstop.size) or \
            (self._exposure.size != self._tstart.size):
             raise ValueError('tstart, tstop, and exposure must all be ' \
-                             'the same length')        
+                             'the same length')
 
         if (self._emin.size != self._emax.size):
-            raise ValueError('emin and emax must be the same length')        
-        
+            raise ValueError('emin and emax must be the same length')
+
         if (self._counts.shape[0] != self._tstart.size) or \
            (self._counts.shape[1] != self._emin.size):
             raise ValueError('counts axis 0 must have same length as tstart, '\
                              'tstop, and exposure.  counts axis 1 must have '\
                              'same length as emin and emax.')
-        
+
         if quality is not None:
             try:
                 iter(quality)
@@ -2394,15 +2422,15 @@ class TimeEnergyBins():
                 raise ValueError('quality must be same length as tstart')
         else:
             self._quality = np.zeros_like(self._tstart)
-        
-        
+
+
         self._good_time_segments = None
         self._good_energy_segments = None
         if (self.num_times > 0) and precalc_good_segments:
             self._good_time_segments = self._calculate_good_segments(
                                                                     self.tstart,
                                                                      self.tstop)
-                
+
         if (self.num_chans > 0) and precalc_good_segments:
             self._good_energy_segments = self._calculate_good_segments(
                                                                       self.emin,
@@ -2422,7 +2450,7 @@ class TimeEnergyBins():
     def count_uncertainty(self):
         """ (np.array): The counts uncertainty in each bin"""
         return np.sqrt(self.counts)
-    
+
     @property
     def emax(self):
         """(np.array): The high-value edges of the energy bins"""
@@ -2432,7 +2460,7 @@ class TimeEnergyBins():
     def emin(self):
         """(np.array): The low-value edges of the energy bins"""
         return self._emin
-    
+
     @property
     def energy_centroids(self):
         """(np.array): The bin centroids along the energy axis"""
@@ -2448,7 +2476,7 @@ class TimeEnergyBins():
     def exposure(self):
         """(np.array): The exposure of each bin"""
         return self._exposure
-    
+
     @property
     def num_chans(self):
         """(int): The number of energy channels along the energy axis"""
@@ -2509,7 +2537,7 @@ class TimeEnergyBins():
     def tstart(self):
         """(np.array): The low-value edges of the time bins"""
         return self._tstart
-    
+
     @property
     def tstop(self):
         """(np.array): The high-value edges of the time bins"""
@@ -2726,8 +2754,8 @@ class TimeEnergyBins():
                 histo = empty
             elif emax == erange[1]:
                 if emin > erange[0]:
-                    pre = bin.slice_energy(erange[0], 
-                                           self.closest_energy_edge(emin, 
+                    pre = bin.slice_energy(erange[0],
+                                           self.closest_energy_edge(emin,
                                                                    which='low'))
                 histo = bin.slice_energy(self.closest_energy_edge(emin,
                                                                   which='low'),
@@ -2737,20 +2765,20 @@ class TimeEnergyBins():
                                          self.closest_energy_edge(emax,
                                                                   which='high'))
                 if emax < erange[1]:
-                    post = bin.slice_energy(self.closest_energy_edge(emax, 
-                                                                  which='high'), 
+                    post = bin.slice_energy(self.closest_energy_edge(emax,
+                                                                  which='high'),
                                             erange[1])
             elif (emin > erange[0]) and (emax < erange[1]):
-                pre = bin.slice_energy(erange[0], 
+                pre = bin.slice_energy(erange[0],
                                     self.closest_energy_edge(emin, which='low'))
                 histo = bin.slice_energy(
                                   self.closest_energy_edge(emin, which='low'),
                                   self.closest_energy_edge(emax, which='high'))
-                post = bin.slice_energy(self.closest_energy_edge(emax, 
+                post = bin.slice_energy(self.closest_energy_edge(emax,
                                         which='high'), erange[1])
             else:
                 histo = bin
-                
+
             # perform the rebinning and create a new histo with the 
             # rebinned rates
             if histo.num_chans > 0:
@@ -2769,12 +2797,12 @@ class TimeEnergyBins():
                                            new_edges[1:])
             else:
                 new_histo = bin
-            
+
             # now merge the split histo back together again
             histos_to_merge = [i for i in (pre, new_histo, post) if
                                i.num_chans > 0]
-            
-            if len(histos_to_merge) > 0: 
+
+            if len(histos_to_merge) > 0:
                 new_histos.append(TimeEnergyBins.merge_energy(histos_to_merge))
 
         new_histo = TimeEnergyBins.merge_energy(new_histos)
@@ -2832,8 +2860,8 @@ class TimeEnergyBins():
                 histo = empty
             elif tstop == trange[1]:
                 if tstart > trange[0]:
-                    pre = bin.slice_time(trange[0], 
-                                         self.closest_time_edge(tstart, 
+                    pre = bin.slice_time(trange[0],
+                                         self.closest_time_edge(tstart,
                                                                 which='low'))
                 histo = bin.slice_time(self.closest_time_edge(tstart,
                                                               which='low'),
@@ -2843,21 +2871,21 @@ class TimeEnergyBins():
                                        self.closest_time_edge(tstop,
                                                               which='high'))
                 if tstop < trange[1]:
-                    post = bin.slice_time(self.closest_time_edge(tstop, 
-                                                                  which='high'), 
+                    post = bin.slice_time(self.closest_time_edge(tstop,
+                                                                  which='high'),
                                           trange[1])
-                           
+
             elif (tstart > trange[0]) and (tstop < trange[1]):
-                pre = bin.slice_time(trange[0], 
+                pre = bin.slice_time(trange[0],
                                     self.closest_time_edge(tstart, which='low'))
                 histo = bin.slice_time(
                                    self.closest_time_edge(tstart, which='low'),
                                    self.closest_time_edge(tstop, which='high'))
-                post = bin.slice_time(self.closest_time_edge(tstop, which='high'), 
+                post = bin.slice_time(self.closest_time_edge(tstop, which='high'),
                                       trange[1])
             else:
                 histo = bin
-            
+
             # perform the rebinning and create a new histo with the 
             # rebinned rates
             if histo.num_times > 0:
@@ -2872,7 +2900,7 @@ class TimeEnergyBins():
                 new_counts = np.array(new_counts).T
 
                 new_histo = TimeEnergyBins(new_counts, new_edges[:-1],
-                                           new_edges[1:], new_exposure, 
+                                           new_edges[1:], new_exposure,
                                            bin.emin, bin.emax)
             else:
                 new_histo = bin
@@ -2880,8 +2908,8 @@ class TimeEnergyBins():
             # now merge the split histo back together again
             histos_to_merge = [i for i in (pre, new_histo, post) if
                                i.num_times > 0]
-            
-            if len(histos_to_merge) > 0: 
+
+            if len(histos_to_merge) > 0:
                 new_histos.append(TimeEnergyBins.merge_time(histos_to_merge))
 
         new_histo = TimeEnergyBins.merge_time(new_histos)
@@ -2920,8 +2948,8 @@ class TimeEnergyBins():
         """
         mask = self._slice_time_mask(tstart, tstop)
         cls = type(self)
-        obj = cls(self.counts[mask, :], self.tstart[mask], self.tstop[mask], 
-                  self.exposure[mask], self.emin, self.emax, 
+        obj = cls(self.counts[mask, :], self.tstart[mask], self.tstop[mask],
+                  self.exposure[mask], self.emin, self.emax,
                   quality=self.quality[mask])
         return obj
 
@@ -2962,7 +2990,7 @@ class TimeEnergyBins():
             emax = np.concatenate((emax, histos[idx[i]].emax[mask]))
 
         # new TimeEnergyBins object
-        merged_bins = cls(counts, tstart, tstop, exposure, emin, emax, 
+        merged_bins = cls(counts, tstart, tstop, exposure, emin, emax,
                           quality=quality, **kwargs)
         return merged_bins
 
@@ -3006,7 +3034,7 @@ class TimeEnergyBins():
             quality = np.concatenate((quality, histos[idx[i]].quality[mask]))
 
         # new TimeEnergyBins object
-        merged_bins = cls(counts, tstart, tstop, exposure, emin, emax, 
+        merged_bins = cls(counts, tstart, tstop, exposure, emin, emax,
                           quality=quality, **kwargs)
         return merged_bins
 
@@ -3014,7 +3042,7 @@ class TimeEnergyBins():
         assert valrange[0] <= valrange[1], \
             'Range must be in increasing order: (lo, hi)'
         return valrange
-    
+
     def _calculate_good_segments(self, lo_edges, hi_edges):
         """Calculates the ranges of data that are contiguous segments
         
@@ -3071,17 +3099,17 @@ class TimeEnergyBins():
         return mask
 
     def __repr__(self):
-        s = '<{0}: {1} time bins;\n'.format(self.__class__.__name__, 
+        s = '<{0}: {1} time bins;\n'.format(self.__class__.__name__,
                                             self.num_times)
         s += ' time range {0};\n'.format(self.time_range)
         if self._good_time_segments is not None:
             s += ' {0} time segments;\n'.format(len(self._good_time_segments))
-        
+
         s += ' {0} energy bins;\n'.format(self.num_chans)
         s += ' energy range {0}'.format(self.energy_range)
         if self._good_energy_segments is not None:
             s += ';\n {0} energy segments'.format(len(self._good_energy_segments))
-        
+
         return s+'>'
 
 
@@ -3105,7 +3133,7 @@ class ResponseMatrix():
             raise TypeError('matrix must be an iterable')
         if self._matrix.ndim != 2:
             raise TypeError('matrix must be a 2-dimensional array')
-                
+
         try:
             iter(emin)
             self._emin = np.asarray(emin).flatten()
@@ -3116,7 +3144,7 @@ class ResponseMatrix():
             self._emax = np.asarray(emax).flatten()
         except:
             raise TypeError('emax must be an iterable')
-        
+
         try:
             iter(chanlo)
             self._chanlo = np.asarray(chanlo).flatten()
@@ -3129,17 +3157,17 @@ class ResponseMatrix():
             raise TypeError('chanhi must be an iterable')
 
         if (self._emin.size != self._emax.size):
-            raise ValueError('emin and emax must be the same length')        
+            raise ValueError('emin and emax must be the same length')
 
         if (self._chanlo.size != self._chanhi.size):
-            raise ValueError('chanlo and chanhi must be the same length')        
-        
+            raise ValueError('chanlo and chanhi must be the same length')
+
         if (self._matrix.shape[0] != self._emin.size) or \
            (self._matrix.shape[1] != self._chanlo.size):
             raise ValueError('matrix axis 0 must have same length as emin and '\
                              'emax.  matrix axis 1 must have same length as '\
                              'chanlo and chanhi.')
-    
+
     @property
     def channel_centroids(self):
         """(np.array): The geometric mean of the energy channels"""
@@ -3169,7 +3197,7 @@ class ResponseMatrix():
     def num_ebins(self):
         """(int): The number of photon bins"""
         return self._matrix.shape[0]
-    
+
     @property
     def photon_bins(self):
         """(:class:`Ebounds`): The photon bins"""
@@ -3194,7 +3222,7 @@ class ResponseMatrix():
         """
         bins = Bins(self._matrix.sum(axis=0), self._chanlo, self._chanhi)
         return bins
-    
+
     def effective_area(self, energy, interp_kind='linear'):
         """Calculate the effective area at a given energy or an array of
         energies.  This function interpolates the DRM (in log10(cm^2)) to
@@ -3215,12 +3243,12 @@ class ResponseMatrix():
             energy = np.asarray(energy, dtype=float)
         except:
             raise TypeError('energy must be a positive float')
-                
+
         if np.any(energy < self.photon_bins.range[0]) or \
            np.any(energy > self.photon_bins.range[1]):
             raise ValueError('energy must be within the photon energy bounds ' \
-                             'of the DRM') 
-        
+                             'of the DRM')
+
         effarea = self.photon_effective_area()
         diff_effarea = effarea.counts
 
@@ -3228,10 +3256,10 @@ class ResponseMatrix():
         x = np.append(self._emin, self._emax[-1])
         y = np.append(diff_effarea, diff_effarea[-1])
         nz_mask = (y > 0)
-        effarea_interpolator = interp1d(x[nz_mask], np.log10(y[nz_mask]), 
-                                        kind=interp_kind, 
+        effarea_interpolator = interp1d(x[nz_mask], np.log10(y[nz_mask]),
+                                        kind=interp_kind,
                                         fill_value='extrapolate')
-        
+
         # do the interpolation
         effarea = 10.0**effarea_interpolator(energy)
         return effarea
@@ -3266,7 +3294,7 @@ class ResponseMatrix():
         counts = np.dot(drm.T, photon_model * self.photon_bin_widths)
 
         return counts
-             
+
     def photon_effective_area(self):
         """Returns the effective area as a function of incident photon energy
         (integrated over recorded energy channels).
@@ -3300,7 +3328,7 @@ class ResponseMatrix():
         """
         if (factor is None) and (edge_indices is None):
             raise ValueError('Either factor or edge_indices must be set')
-        
+
         elif factor is not None:
             try:
                 factor = int(factor)
@@ -3313,7 +3341,7 @@ class ResponseMatrix():
                                  '{}'.format(self.num_chans))
             chanlo = self._chanlo.reshape(-1, factor)[:,0]
             chanhi = self._chanhi.reshape(-1, factor)[:,-1]
-        
+
         elif edge_indices is not None:
             try:
                 edge_indices = np.asarray(edge_indices)
@@ -3323,12 +3351,12 @@ class ResponseMatrix():
             if (edge_indices[0] < 0) or (edge_indices[-1] > self.num_chans):
                 raise ValueError('edge_indices outside valid range of ' \
                                  '0-{}'.format(self.num_chans))
-            
+
             old_edges = np.append(self._chanlo, self._chanhi[-1])
             new_edges = old_edges[edge_indices]
             chanlo = new_edges[:-1]
             chanhi = new_edges[1:]
-        
+
         # the new effective area matrix will just be summed over the channel
         # axis for the bins we are combining
         new_matrix = np.zeros((self.num_ebins, chanlo.size))
@@ -3336,9 +3364,9 @@ class ResponseMatrix():
         eidx = (self._chanhi[:,np.newaxis] == chanhi[np.newaxis,:]).nonzero()[0]
         for i in range(chanlo.size):
             new_matrix[:,i] = self._matrix[:,sidx[i]:eidx[i]+1].sum(axis=1)
-        
+
         obj = type(self)(new_matrix, self._emin, self._emax, chanlo, chanhi)
-        return obj   
+        return obj
 
     def resample(self, num_photon_bins=None, photon_bin_edges=None,
                  num_interp_points=20, interp_kind='linear'):
@@ -3382,9 +3410,9 @@ class ResponseMatrix():
                 assert num_photon_bins > 0
             except:
                 raise TypeError('num_photon_bins must be a positive integer')
-            photon_bin_edges = np.geomspace(self._emin[0], self._emax[-1], 
+            photon_bin_edges = np.geomspace(self._emin[0], self._emax[-1],
                                             num_photon_bins+1)
-        
+
         elif photon_bin_edges is not None:
             try:
                 photon_bin_edges = np.asarray(photon_bin_edges)
@@ -3398,38 +3426,38 @@ class ResponseMatrix():
                                                           self._emax[-1]))
             photon_bin_edges = np.sort(photon_bin_edges)
             num_photon_bins = photon_bin_edges.size-1
-        
+
         # differential effective area
         diff_effarea = self._matrix/self.photon_bin_widths[:,np.newaxis]
-        
+
         # create an interpolation array over each new bin
         photon_bounds = np.vstack((photon_bin_edges[:-1], photon_bin_edges[1:]))
         interp_arr = np.geomspace(*photon_bounds, num_interp_points+2, axis=0)
-        
+
         # create the DRM interpolator
         x = np.append(self._emin, self._emax[-1])
         y = np.vstack((diff_effarea, diff_effarea[-1,:]))
         y[y == 0] = 1e-10
-        effarea_interpolator = interp1d(x, np.log10(y), axis=0, 
-                                        kind=interp_kind, 
+        effarea_interpolator = interp1d(x, np.log10(y), axis=0,
+                                        kind=interp_kind,
                                         fill_value='extrapolate')
-        
+
         # interpolate the DRM over the photon interpolation array
         diff_effarea_interp = 10.**effarea_interpolator(interp_arr)
         badmask = np.isnan(diff_effarea_interp)
         diff_effarea_interp[badmask] = 0.0
-        
+
         # integrate the DRM over the photon interpolation array
         diff_effarea_new = trapezoid(diff_effarea_interp,
                                  interp_arr[:,:,np.newaxis], axis=0)
-        
+
         # scale by ratio of photon bins
         drm = diff_effarea_new / (self.num_ebins/num_photon_bins)
-        
+
         # create response object
-        obj = type(self)(drm, photon_bin_edges[:-1], photon_bin_edges[1:], 
+        obj = type(self)(drm, photon_bin_edges[:-1], photon_bin_edges[1:],
                          self._chanlo, self._chanhi)
-        return obj   
+        return obj
 
     def __repr__(self):
         return '<ResponseMatrix: {0} energy bins; {1} ' \
@@ -3447,9 +3475,9 @@ class Parameter():
         units (str, optional): The units of the parameter
         support (2-tuple, optional): The valid support of the parameter
     """
-    def __init__(self, value, uncert, name='', units=None, 
+    def __init__(self, value, uncert, name='', units=None,
                  support=(-np.inf, np.inf)):
-        
+
         self._value = float(value)
         if isinstance(uncert, (tuple, list)):
             if len(uncert) == 2:
@@ -3463,11 +3491,11 @@ class Parameter():
         else:
             raise TypeError('uncertainty must be a float or 1- or 2-tuple')
         self._uncert = uncert
-        
+
         self._units = units
         self._name = name
         self._support = support
-    
+
     @property
     def name(self):
         """(str): The name of the parameter"""
@@ -3477,12 +3505,12 @@ class Parameter():
     def support(self):
         """(2-tuple): The valid support of the parameter"""
         return self._support
-    
+
     @property
     def uncertainty(self):
         """(float, float): The 1-sigma uncertainty"""
         return self._uncert
-    
+
     @property
     def units(self):
         """(str): The units of the parameter"""
@@ -3499,7 +3527,7 @@ class Parameter():
         Returns:
             (tuple): 2-tuple (low, high)
         """
-        return (self.value - self.uncertainty[0], 
+        return (self.value - self.uncertainty[0],
                 self.value + self.uncertainty[1])
 
     def to_fits_value(self):
@@ -3541,7 +3569,7 @@ class Parameter():
 
     def __repr__(self):
         return '<{0}: {1}>'.format(self.__class__.__name__, self.name)
-    
+
     def __str__(self):
         value, uncertainty = self._str_format()
 

@@ -36,13 +36,15 @@ from gdt.core.binning.unbinned import bin_by_time
 from gdt.core.background.fitter import BackgroundFitter
 from gdt.core.background.binned import Polynomial
 
+rng = np.random.default_rng(seed=1)
+
 rates = [17.5, 77.5, 37.5, 57.5]
 rate_uncert = [1.896, 1.889, 1.919, 1.66]
 emin = [4.60, 27.3, 102., 538.]
 emax = [27.3, 102., 538., 2000]
 exposure = 0.128
 back_spec = BackgroundSpectrum(rates, rate_uncert, emin, emax, exposure)
-back_sim = TteBackgroundSimulator(back_spec, 'Gaussian', linear, (40.0, 0.1), deadtime=1e-6)
+back_sim = TteBackgroundSimulator(back_spec, 'Gaussian', linear, (40.0, 0.1), deadtime=1e-6, rng=rng)
 
 # 8 photon bins x 4 energy channels
 matrix = [[25.2, 0.0, 0.0, 0.0],
@@ -71,11 +73,11 @@ norris_params = (1.5, 1.47, 0.5, 1.0)
 norris_params2 = (0.5, 3.47, 0.9, 0.3)
 norris_params3 = (0.8, -0.47, 0.5, 0.2)
 src_sim = TteSourceSimulator(rsp, Band(), band_params, norris, norris_params,
-                             deadtime=1e-6)
+                             deadtime=1e-6, rng=rng)
 src_sim2 = TteSourceSimulator(rsp, Band(), band_params, norris, norris_params2,
-                              deadtime=1e-6)
+                              deadtime=1e-6, rng=rng)
 src_sim3 = TteSourceSimulator(rsp, Band(), band_params, norris, norris_params3,
-                              deadtime=1e-6)
+                              deadtime=1e-6, rng=rng)
 
 back_tte = back_sim.to_tte(-10.0, 30.0)
 src_tte = src_sim.to_tte(-10.0, 30.0)
@@ -156,6 +158,15 @@ class TestDuration(unittest.TestCase):
     def test_inputListInp(self):
         self.assertEqual(len(self.duration.timebins_list[0].centroids), len(self.duration.bkgds_list[0].time_centroids))
         self.assertEqual(len(self.duration.timebins_list[0].range), len(self.duration.bkgds_list[0].time_range))
+
+    def test_set_rng(self):
+
+        rng = np.random.default_rng(seed=123456)
+        self.duration.set_rng(rng)
+        val = self.duration.calculate(num_sims, confidence)
+        ref_val = [5.12, -0.1131370849898477, 0.04525483399593906]
+        for i in range(len(ref_val)):
+            self.assertAlmostEqual(val[i], ref_val[i])
 
 if __name__ == '__main__':
     unittest.main()

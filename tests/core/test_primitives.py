@@ -108,6 +108,14 @@ class TestRange(unittest.TestCase):
         range2 = Range(1.0, 10.0)
         self.assertFalse(range2 == self.range)
         self.assertFalse(self.range == range2)
+
+    def test_translate_negative(self):
+        range2 = self.range.translate(-5.0)
+        self.assertTupleEqual(range2.as_tuple(), (-5.0, 5.0))
+
+    def test_translate_positive(self):
+        range2 = self.range.translate(5.0)
+        self.assertTupleEqual(range2.as_tuple(), (5.0, 15.0))
         
 
 class TestTimeRange(unittest.TestCase):
@@ -196,6 +204,12 @@ class TestIntervals(unittest.TestCase):
 
     def test_high_edges(self):
         self.assertListEqual(self.intervals.high_edges(), [10.0, 20.0, 30.0])
+
+    def test_index(self):
+        assert self.intervals.index(5.0) == 0
+        assert self.intervals.index(20.0) == 1
+        assert self.intervals.index(-5.0) is None
+        assert self.intervals.index(50.0) is None
 
     def test_insert(self):
     
