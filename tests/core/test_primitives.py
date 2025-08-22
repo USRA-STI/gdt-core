@@ -1948,9 +1948,10 @@ class TestEventList(unittest.TestCase):
                               7.790, 9.602, 9.726, 10.45, 10.61])
 
     def test_bin(self):
-        
+
         # full range, no deadtime, bin into 1 s starting at 0
-        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.0, 
+        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.0,
+                           tstart = 0., tstop = 11.,
                            overflow_deadtime=0.0)
         self.assertEqual(bins.num_chans, 4)
         self.assertEqual(bins.num_times, 11)
@@ -1961,8 +1962,18 @@ class TestEventList(unittest.TestCase):
              self.assertListEqual(bins.counts[i].tolist(), counts[i])
         self.assertListEqual(bins.exposure.tolist(), [1.0]*11)
 
+        # By default, tstart and tstop are the time of the first and last event
+        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.0,
+                           overflow_deadtime=0.0)
+
+        exposure = [1.0] * 11
+        exposure[0] -= self.ev.times[0]
+        exposure[-1] -= 11 - self.ev.times[-1]
+        self.assertListEqual(bins.exposure.tolist(), exposure)
+
         # full range, event deadtime, no overflow deadtime
-        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.1, 
+        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.1,
+                           tstart=0., tstop=11.,
                            overflow_deadtime=0.0)
         self.assertEqual(bins.num_chans, 4)
         self.assertEqual(bins.num_times, 11)
@@ -1971,7 +1982,8 @@ class TestEventList(unittest.TestCase):
                                                       0.8])        
 
         # full range, event deadtime, and overflow deadtime
-        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.1, 
+        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.1,
+                           tstart=0., tstop=11.,
                            overflow_deadtime=0.2)
         self.assertEqual(bins.num_chans, 4)
         self.assertEqual(bins.num_times, 11)
@@ -1980,7 +1992,7 @@ class TestEventList(unittest.TestCase):
                                                       0.8])
 
         # bin starting at tstart
-        bins = self.ev.bin(bin_by_time, 1.0, time_ref=2.0, event_deadtime=0.0, 
+        bins = self.ev.bin(bin_by_time, 1.0, time_ref=2.0, event_deadtime=0.0,
                            overflow_deadtime=0.0, tstart=2.0)
         self.assertEqual(bins.num_chans, 4)
         self.assertEqual(bins.num_times, 9)
@@ -1991,7 +2003,7 @@ class TestEventList(unittest.TestCase):
              self.assertListEqual(bins.counts[i].tolist(), counts[i])
     
         # bin ending at tstop
-        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.0, 
+        bins = self.ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.0,
                            overflow_deadtime=0.0, tstop=9.0)
         self.assertEqual(bins.num_chans, 4)
         self.assertEqual(bins.num_times, 9)
@@ -2023,7 +2035,8 @@ class TestEventList(unittest.TestCase):
     
         # no ebounds
         ev = EventList(times=self.ev.times, channels=self.ev.channels)
-        bins = ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.0, 
+        bins = ev.bin(bin_by_time, 1.0, time_ref=0.0, event_deadtime=0.0,
+                      tstart=0., tstop=11.,
                       overflow_deadtime=0.0)
         assert isinstance(bins, TimeChannelBins)
         self.assertEqual(bins.num_chans, 4)
