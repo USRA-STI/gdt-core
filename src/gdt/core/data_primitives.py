@@ -1399,7 +1399,11 @@ class ChannelBins(ExposureBins):
             exposure = np.full(counts.shape, exposure)
 
         chan_nums = np.asarray(chan_nums)
-        return cls(counts, chan_nums, chan_nums + 1, exposure, **kwargs)
+        if len(chan_nums) > 1:
+            hi_edges = np.concatenate((chan_nums[1:], [chan_nums[-1] + (chan_nums[1] - chan_nums[0])]))
+        else:
+            hi_edges = chan_nums + 1
+        return cls(counts, chan_nums, hi_edges, exposure, **kwargs)
 
     @property
     def range(self):
