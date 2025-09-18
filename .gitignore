@@ -7,4 +7,5 @@ build
 .pytest_cache
 .DS_Store
 .venv
-
+docs/_build
+docs/api

@@ -4,8 +4,9 @@
 Contributing to the GDT
 =======================
 Community contributions to the GDT are welcome and make the GDT a better 
-toolkit for everyone to use.  There are various types of contributions.  These 
-include:
+toolkit for everyone to use. You can contribute via our 
+`GitHub repository <https://github.com/USRA-STI/gdt-core>`_ .  There are 
+various types of contributions. These include:
 
 * Bug fixes
 * New features
@@ -13,7 +14,8 @@ include:
 * API improvements
 * New mission packages
 
-For each contribution, we consider it best practice to first open an issue (with
+For each contribution, we consider it best practice to first 
+`open an issue <https://github.com/USRA-STI/gdt-core/issues>`_ (with
 an appropriate ``label``).  This may be as simple as notifying us (and other 
 users!) that there is a bug.  Perhaps you also have a proposed solution to 
 fixing the issue.  If so, then you can outline your proposed fix when you open 
@@ -39,12 +41,15 @@ covered by an existing unit test.
 
 The usual sequence of events are:
 
-1. Create an issue describing the proposed changes.
-2. Waiting for feedback if desired.
-3. Fork from main branch.
+1. `Create an issue <https://github.com/USRA-STI/gdt-core/issues>`_ describing 
+the proposed changes.
+2. Wait for feedback if desired.
+3. Fork from `main branch <https://github.com/USRA-STI/gdt-core>`_.
 4. Use your fork to add your changes to the code base.
 5. Create unit tests showing that your changes work as intended.
-6. Create a `Pull Request <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`_ with a comment explaining how it closes the issue you created.
+6. Create a `Pull Request <https://github.com/USRA-STI/gdt-core/pulls>`_ with a 
+comment explaining how it closes the issue you created. If you've never opened one before, 
+GitHub has a `helpful guide <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>`_ on creating a pull request.
 
 
 Opening an Issue
