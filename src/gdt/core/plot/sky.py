@@ -226,7 +226,7 @@ class SkyPlot(GdtPlot):
             det_objs = [frame.detectors.from_str(detector) \
                         for detector in detectors]
             for det in det_objs:
-                det_coord = det.skycoord(frame).transform_to('icrs')
+                det_coord = det.skycoord(frame)
                 self.plot_detector(det_coord, det.name)
 
         if galactic_plane:
