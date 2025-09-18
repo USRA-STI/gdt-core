@@ -4,16 +4,15 @@ logger = logging.getLogger(__name__)
 from gdt.core.data_primitives import TimeRange, TimeBins
 from gdt.core.background.binned import Polynomial
 from gdt.core.binning.binned import rebin_by_time, rebin_by_edge_index
+from gdt.misc.bayesian_blocks import bayesian_blocks
 
 import matplotlib.pyplot as plt
 
-from copy import deepcopy, copy
+from copy import copy
 
 import numpy as np
 
 from scipy.signal import peak_prominences, argrelmax
-
-from .bayesian_blocks import bayesian_blocks
 
 class BayesianBlocksLightcurve:
     """
