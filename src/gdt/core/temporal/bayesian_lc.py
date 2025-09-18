@@ -129,8 +129,11 @@ class BayesianBlocksLightcurve:
 
             lc_bayes = lc.rebin(rebin_by_edge_index, bb_index)
 
+            lc_bkg_sub = TimeBins(lc.counts - bkg_counts, lc.lo_edges, lc.hi_edges, lc.exposure)
+            lc_bayes_bkg_sub = lc_bkg_sub.rebin(rebin_by_edge_index, bb_index)
+
             # ----- Find peaks ----
-            peaks = argrelmax(lc_bayes.rates)[0]
+            peaks = argrelmax(lc_bayes_bkg_sub.rates)[0]
 
             if len(peaks) == 0:
                 # Need least 1 peak
@@ -145,7 +148,7 @@ class BayesianBlocksLightcurve:
                 raise RuntimeError("Could not identify signal. Try with a different "
                                    "false positive rate or signal range initial guess.")
 
-            prominence,left_base,right_base = peak_prominences(lc_bayes.rates, peaks)
+            prominence,left_base,right_base = peak_prominences(lc_bayes_bkg_sub.rates, peaks)
 
             # Start and end of signal based on peaks, in histogram bins
             leftmost_base = np.min(left_base)
