@@ -1702,6 +1702,22 @@ class TestTimeChannelBins(unittest.TestCase):
             TimeChannelBins(self.bins.counts, self.bins.tstart, 
                            self.bins.tstop, self.bins.exposure, 
                            self.bins.chan_nums, quality=[0, 0])
+
+
+class TestTimeChannelBinsWithCountUncerts(unittest.TestCase):
+    
+    def setUp(self):
+        counts = [[50, 5, 10], [100, 10, 20], [10, 1, 2], [20, 2, 4]]
+        self.count_uncert = [[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]]
+        tstart = [0.0, 1.0, 3.0, 4.0]
+        tstop = [1.0, 2.0, 4.0, 5.0]
+        exposure = [1] * 4
+        chan_nums = [0, 1, 3]
+        self.bins = TimeChannelBins(counts, tstart, tstop, exposure, chan_nums,
+                                    count_uncerts=self.count_uncert)
+    
+    def test_count_uncertainty(self):
+        assert self.bins.count_uncertainty.tolist() == self.count_uncert
  
 
 class TestTimeEnergyBins(unittest.TestCase):
@@ -2250,6 +2266,24 @@ class TestTimeEnergyBins(unittest.TestCase):
             TimeEnergyBins(self.bins.counts, self.bins.tstart, 
                            self.bins.tstop, self.bins.exposure, 
                            self.bins.emin, self.bins.emax, quality=[0, 0])
+
+
+class TestTimeEnergyBinsWithCountUncerts(unittest.TestCase):
+    
+    def setUp(self):
+        counts = [[50, 5, 10], [100, 10, 20], [10, 1, 2], [20, 2, 4]]
+        self.count_uncert = [[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]]
+        tstart = [0.0, 1.0, 3.0, 4.0]
+        tstop = [1.0, 2.0, 4.0, 5.0]
+        exposure = [1] * 4
+        emin = [10.0, 50.0, 300.0]
+        emax = [50.0, 150., 500.0]
+        self.bins = TimeEnergyBins(counts, tstart, tstop, exposure, emin, emax,
+                                   count_uncerts=self.count_uncert)
+    
+    def test_count_uncertainty(self):
+        assert self.bins.count_uncertainty.tolist() == self.count_uncert
+ 
          
 
 class TestEventList(unittest.TestCase):
@@ -2831,7 +2865,3 @@ class TestParameter(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             Parameter(100.0, '5.0')
-        
-
-if __name__ == '__main__':
-    unittest.main()

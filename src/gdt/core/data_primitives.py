@@ -1011,10 +1011,7 @@ class Bins():
     @property
     def count_uncertainty(self):
         """(np.array): The count uncertainty in each bin"""
-        if self._count_uncerts is None:
-            return np.sqrt(self._counts)
-        else:
-            return self._count_uncerts
+        return self._count_uncerts
 
     @property
     def hi_edges(self):
@@ -1688,13 +1685,15 @@ class TimeChannelBins():
         tstop (np.array): The high-value edges of the time bins
         exposure (np.array): The exposure of each bin
         chan_nums (np.array): The channel numbers in ascending order
+        count_uncerts (np.array, optional): An array the same length as `counts`
+                                            if the uncertainty is not Poisson.
         quality (np.array, optional): The spectrum quality flag
         precalc_good_segments (bool, optional): If True, calculates the 
                                                 good time and channel segments 
                                                 on initialization.    
     """
     def __init__(self, counts, tstart, tstop, exposure, chan_nums,
-                 quality=None, precalc_good_segments=True):
+                 quality=None, count_uncerts=None, precalc_good_segments=True):
 
         try:
             iter(counts)
@@ -1748,6 +1747,15 @@ class TimeChannelBins():
         else:
             self._quality = np.zeros_like(self._tstart)
 
+        if count_uncerts is None:
+            count_uncerts = np.sqrt(counts)
+        try:
+            iter(count_uncerts)
+            self._count_uncerts = np.asarray(count_uncerts)
+        except:
+            raise TypeError('count_uncerts must be an iterable')
+        if self._count_uncerts.shape != self._counts.shape:
+            raise ValueError('count_uncerts must be same shape as counts')
 
         self._good_time_segments = None
         self._good_channel_segments = None
@@ -1781,7 +1789,7 @@ class TimeChannelBins():
     @property
     def count_uncertainty(self):
         """ (np.array): The counts uncertainty in each bin"""
-        return np.sqrt(self.counts)
+        return self._count_uncerts
 
     @property
     def exposure(self):
@@ -1864,7 +1872,9 @@ class TimeChannelBins():
 
         return TimeEnergyBins(self.counts, self.tstart, self.tstop,
                               self.exposure, ebounds.low_edges(),
-                              ebounds.high_edges())
+                              ebounds.high_edges(), 
+                              count_uncerts=self.count_uncertainty,
+                              quality=self._quality)
 
     def closest_time_edge(self, val, which='either'):
         """Return the closest time bin edge
@@ -1980,8 +1990,10 @@ class TimeChannelBins():
 
         mask = (self.chan_nums <= chan_max) & (self.chan_nums >= chan_min)
         counts = self.counts[:, mask].sum(axis=1)
+        uncert = np.sqrt( (self.count_uncertainty[:, mask] ** 2).sum(axis=1) )
 
-        obj = TimeBins(counts, self.tstart, self.tstop, self.exposure)
+        obj = TimeBins(counts, self.tstart, self.tstop, self.exposure,
+                       count_uncerts=uncert)
         return obj
 
     def integrate_time(self, tstart=None, tstop=None):
@@ -2006,11 +2018,12 @@ class TimeChannelBins():
             tstop = self.time_range[1]
 
         mask = self._slice_time_mask(tstart, tstop)
-        counts = np.sum(self.counts[mask, :], axis=0)
-        exposure = np.sum(self.exposure[mask])
-        exposure = np.full(counts.size, exposure)
+        counts = self.counts[mask, :].sum(axis=0)
+        uncert = np.sqrt( (self.count_uncertainty[mask, :] ** 2).sum(axis=0) )
+        exposure = np.full(counts.size, self.exposure[mask].sum())
 
-        obj = ChannelBins.create(counts, self.chan_nums, exposure)
+        obj = ChannelBins.create(counts, self.chan_nums, exposure, 
+                                 count_uncerts=uncert)
         return obj
 
     def rebin_channels(self, method, *args, chan_min=None, chan_max=None):
@@ -2085,17 +2098,17 @@ class TimeChannelBins():
                 edges = np.append(histo.chan_nums, histo.chan_nums[-1]+1)
                 num_times, num_chans = histo.size
                 new_counts = []
+                new_uncert = []
                 for i in range(num_times):
                     exposure = np.full(num_chans, histo.exposure[i])
-                    new_cts, _, _, new_edges = method(histo.counts[i, :],
-                                                      histo.count_uncertainty[i,:],
-                                                      exposure,
-                                                      edges, *args)
+                    new_cts, uncert, _, new_edges = method(histo.counts[i, :],
+                                                   histo.count_uncertainty[i,:],
+                                                   exposure, edges, *args)
                     new_counts.append(new_cts)
-                new_counts = np.array(new_counts)
-                new_histo = TimeChannelBins(new_counts, bin.tstart,
-                                               bin.tstop, bin.exposure,
-                                               new_edges[:-1])
+                    new_uncert.append(uncert)
+                new_histo = TimeChannelBins(new_counts, bin.tstart, bin.tstop, 
+                                            bin.exposure, new_edges[:-1], 
+                                            count_uncerts=new_uncert)
 
             else:
                 new_histo = bin
@@ -2193,18 +2206,22 @@ class TimeChannelBins():
             if histo.num_times > 0:
                 edges = np.append(histo.tstart, histo.tstop[-1])
                 new_counts = []
+                new_uncert = []
                 for i in range(bin.num_chans):
-                    new_cts, new_uncert, new_exposure, new_edges = method(
+                    new_cts, uncert, new_exposure, new_edges = method(
                         histo.counts[:, i],
                         histo.count_uncertainty[:, i],
                         histo.exposure,
                         edges, *args)
                     new_counts.append(new_cts)
+                    new_uncert.append(uncert)
                 new_counts = np.array(new_counts).T
+                new_uncert = np.array(new_uncert).T
 
                 new_histo = TimeChannelBins(new_counts, new_edges[:-1],
-                                           new_edges[1:], new_exposure,
-                                           bin.chan_nums)
+                                            new_edges[1:], new_exposure,
+                                            bin.chan_nums, 
+                                            count_uncerts=new_uncert)
             else:
                 new_histo = bin
 
@@ -2233,8 +2250,9 @@ class TimeChannelBins():
         """
         mask = (self.chan_nums <= chan_max) & (self.chan_nums >= chan_min)
         obj = TimeChannelBins(self.counts[:, mask], self.tstart, self.tstop,
-                             self.exposure, self.chan_nums[mask],
-                             quality=self.quality)
+                              self.exposure, self.chan_nums[mask],
+                              count_uncerts=self.count_uncertainty[:, mask],
+                              quality=self.quality)
         return obj
 
     def slice_time(self, tstart, tstop):
@@ -2253,6 +2271,7 @@ class TimeChannelBins():
         cls = type(self)
         obj = cls(self.counts[mask, :], self.tstart[mask], self.tstop[mask],
                   self.exposure[mask], self.chan_nums,
+                  count_uncerts=self.count_uncertainty[mask, :],
                   quality=self.quality[mask])
         return obj
 
@@ -2274,6 +2293,7 @@ class TimeChannelBins():
 
         # concatenate the histos in order
         counts = histos[idx[0]].counts
+        uncert = histos[idx[0]].count_uncertainty
         tstart = histos[idx[0]].tstart
         tstop = histos[idx[0]].tstop
         exposure = histos[idx[0]].exposure
@@ -2288,11 +2308,12 @@ class TimeChannelBins():
                                  'non-overlapping bins can be merged.')
 
             counts = np.hstack((counts, histos[idx[i]].counts[:, mask]))
+            uncert = np.hstack((uncert, histos[idx[i]].count_uncertainty[:, mask]))
             chan_nums = np.concatenate((chan_nums, histos[idx[i]].chan_nums[mask]))
 
         # new TimeChannelBins object
         merged_bins = cls(counts, tstart, tstop, exposure, chan_nums,
-                          quality=quality, **kwargs)
+                          count_uncerts=uncert, quality=quality, **kwargs)
         return merged_bins
 
     @classmethod
@@ -2313,6 +2334,7 @@ class TimeChannelBins():
 
         # concatenate the histos in order
         counts = histos[idx[0]].counts
+        uncert = histos[idx[0]].count_uncertainty
         tstart = histos[idx[0]].tstart
         tstop = histos[idx[0]].tstop
         exposure = histos[idx[0]].exposure
@@ -2327,6 +2349,7 @@ class TimeChannelBins():
                                  'non-overlapping bins can be merged.')
 
             counts = np.vstack((counts, histos[idx[i]].counts[mask, :]))
+            uncert = np.vstack((uncert, histos[idx[i]].count_uncertainty[mask, :]))
             tstart = np.concatenate((tstart, histos[idx[i]].tstart[mask]))
             tstop = np.concatenate((tstop, histos[idx[i]].tstop[mask]))
             exposure = np.concatenate(
@@ -2335,7 +2358,7 @@ class TimeChannelBins():
 
         # new TimeChannelBins object
         merged_bins = cls(counts, tstart, tstop, exposure, chan_nums,
-                          quality=quality, **kwargs)
+                          count_uncerts=uncert, quality=quality, **kwargs)
         return merged_bins
 
     def _assert_range(self, valrange):
@@ -2417,13 +2440,15 @@ class TimeEnergyBins():
         exposure (np.array): The exposure of each bin
         emin (np.array): The low-value edges of the energy bins
         emax (np.array): The high-value edges of the energy bins
+        count_uncerts (np.array, optional): An array the same length as `counts`
+                                            if the uncertainty is not Poisson.
         quality (np.array, optional): The spectrum quality flag
         precalc_good_segments (bool, optional): If True, calculates the 
                                                 good time and energy segments on
                                                 initialization.    
     """
     def __init__(self, counts, tstart, tstop, exposure, emin, emax,
-                 quality=None, precalc_good_segments=True):
+                 count_uncerts=None, quality=None, precalc_good_segments=True):
 
         try:
             iter(counts)
@@ -2485,6 +2510,15 @@ class TimeEnergyBins():
         else:
             self._quality = np.zeros_like(self._tstart)
 
+        if count_uncerts is None:
+            count_uncerts = np.sqrt(counts)
+        try:
+            iter(count_uncerts)
+            self._count_uncerts = np.asarray(count_uncerts)
+        except:
+            raise TypeError('count_uncerts must be an iterable')
+        if self._count_uncerts.shape != self._counts.shape:
+            raise ValueError('count_uncerts must be same shape as counts')
 
         self._good_time_segments = None
         self._good_energy_segments = None
@@ -2511,7 +2545,7 @@ class TimeEnergyBins():
     @property
     def count_uncertainty(self):
         """ (np.array): The counts uncertainty in each bin"""
-        return np.sqrt(self.counts)
+        return self._count_uncerts
 
     @property
     def emax(self):
@@ -2733,9 +2767,11 @@ class TimeEnergyBins():
             emax = self.energy_range[1]
 
         mask = self._slice_energy_mask(emin, emax)
-        counts = np.sum(self.counts[:, mask], axis=1)
+        counts = self.counts[:, mask].sum(axis=1)
+        uncert = np.sqrt( (self.count_uncertainty[:, mask] ** 2).sum(axis=1) )
 
-        obj = TimeBins(counts, self.tstart, self.tstop, self.exposure)
+        obj = TimeBins(counts, self.tstart, self.tstop, self.exposure,
+                       count_uncerts=uncert)
         return obj
 
     def integrate_time(self, tstart=None, tstop=None):
@@ -2760,11 +2796,13 @@ class TimeEnergyBins():
             tstop = self.time_range[1]
 
         mask = self._slice_time_mask(tstart, tstop)
-        counts = np.sum(self.counts[mask, :], axis=0)
-        exposure = np.sum(self.exposure[mask])
+        counts = self.counts[mask, :].sum(axis=0)
+        uncert = np.sqrt( (self.count_uncertainty[mask, :] ** 2).sum(axis=0) )
+        exposure = self.exposure[mask].sum()
         exposure = np.full(counts.size, exposure)
 
-        obj = EnergyBins(counts, self.emin, self.emax, exposure)
+        obj = EnergyBins(counts, self.emin, self.emax, exposure, 
+                         count_uncerts=uncert)
         return obj
 
     def rebin_energy(self, method, *args, emin=None, emax=None):
@@ -2847,17 +2885,20 @@ class TimeEnergyBins():
                 edges = np.append(histo.emin, histo.emax[-1])
                 num_times, num_chans = histo.size
                 new_counts = []
+                new_uncert = []
                 for i in range(num_times):
                     exposure = np.full(num_chans, histo.exposure[i])
-                    new_cts, _, _, new_edges = method(histo.counts[i, :],
-                                                      histo.count_uncertainty[i,:],
-                                                      exposure,
-                                                      edges, *args)
+                    new_cts, uncert, _, new_edges = method(histo.counts[i, :],
+                                                   histo.count_uncertainty[i,:],
+                                                   exposure, edges, *args)
                     new_counts.append(new_cts)
+                    new_uncert.append(uncert)
                 new_counts = np.array(new_counts)
+                new_uncert = np.array(new_uncert)
                 new_histo = TimeEnergyBins(new_counts, bin.tstart, bin.tstop,
                                            bin.exposure, new_edges[:-1],
-                                           new_edges[1:])
+                                           new_edges[1:],
+                                           count_uncerts=new_uncert)
             else:
                 new_histo = bin
 
@@ -2954,18 +2995,22 @@ class TimeEnergyBins():
             if histo.num_times > 0:
                 edges = np.append(histo.tstart, histo.tstop[-1])
                 new_counts = []
+                new_uncert = []
                 for i in range(bin.num_chans):
-                    new_cts, new_uncert, new_exposure, new_edges = method(
+                    new_cts, uncert, new_exposure, new_edges = method(
                         histo.counts[:, i],
                         histo.count_uncertainty[:, i],
                         histo.exposure,
                         edges, *args)
                     new_counts.append(new_cts)
+                    new_uncert.append(uncert)
                 new_counts = np.array(new_counts).T
+                new_uncert = np.array(new_uncert).T
 
                 new_histo = TimeEnergyBins(new_counts, new_edges[:-1],
                                            new_edges[1:], new_exposure,
-                                           bin.emin, bin.emax)
+                                           bin.emin, bin.emax,
+                                           count_uncerts=new_uncert)
             else:
                 new_histo = bin
 
@@ -2995,6 +3040,7 @@ class TimeEnergyBins():
         mask = self._slice_energy_mask(emin, emax)
         obj = TimeEnergyBins(self.counts[:, mask], self.tstart, self.tstop,
                              self.exposure, self.emin[mask], self.emax[mask],
+                             count_uncerts=self.count_uncertainty[:, mask],
                              quality=self.quality)
         return obj
 
@@ -3014,6 +3060,7 @@ class TimeEnergyBins():
         cls = type(self)
         obj = cls(self.counts[mask, :], self.tstart[mask], self.tstop[mask],
                   self.exposure[mask], self.emin, self.emax,
+                  count_uncerts=self.count_uncertainty[mask, :],
                   quality=self.quality[mask])
         return obj
 
@@ -3035,6 +3082,7 @@ class TimeEnergyBins():
 
         # concatenate the histos in order
         counts = histos[idx[0]].counts
+        uncert = histos[idx[0]].count_uncertainty
         tstart = histos[idx[0]].tstart
         tstop = histos[idx[0]].tstop
         exposure = histos[idx[0]].exposure
@@ -3050,12 +3098,13 @@ class TimeEnergyBins():
                                  'non-overlapping bins can be merged.')
 
             counts = np.hstack((counts, histos[idx[i]].counts[:, mask]))
+            uncert = np.hstack((uncert, histos[idx[i]].count_uncertainty[:, mask]))
             emin = np.concatenate((emin, histos[idx[i]].emin[mask]))
             emax = np.concatenate((emax, histos[idx[i]].emax[mask]))
 
         # new TimeEnergyBins object
         merged_bins = cls(counts, tstart, tstop, exposure, emin, emax,
-                          quality=quality, **kwargs)
+                          count_uncerts=uncert, quality=quality, **kwargs)
         return merged_bins
 
     @classmethod
@@ -3076,6 +3125,7 @@ class TimeEnergyBins():
 
         # concatenate the histos in order
         counts = histos[idx[0]].counts
+        uncert = histos[idx[0]].count_uncertainty
         tstart = histos[idx[0]].tstart
         tstop = histos[idx[0]].tstop
         exposure = histos[idx[0]].exposure
@@ -3091,6 +3141,7 @@ class TimeEnergyBins():
                                  'non-overlapping bins can be merged.')
 
             counts = np.vstack((counts, histos[idx[i]].counts[mask, :]))
+            uncert = np.vstack((uncert, histos[idx[i]].count_uncertainty[mask, :]))
             tstart = np.concatenate((tstart, histos[idx[i]].tstart[mask]))
             tstop = np.concatenate((tstop, histos[idx[i]].tstop[mask]))
             exposure = np.concatenate(
@@ -3099,7 +3150,7 @@ class TimeEnergyBins():
 
         # new TimeEnergyBins object
         merged_bins = cls(counts, tstart, tstop, exposure, emin, emax,
-                          quality=quality, **kwargs)
+                          count_uncerts=uncert, quality=quality, **kwargs)
         return merged_bins
 
     def _assert_range(self, valrange):
