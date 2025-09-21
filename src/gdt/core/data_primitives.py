@@ -1074,7 +1074,25 @@ class Bins():
         else:
             pass
         return edges[idx]
-
+    
+    @classmethod
+    def from_rates(cls, rates, rate_uncerts, lo_edges, hi_edges):
+        """Create a Bins object from count rates and uncertainties.
+        
+        Args:
+            rates (np.array): The count rates
+            rate_uncerts (np.array): The count rate uncertainties
+            lo_edges (np.array): The low-value edges of the bins
+            hi_edges (np.array): The high-value edges of the bins
+        
+        Returns:
+            (:class:`Bins`)
+        """
+        dt = hi_edges - lo_edges
+        counts = rates * dt
+        count_uncerts = rate_uncerts * dt
+        return cls(counts, lo_edges, hi_edges, count_uncerts=count_uncerts)
+    
     def slice(self, lo_edge, hi_edge):
         """Perform a slice over the range of the bins and return a new Bins 
         object. Note that lo_edge and hi_edge values that fall inside a bin will
@@ -1173,6 +1191,29 @@ class ExposureBins(Bins):
         bins = [self.slice(seg[0], seg[1]) for seg in good_segments]
         return bins
 
+    @classmethod
+    def from_rates(cls, rates, rate_uncerts, lo_edges, hi_edges, exposure, 
+                   **kwargs):
+        """Create an ExposureBins object from count rates and uncertainties.
+        
+        Args:
+            rates (np.array): The count rates
+            rate_uncerts (np.array): The count rate uncertainties
+            lo_edges (np.array): The low-value edges of the bins
+            hi_edges (np.array): The high-value edges of the bins
+            exposure (np.array): The exposure of each bin
+            precalc_good_segments (bool, optional): If True, calculates contiguous
+                                                    bin segments on initialization.
+                                                    Default is True.
+        
+        Returns:
+            (:class:`ExposureBins`)
+        """
+        counts = rates * exposure
+        count_uncerts = rate_uncerts * exposure
+        return cls(counts, lo_edges, hi_edges, exposure, 
+                   count_uncerts=count_uncerts, **kwargs)
+    
     def rebin(self, method, *args, tstart=None, tstop=None):
         """Rebin the ExposureBins object in given a binning function and return 
         a new ExposureBins object 
@@ -1448,6 +1489,27 @@ class ChannelBins(ExposureBins):
         if self.size > 0:
             return (self.chan_nums[0], self.chan_nums[-1])
 
+    @classmethod
+    def from_rates(cls, rates, rate_uncerts, chan_nums, exposure, **kwargs):
+        """Create an ChannelBins object from count rates and uncertainties.
+        
+        Args:
+            rates (np.array): The count rates
+            rate_uncerts (np.array): The count rate uncertainties
+            chan_nums (np.array): The energy channel numbers
+            exposure (np.array): The exposure of each bin
+            precalc_good_segments (bool, optional): If True, calculates contiguous
+                                                    bin segments on initialization.
+                                                    Default is True.
+        
+        Returns:
+            (:class:`ChannelBins`)
+        """
+        counts = rates * exposure
+        count_uncerts = rate_uncerts * exposure
+        return cls.create(counts, chan_nums, exposure, 
+                          count_uncerts=count_uncerts, **kwargs)
+    
     def rebin(self, method, *args, chan_min=None, chan_max=None):
         """Rebin the ChannelBins object given a binning function and return 
         a new ChannelBins object 
@@ -2276,6 +2338,31 @@ class TimeChannelBins():
         return obj
 
     @classmethod
+    def from_rates(cls, rates, rate_uncerts, tstart, tstop, exposure, chan_nums,
+                   **kwargs):
+        """Create an TimeChannelBins object from count rates and uncertainties.
+        
+        Args:
+            rates (np.array): The count rates
+            rate_uncerts (np.array): The count rate uncertainties
+            tstart (np.array): The low-value edges of the time bins
+            tstop (np.array): The high-value edges of the time bins
+            exposure (np.array): The exposure of each bin
+            chan_nums (np.array): The channel numbers in ascending order
+            quality (np.array, optional): The spectrum quality flag
+            precalc_good_segments (bool, optional): If True, calculates the 
+                                                    good time and energy 
+                                                    segments on initialization.    
+        
+        Returns:
+            (:class:`TimeChannelBins`)
+        """
+        counts = rates * exposure[:, np.newaxis]
+        count_uncerts = rate_uncerts * exposure[:, np.newaxis]
+        return cls(counts, tstart, tstop, exposure, chan_nums,  
+                   count_uncerts=count_uncerts, **kwargs)
+    
+    @classmethod
     def merge_channels(cls, histos, **kwargs):
         """Merge multiple TimeChannelBins together along the channel axis.
         
@@ -3063,6 +3150,32 @@ class TimeEnergyBins():
                   count_uncerts=self.count_uncertainty[mask, :],
                   quality=self.quality[mask])
         return obj
+
+    @classmethod
+    def from_rates(cls, rates, rate_uncerts, tstart, tstop, exposure, emin,
+                   emax, **kwargs):
+        """Create an TimeEnergyBins object from count rates and uncertainties.
+        
+        Args:
+            rates (np.array): The count rates
+            rate_uncerts (np.array): The count rate uncertainties
+            tstart (np.array): The low-value edges of the time bins
+            tstop (np.array): The high-value edges of the time bins
+            exposure (np.array): The exposure of each bin
+            emin (np.array): The low-value edges of the energy bins
+            emax (np.array): The high-value edges of the energy bins
+            quality (np.array, optional): The spectrum quality flag
+            precalc_good_segments (bool, optional): If True, calculates the 
+                                                    good time and energy 
+                                                    segments on initialization.    
+        
+        Returns:
+            (:class:`TimeEnergyBins`)
+        """
+        counts = rates * exposure[:, np.newaxis]
+        count_uncerts = rate_uncerts * exposure[:, np.newaxis]
+        return cls(counts, tstart, tstop, exposure, emin, emax,  
+                   count_uncerts=count_uncerts, **kwargs)
 
     @classmethod
     def merge_energy(cls, histos, **kwargs):

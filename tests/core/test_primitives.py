@@ -392,7 +392,15 @@ class TestBins(unittest.TestCase):
         self.assertEqual(self.bins.closest_edge(0.3, which='high'), 1.0)
         # closest edge
         self.assertEqual(self.bins.closest_edge(0.3, which='either'), 0.0)
-
+    
+    def test_from_rates(self):
+        bins = Bins.from_rates(self.bins.rates, self.bins.rate_uncertainty, 
+                               self.bins.lo_edges, self.bins.hi_edges)
+        assert np.all(bins.counts == self.bins.counts)
+        assert np.all(bins.count_uncertainty == self.bins.count_uncertainty)
+        assert np.all(bins.lo_edges == self.bins.lo_edges)
+        assert np.all(bins.hi_edges == self.bins.hi_edges)
+        
     def test_slice(self):
         # middle slice       
         bins2 = self.bins.slice(1.3, 2.3)
@@ -562,6 +570,16 @@ class TestExposureBins(unittest.TestCase):
         self.assertTupleEqual(cont_bins[1].range, (2.5, 6.5))
         
         self.assertEqual(len(cont_bins[0].contiguous_bins()), 1)
+    
+    def test_from_rates(self):
+        bins = ExposureBins.from_rates(self.bins.rates, self.bins.rate_uncertainty,
+                                       self.bins.lo_edges, self.bins.hi_edges,
+                                       self.bins.exposure)
+        assert np.all(bins.counts == self.bins.counts)
+        assert np.all(bins.count_uncertainty == self.bins.count_uncertainty)
+        assert np.all(bins.lo_edges == self.bins.lo_edges)
+        assert np.all(bins.hi_edges == self.bins.hi_edges)
+        assert np.all(bins.exposure == self.bins.exposure)
     
     def test_rebin(self):
 
@@ -1013,6 +1031,14 @@ class TestChannelBins(unittest.TestCase):
     def test_range(self):
         self.assertTupleEqual(self.bins.range, (0, 6))
 
+    def test_from_rates(self):
+        bins = ChannelBins.from_rates(self.bins.rates, self.bins.rate_uncertainty,
+                                       self.bins.chan_nums, self.bins.exposure)
+        assert np.all(bins.counts == self.bins.counts)
+        assert np.all(bins.count_uncertainty == self.bins.count_uncertainty)
+        assert np.all(bins.chan_nums == self.bins.chan_nums)
+        assert np.all(bins.exposure == self.bins.exposure)
+
     def test_slice(self):
         # middle slice       
         bins2 = self.bins.slice(3, 4)
@@ -1127,7 +1153,17 @@ class TestTimeBins(unittest.TestCase):
         
     def test_init(self):
         self.assertIsInstance(self.bins, TimeBins)
-    
+
+    def test_from_rates(self):
+        bins = TimeBins.from_rates(self.bins.rates, self.bins.rate_uncertainty,
+                                   self.bins.lo_edges, self.bins.hi_edges,
+                                   self.bins.exposure)
+        assert np.all(bins.counts == self.bins.counts)
+        assert np.all(bins.count_uncertainty == self.bins.count_uncertainty)
+        assert np.all(bins.lo_edges == self.bins.lo_edges)
+        assert np.all(bins.hi_edges == self.bins.hi_edges)
+        assert np.all(bins.exposure == self.bins.exposure)
+     
     def test_with_uncerts(self):
         uncerts = [0, 1, 2, 3]
         bins = TimeBins(self.bins.counts, self.bins.lo_edges, self.bins.hi_edges, 
@@ -1162,6 +1198,16 @@ class TestEnergyBins(unittest.TestCase):
         for i in range(4):
             self.assertAlmostEqual(u[i], vals[i], places=3)
 
+    def test_from_rates(self):
+        bins = EnergyBins.from_rates(self.bins.rates, self.bins.rate_uncertainty,
+                                     self.bins.lo_edges, self.bins.hi_edges,
+                                     self.bins.exposure)
+        assert np.all(bins.counts == self.bins.counts)
+        assert np.all(bins.count_uncertainty == self.bins.count_uncertainty)
+        assert np.all(bins.lo_edges == self.bins.lo_edges)
+        assert np.all(bins.hi_edges == self.bins.hi_edges)
+        assert np.all(bins.exposure == self.bins.exposure)
+     
     def test_rebin(self):
         rebinned = self.bins.rebin(combine_by_factor, 2, emax=500.0)
         self.assertEqual(rebinned.size, 3)
@@ -1573,6 +1619,20 @@ class TestTimeChannelBins(unittest.TestCase):
         bins2 = self.bins.slice_time(10.0, 20.0)
         self.assertIsNone(bins2.time_range)
 
+    def test_from_rates(self):
+        bins = TimeChannelBins.from_rates(self.bins.rates, 
+                                          self.bins.rate_uncertainty,
+                                          self.bins.tstart, self.bins.tstop, 
+                                          self.bins.exposure, 
+                                          self.bins.chan_nums)
+
+        assert np.all(bins.counts == self.bins.counts)
+        assert np.all(bins.count_uncertainty == self.bins.count_uncertainty)
+        assert np.all(bins.tstart == self.bins.tstart)
+        assert np.all(bins.tstop == self.bins.tstop)
+        assert np.all(bins.exposure == self.bins.exposure)
+        assert np.all(bins.chan_nums == self.bins.chan_nums)
+        
     def test_merge_channels(self):
         
         counts = [[10, 20], [10, 20], [10, 20], [10, 20]]        
@@ -2122,6 +2182,21 @@ class TestTimeEnergyBins(unittest.TestCase):
         bins2 = self.bins.slice_time(10.0, 20.0)
         self.assertIsNone(bins2.time_range)
 
+    def test_from_rates(self):
+        bins = TimeEnergyBins.from_rates(self.bins.rates, 
+                                         self.bins.rate_uncertainty,
+                                         self.bins.tstart, self.bins.tstop, 
+                                         self.bins.exposure, 
+                                         self.bins.emin, self.bins.emax)
+
+        assert np.all(bins.counts == self.bins.counts)
+        assert np.all(bins.count_uncertainty == self.bins.count_uncertainty)
+        assert np.all(bins.tstart == self.bins.tstart)
+        assert np.all(bins.tstop == self.bins.tstop)
+        assert np.all(bins.exposure == self.bins.exposure)
+        assert np.all(bins.emin == self.bins.emin)
+        assert np.all(bins.emin == self.bins.emin)
+
     def test_merge_energy(self):
         
         counts = [[10, 20], [10, 20], [10, 20], [10, 20]]        
@@ -2285,7 +2360,6 @@ class TestTimeEnergyBinsWithCountUncerts(unittest.TestCase):
         assert self.bins.count_uncertainty.tolist() == self.count_uncert
  
          
-
 class TestEventList(unittest.TestCase):
     
     def setUp(self):
