@@ -820,7 +820,7 @@ class EventList():
         edges = np.arange(self.num_chans + 1)
 
         # call the binning algorithm and get the new edges
-        _, _, new_edges = method(counts, exposure, edges, *args)
+        _, _, _, new_edges = method(counts, np.sqrt(counts), exposure, edges, *args)
 
         # re-assign the pha channels based on the new edges
         # and also rebin the ebounds
@@ -951,14 +951,19 @@ class EventList():
 
 
 class Bins():
-    """A primitive class defining a set of histogram bins
+    """A primitive class defining a set of histogram bins.
+    The number of counts in each bin are assumed to be represented by a Poisson
+    distribution unless the `count_uncerts` argument is specified with the 
+    defined count uncertainties.
     
     Parameters:
         counts (np.array): The array of counts in each bin
         lo_edges (np.array): The low-value edges of the bins
         hi_edges (np.array): The high-value edges of the bins
+        count_uncerts (np.array, optional): An array the same length as `counts`
+                                            if the uncertainty is not Poisson.
     """
-    def __init__(self, counts, lo_edges, hi_edges):
+    def __init__(self, counts, lo_edges, hi_edges, count_uncerts=None):
 
         try:
             iter(counts)
@@ -982,7 +987,17 @@ class Bins():
            (self._lo_edges.size != self._hi_edges.size):
             raise ValueError('counts, lo_edges, and hi_edges must all be ' \
                              'the same length')
-
+        
+        if count_uncerts is None:
+            count_uncerts = np.sqrt(counts)
+        try:
+            iter(count_uncerts)
+            self._count_uncerts = np.asarray(count_uncerts)
+        except:
+            raise TypeError('count_uncerts must be an iterable')
+        if self._count_uncerts.size != self._counts.size:
+            raise ValueError('count_uncerts must be same size as counts')
+        
     @property
     def centroids(self):
         """(np.array): The centroids of the bins"""
@@ -996,7 +1011,10 @@ class Bins():
     @property
     def count_uncertainty(self):
         """(np.array): The count uncertainty in each bin"""
-        return np.sqrt(self._counts)
+        if self._count_uncerts is None:
+            return np.sqrt(self._counts)
+        else:
+            return self._count_uncerts
 
     @property
     def hi_edges(self):
@@ -1078,7 +1096,10 @@ class Bins():
             mask = (self.lo_edges < hi_snap) & (self.hi_edges >= lo_snap)
         else:
             mask = (self.lo_edges < hi_snap) & (self.hi_edges > lo_snap)
-        obj = Bins(self.counts[mask], self.lo_edges[mask], self.hi_edges[mask])
+        
+        count_uncerts = self.count_uncertainty[mask]
+        obj = Bins(self.counts[mask], self.lo_edges[mask], self.hi_edges[mask], 
+                   count_uncerts=count_uncerts)
         return obj
 
     def __repr__(self):
@@ -1095,13 +1116,15 @@ class ExposureBins(Bins):
         lo_edges (np.array): The low-value edges of the bins
         hi_edges (np.array): The high-value edges of the bins
         exposure (np.array): The exposure of each bin
+        count_uncerts (np.array, optional): An array the same length as `counts`
+                                            if the uncertainty is not Poisson.
         precalc_good_segments (bool, optional): If True, calculates contiguous
                                                 bin segments on initialization.
                                                 Default is True.
     """
     def __init__(self, counts, lo_edges, hi_edges, exposure,
-                 precalc_good_segments=True):
-        super().__init__(counts, lo_edges, hi_edges)
+                 count_uncerts=None, precalc_good_segments=True):
+        super().__init__(counts, lo_edges, hi_edges, count_uncerts=count_uncerts)
 
         try:
             iter(exposure)
@@ -1177,7 +1200,7 @@ class ExposureBins(Bins):
         """
 
         # empty bins
-        empty = self.__class__([], [], [], [])
+        empty = self.__class__([], [], [], [], count_uncerts=[])
 
         # set the start and stop of the rebinning segment
         trange = self.range
@@ -1189,8 +1212,7 @@ class ExposureBins(Bins):
             tstart = trange[0]
         if tstop > trange[1]:
             tstop = trange[1]
-
-
+        
         bins = self.contiguous_bins()
         new_histos = []
         for bin in bins:
@@ -1230,12 +1252,14 @@ class ExposureBins(Bins):
             # rebinned rates
             if histo.size > 0:
                 edges = np.append(histo.lo_edges, histo.hi_edges[-1])
-                new_counts, new_exposure, new_edges = method(histo.counts,
-                                                             histo.exposure,
-                                                             edges, *args)
+                new_counts, new_uncert, new_exposure, new_edges = method(histo.counts,
+                                                                         histo.count_uncertainty,
+                                                                         histo.exposure,
+                                                                         edges, 
+                                                                         *args)
                 new_histo = self.__class__(new_counts, new_edges[:-1],
-                                           new_edges[1:],
-                                           new_exposure)
+                                           new_edges[1:], new_exposure, 
+                                           count_uncerts=new_uncert)
             else:
                 new_histo = bin
 
@@ -1247,6 +1271,7 @@ class ExposureBins(Bins):
                 new_histos.append(self.__class__.merge(histos_to_merge))
 
         new_histo = self.__class__.merge(new_histos)
+        
         return new_histo
 
     def slice(self, tstart, tstop):
@@ -1265,9 +1290,10 @@ class ExposureBins(Bins):
         tstop_snap = self.closest_edge(tstop, which='high')
 
         mask = (self.lo_edges < tstop_snap) & (self.hi_edges > tstart_snap)
-
+        
         obj = self.__class__(self.counts[mask], self.lo_edges[mask],
-                             self.hi_edges[mask], self.exposure[mask])
+                             self.hi_edges[mask], self.exposure[mask], 
+                             count_uncerts=self.count_uncertainty[mask])
         return obj
 
     @classmethod
@@ -1298,6 +1324,7 @@ class ExposureBins(Bins):
         lo_edges = histos[idx[0]].lo_edges
         hi_edges = histos[idx[0]].hi_edges
         exposure = histos[idx[0]].exposure
+        count_uncerts = histos[idx[0]].count_uncertainty
         for i in range(1, num):
             bin_starts = histos[idx[i]].lo_edges
             # make sure there is no overlap
@@ -1313,9 +1340,12 @@ class ExposureBins(Bins):
                 (hi_edges, histos[idx[i]].hi_edges[mask]))
             exposure = np.concatenate(
                 (exposure, histos[idx[i]].exposure[mask]))
+            count_uncerts = np.concatenate(
+                (count_uncerts, histos[idx[i]].count_uncertainty[mask]))
 
         # new ExposureBins object
-        merged_bins = cls(counts, lo_edges, hi_edges, exposure, **kwargs)
+        merged_bins = cls(counts, lo_edges, hi_edges, exposure, 
+                          count_uncerts=count_uncerts, **kwargs)
         return merged_bins
 
     @classmethod
@@ -1323,6 +1353,9 @@ class ExposureBins(Bins):
         """Sum multiple ExposureBins together if they have the same bin edges.
         If the exposures are different between the histograms, they will be 
         averaged.
+        
+        Note:
+            Count uncertainties are summed in quadrature.
         
         Args:
             histos (list of :class:`ExposureBins`):  
@@ -1332,18 +1365,22 @@ class ExposureBins(Bins):
             (:class:`ExposureBins`)
         """
         counts = np.zeros(histos[0].size)
+        count_var = np.zeros(histos[0].size)
         for histo in histos:
             assert histo.size == histos[0].size, \
                 "The histograms must all have the same size"
             assert np.all(histo.lo_edges == histos[0].lo_edges), \
                 "The histograms must all have the same support"
             counts += histo.counts
-
+            count_var += histo.count_uncertainty ** 2
+        
+        count_uncerts = np.sqrt(count_var)
+        
         # averaged exposure
         exposure = np.mean([histo.exposure for histo in histos], axis=0)
 
         sum_bins = cls(counts, histos[0].lo_edges, histos[0].hi_edges,
-                       exposure)
+                       exposure, count_uncerts=count_uncerts)
         return sum_bins
 
     def _calculate_good_segments(self):
@@ -1486,12 +1523,13 @@ class ChannelBins(ExposureBins):
             # rebinned rates
             if histo.size > 0:
                 edges = np.append(histo.lo_edges, histo.hi_edges[-1])
-                new_counts, new_exposure, new_edges = method(histo.counts,
+                new_counts, new_uncert, new_exposure, new_edges = method(histo.counts,
+                                                             histo.count_uncertainty,
                                                              histo.exposure,
                                                              edges, *args)
                 new_histo = self.__class__(new_counts, new_edges[:-1],
-                                           new_edges[1:],
-                                           new_exposure)
+                                           new_edges[1:], new_exposure, 
+                                           count_uncerts=new_uncert)
             else:
                 new_histo = bin
 
@@ -2031,9 +2069,10 @@ class TimeChannelBins():
                 new_counts = []
                 for i in range(num_times):
                     exposure = np.full(num_chans, histo.exposure[i])
-                    new_cts, _, new_edges = method(histo.counts[i, :],
-                                                   exposure,
-                                                   edges, *args)
+                    new_cts, _, _, new_edges = method(histo.counts[i, :],
+                                                      histo.count_uncertainty[i,:],
+                                                      exposure,
+                                                      edges, *args)
                     new_counts.append(new_cts)
                 new_counts = np.array(new_counts)
                 new_histo = TimeChannelBins(new_counts, bin.tstart,
@@ -2137,8 +2176,9 @@ class TimeChannelBins():
                 edges = np.append(histo.tstart, histo.tstop[-1])
                 new_counts = []
                 for i in range(bin.num_chans):
-                    new_cts, new_exposure, new_edges = method(
+                    new_cts, new_uncert, new_exposure, new_edges = method(
                         histo.counts[:, i],
+                        histo.count_uncertainty[:, i],
                         histo.exposure,
                         edges, *args)
                     new_counts.append(new_cts)
@@ -2791,9 +2831,10 @@ class TimeEnergyBins():
                 new_counts = []
                 for i in range(num_times):
                     exposure = np.full(num_chans, histo.exposure[i])
-                    new_cts, _, new_edges = method(histo.counts[i, :],
-                                                   exposure,
-                                                   edges, *args)
+                    new_cts, _, _, new_edges = method(histo.counts[i, :],
+                                                      histo.count_uncertainty[i,:],
+                                                      exposure,
+                                                      edges, *args)
                     new_counts.append(new_cts)
                 new_counts = np.array(new_counts)
                 new_histo = TimeEnergyBins(new_counts, bin.tstart, bin.tstop,
@@ -2896,8 +2937,9 @@ class TimeEnergyBins():
                 edges = np.append(histo.tstart, histo.tstop[-1])
                 new_counts = []
                 for i in range(bin.num_chans):
-                    new_cts, new_exposure, new_edges = method(
+                    new_cts, new_uncert, new_exposure, new_edges = method(
                         histo.counts[:, i],
+                        histo.count_uncertainty[:, i],
                         histo.exposure,
                         edges, *args)
                     new_counts.append(new_cts)

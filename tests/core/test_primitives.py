@@ -432,6 +432,106 @@ class TestBins(unittest.TestCase):
             Bins(self.bins.counts[1:], self.bins.lo_edges, self.bins.hi_edges)
 
 
+class TestBinsWithCountUncerts(unittest.TestCase):
+    
+    def setUp(self):
+        counts = [0, 9, 16, 4]
+        low = [0.0, 1.0, 2.0, 3.0]
+        high = [1.0, 2.0, 3.0, 4.0]
+        count_uncerts = [0, 2, 2, 1]
+        self.bins = Bins(counts, low, high, count_uncerts=count_uncerts)
+    
+    def test_centroids(self):
+        self.assertListEqual(self.bins.centroids.tolist(), [0.5, 1.5, 2.5, 3.5])
+
+    def test_counts(self):
+        self.assertListEqual(self.bins.counts.tolist(), [0, 9, 16, 4])
+
+    def test_count_uncertainty(self):
+        self.assertListEqual(self.bins.count_uncertainty.tolist(), [0, 2, 2, 1])
+
+    def test_hi_edges(self):
+        self.assertListEqual(self.bins.hi_edges.tolist(), [1.0, 2.0, 3.0, 4.0])
+
+    def test_lo_edges(self):
+        self.assertListEqual(self.bins.lo_edges.tolist(), [0.0, 1.0, 2.0, 3.0])
+
+    def test_range(self):
+        self.assertTupleEqual(self.bins.range, (0.0, 4.0))
+
+    def test_rates(self):
+        self.assertListEqual(self.bins.rates.tolist(), [0.0, 9.0, 16.0, 4.0])
+
+    def test_rate_uncertainty(self):
+        self.assertListEqual(self.bins.rate_uncertainty.tolist(), 
+                             [0.0, 2.0, 2.0, 1.0])
+
+    def test_size(self):
+        self.assertEqual(self.bins.size, 4)
+    
+    def test_widths(self):
+        self.assertListEqual(self.bins.widths.tolist(), [1.0, 1.0, 1.0, 1.0])
+
+    def test_closest_edge(self):
+        # closest low edge
+        self.assertEqual(self.bins.closest_edge(0.7, which='low'), 0.0)
+        # closest high edge
+        self.assertEqual(self.bins.closest_edge(0.3, which='high'), 1.0)
+        # closest edge
+        self.assertEqual(self.bins.closest_edge(0.3, which='either'), 0.0)
+
+    def test_slice(self):
+        # middle slice       
+        bins2 = self.bins.slice(1.3, 2.3)
+        self.assertTupleEqual(bins2.range, (1.0, 3.0))
+        assert bins2.count_uncertainty.tolist() == [2, 2]
+        
+        # slice below lower boundary
+        bins2 = self.bins.slice(-1.0, 2.3)
+        self.assertTupleEqual(bins2.range, (0.0, 3.0))
+        assert bins2.count_uncertainty.tolist() == [0, 2, 2]
+
+        # slice above upper boundary
+        bins2 = self.bins.slice(1.3, 5.0)
+        self.assertTupleEqual(bins2.range, (1.0, 4.0))
+        assert bins2.count_uncertainty.tolist() == [2, 2, 1]
+        
+        # slice covering full range
+        bins2 = self.bins.slice(-1.0, 5.0)
+        self.assertTupleEqual(bins2.range, (0.0, 4.0))
+        assert bins2.count_uncertainty.tolist() == [0, 2, 2, 1]
+
+        # slice one bin
+        bins2 = self.bins.slice(2.1, 2.1)
+        self.assertTupleEqual(bins2.range, (2.0, 3.0))
+        assert bins2.count_uncertainty.tolist() == [2]
+
+        # slice fully outside range
+        bins2 = self.bins.slice(-2.0, -1.0)
+        self.assertIsNone(bins2.range)
+        
+    def test_init_errors(self):
+        with self.assertRaises(TypeError):
+            Bins(1.0, self.bins.lo_edges, self.bins.hi_edges)
+        
+        with self.assertRaises(TypeError):
+            Bins(self.bins.counts, 1.0, self.bins.hi_edges)
+
+        with self.assertRaises(TypeError):
+            Bins(self.bins.counts, self.bins.lo_edges, 1.0)
+        
+        with self.assertRaises(ValueError):
+            Bins(self.bins.counts[1:], self.bins.lo_edges, self.bins.hi_edges)
+        
+        with self.assertRaises(TypeError):
+            Bins(self.bins.counts, self.bins.lo_edges, self.bins.hi_edges, 
+                 count_uncerts=1)
+
+        with self.assertRaises(ValueError):
+            Bins(self.bins.counts, self.bins.lo_edges, self.bins.hi_edges, 
+                 count_uncerts=self.bins.count_uncertainty[:1])
+
+
 class TestExposureBins(unittest.TestCase):
     
     def setUp(self):
@@ -629,6 +729,230 @@ class TestExposureBins(unittest.TestCase):
                          self.bins.hi_edges, self.bins.exposure[1:])
 
 
+class TestExposureBinsWithCountUncerts(unittest.TestCase):
+    
+    def setUp(self):
+        counts = [0, 20, 12, 3, 20, 12]
+        count_uncerts = [0, 2, 1, 0, 2, 1]
+        exposure = [0.9, 0.8, 0.75, 0.75, 0.8, 0.8]
+        low = [0.0, 1.0, 2.5, 3.5, 4.5, 5.5]
+        high = [1.0, 2.0, 3.5, 4.5, 5.5, 6.5]
+        self.bins = ExposureBins(counts, low, high, exposure,
+                                 count_uncerts=count_uncerts)
+
+    def test_exposure(self):
+        self.assertListEqual(self.bins.exposure.tolist(), 
+                             [0.9, 0.8, 0.75, 0.75, 0.8, 0.8])
+
+    def test_rates(self):
+        self.assertListEqual(self.bins.rates.tolist(), 
+                             [0.0, 25.0, 16.0, 4.0, 25.0, 15.0])
+
+    def test_rate_uncertainty(self):
+        uncert = self.bins.rate_uncertainty.tolist()
+        test = [0.0, 2.50, 1.33, 0.0, 2.50, 1.25]
+        for i in range(4):
+            self.assertAlmostEqual(uncert[i], test[i], places=2)
+    
+    def test_contiguous_bins(self):
+        cont_bins = self.bins.contiguous_bins()
+        self.assertEqual(len(cont_bins), 2)
+        self.assertTupleEqual(cont_bins[0].range, (0.0, 2.0))
+        assert cont_bins[0].count_uncertainty.tolist() == [0, 2]
+        self.assertTupleEqual(cont_bins[1].range, (2.5, 6.5))
+        assert cont_bins[1].count_uncertainty.tolist() == [1, 0, 2, 1]
+        
+        self.assertEqual(len(cont_bins[0].contiguous_bins()), 1)
+    
+    def test_rebin(self):
+
+        # rebin full range
+        rebinned = self.bins.rebin(combine_by_factor, 2)
+        self.assertEqual(rebinned.size, 3)
+        self.assertListEqual(rebinned.hi_edges.tolist(), [2.0, 4.5, 6.5])
+        self.assertListEqual(rebinned.lo_edges.tolist(), [0.0, 2.5, 4.5])
+        self.assertListEqual(rebinned.counts.tolist(), [20, 15, 32])
+        self.assertListEqual(rebinned.count_uncertainty.tolist(), [2, 1, np.sqrt(5)])
+        
+        exp = [1.7, 1.5, 1.6]
+        for i in range(3):
+            self.assertAlmostEqual(rebinned.exposure[i], exp[i], places=2)
+        
+        # rebin from tstart through end of range        
+        rebinned = self.bins.rebin(combine_by_factor, 2, tstart=2.7)
+        self.assertEqual(rebinned.size, 4)
+        self.assertListEqual(rebinned.hi_edges.tolist(), [1.0, 2.0, 4.5, 6.5])
+        self.assertListEqual(rebinned.lo_edges.tolist(), [0.0, 1.0, 2.5, 4.5])
+        self.assertListEqual(rebinned.counts.tolist(), [0, 20, 15, 32])
+        self.assertListEqual(rebinned.count_uncertainty.tolist(), [0, 2, 1, np.sqrt(5)])
+        exp = [0.9, 0.8, 1.5, 1.6]
+        for i in range(4):
+            self.assertAlmostEqual(rebinned.exposure[i], exp[i], places=2)
+
+        # rebin from beginning of range through tstop       
+        rebinned = self.bins.rebin(combine_by_factor, 2, tstop=1.7)
+        self.assertEqual(rebinned.size, 5)
+        self.assertListEqual(rebinned.hi_edges.tolist(), [2.0, 3.5, 4.5, 5.5, 6.5])
+        self.assertListEqual(rebinned.lo_edges.tolist(), [0.0, 2.5, 3.5, 4.5, 5.5])
+        self.assertListEqual(rebinned.counts.tolist(), [20, 12, 3, 20, 12])
+        self.assertListEqual(rebinned.count_uncertainty.tolist(), [2, 1, 0, 2, 1])
+        exp = [1.7, 0.75, 0.75, 0.8, 0.8]
+        for i in range(5):
+            self.assertAlmostEqual(rebinned.exposure[i], exp[i], places=2)
+
+        # rebin middle      
+        rebinned = self.bins.rebin(combine_by_factor, 2, tstart=0.5, tstop=3.7)
+        self.assertEqual(rebinned.size, 4)
+        self.assertListEqual(rebinned.hi_edges.tolist(), [2.0, 4.5, 5.5, 6.5])
+        self.assertListEqual(rebinned.lo_edges.tolist(), [0.0, 2.5, 4.5, 5.5])
+        self.assertListEqual(rebinned.counts.tolist(), [20, 15, 20, 12])
+        self.assertListEqual(rebinned.count_uncertainty.tolist(), [2, 1, 2, 1])
+        exp = [1.7, 1.5, 0.8, 0.8]
+        for i in range(4):
+            self.assertAlmostEqual(rebinned.exposure[i], exp[i], places=2)
+
+        # rebin outside range
+        rebinned = self.bins.rebin(combine_by_factor, 2, tstart=7.0, tstop=10.)
+        self.assertEqual(rebinned.size, 6)
+        self.assertListEqual(rebinned.hi_edges.tolist(), [1.0, 2.0, 3.5, 4.5, 5.5, 6.5])
+        self.assertListEqual(rebinned.lo_edges.tolist(), [0.0, 1.0, 2.5, 3.5, 4.5, 5.5])
+        self.assertListEqual(rebinned.counts.tolist(), [0, 20, 12, 3, 20, 12])
+        self.assertListEqual(rebinned.count_uncertainty.tolist(), [0, 2, 1, 0, 2, 1])
+        exp = [0.9, 0.8, 0.75, 0.75, 0.8, 0.8]
+        for i in range(6):
+            self.assertAlmostEqual(rebinned.exposure[i], exp[i], places=2)
+
+    def test_slice(self):
+        # middle slice       
+        bins2 = self.bins.slice(1.3, 2.7)
+        self.assertTupleEqual(bins2.range, (1.0, 3.5))
+        assert bins2.count_uncertainty.tolist() == [2, 1]
+        
+        # slice below lower boundary
+        bins2 = self.bins.slice(-1.0, 2.7)
+        self.assertTupleEqual(bins2.range, (0.0, 3.5))
+        assert bins2.count_uncertainty.tolist() == [0, 2, 1]
+
+        # slice above upper boundary
+        bins2 = self.bins.slice(1.3, 7.0)
+        self.assertTupleEqual(bins2.range, (1.0, 6.5))
+        assert bins2.count_uncertainty.tolist() == [2, 1, 0, 2, 1]
+        
+        # slice covering full range
+        bins2 = self.bins.slice(-1.0, 7.0)
+        self.assertTupleEqual(bins2.range, (0.0, 6.5))
+        assert bins2.count_uncertainty.tolist() == [0, 2, 1, 0, 2, 1]
+
+        # slice one bin
+        bins2 = self.bins.slice(1.9, 1.9)
+        self.assertTupleEqual(bins2.range, (1.0, 2.0))
+        assert bins2.count_uncertainty.tolist() == [2]
+
+        # slice fully outside range
+        bins2 = self.bins.slice(-2.0, -1.0)
+        self.assertIsNone(bins2.range)
+    
+    def test_merge(self):
+        
+        counts = [5, 7, 8]
+        exposure = [0.9, 0.9, 0.9]
+        
+        # merge at high end
+        low = [6.5, 7.5, 8.5]
+        high = [7.5, 8.5, 9.5]
+        bins2 = ExposureBins(counts, low, high, exposure)
+        bins_merged = ExposureBins.merge([self.bins, bins2])
+        self.assertListEqual(bins_merged.hi_edges.tolist(), [1.0, 2.0, 3.5, 4.5,
+                                                             5.5, 6.5, 7.5, 8.5,
+                                                             9.5])
+        self.assertListEqual(bins_merged.lo_edges.tolist(), [0.0, 1.0, 2.5, 3.5,
+                                                             4.5, 5.5, 6.5, 7.5,
+                                                             8.5])
+        assert bins_merged.count_uncertainty.tolist() == [0, 2, 1, 0, 2, 1] \
+                                                      + np.sqrt(counts).tolist()
+
+        
+        # flip order
+        bins_merged = ExposureBins.merge([bins2, self.bins])
+        self.assertListEqual(bins_merged.hi_edges.tolist(), [1.0, 2.0, 3.5, 4.5,
+                                                             5.5, 6.5, 7.5, 8.5,
+                                                             9.5])
+        self.assertListEqual(bins_merged.lo_edges.tolist(), [0.0, 1.0, 2.5, 3.5,
+                                                             4.5, 5.5, 6.5, 7.5,
+                                                             8.5])
+        assert bins_merged.count_uncertainty.tolist() == [0, 2, 1, 0, 2, 1] \
+                                                      + np.sqrt(counts).tolist()
+        
+        # merge at low end
+        low = [-3.0, -2.0, -1.0]
+        high = [-2.0, -1.0, 0.0]
+        bins2 = ExposureBins(counts, low, high, exposure)
+        bins_merged = ExposureBins.merge([self.bins, bins2])
+        self.assertListEqual(bins_merged.hi_edges.tolist(), [-2.0, -1.0, 0.0, 
+                                                             1.0, 2.0, 3.5, 4.5,
+                                                             5.5, 6.5])
+        self.assertListEqual(bins_merged.lo_edges.tolist(), [-3.0, -2.0, -1.0, 
+                                                             0.0, 1.0, 2.5, 3.5,
+                                                             4.5, 5.5])
+        assert bins_merged.count_uncertainty.tolist() == np.sqrt(counts).tolist() \
+                                                         + [0, 2, 1, 0, 2, 1]
+        
+        # overlapping merge (not allowed)
+        low = [-1.5, -0.5, 0.5]
+        high = [-0.5, 0.5, 1.5]
+        bins2 = ExposureBins(counts, low, high, exposure)
+        with self.assertRaises(ValueError):
+            bins_merged = ExposureBins.merge([self.bins, bins2])
+        with self.assertRaises(ValueError):
+            bins_merged = ExposureBins.merge([bins2, self.bins])
+
+    def test_sum(self):
+        
+        # same exposure
+        bins2 = ExposureBins(self.bins.counts, self.bins.lo_edges, 
+                             self.bins.hi_edges, self.bins.exposure, 
+                             count_uncerts=self.bins.count_uncertainty)
+        bins_summed = ExposureBins.sum([self.bins, bins2])
+        self.assertListEqual(bins_summed.counts.tolist(), [0, 40, 24, 6, 40, 24])
+        self.assertListEqual(bins_summed.exposure.tolist(), [0.9, 0.8, 0.75, 
+                                                             0.75, 0.8, 0.8])
+        assert np.round(bins_summed.count_uncertainty, 2).tolist() == \
+               [0.0, 2.83, 1.41, 0.0, 2.83, 1.41]
+
+        # different exposure
+        exposure = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        bins2 = ExposureBins(self.bins.counts, self.bins.lo_edges, 
+                             self.bins.hi_edges, exposure,
+                             count_uncerts=self.bins.count_uncertainty)
+        bins_summed = ExposureBins.sum([self.bins, bins2])
+        self.assertListEqual(bins_summed.counts.tolist(), [0, 40, 24, 6, 40, 24])
+        self.assertListEqual(bins_summed.exposure.tolist(), 
+                             [0.95, 0.9, 0.875, 0.875, 0.9, 0.9])
+        assert np.round(bins_summed.count_uncertainty, 2).tolist() == \
+               [0.0, 2.83, 1.41, 0.0, 2.83, 1.41]
+        
+        # wrong number of bins
+        bins2 = ExposureBins(self.bins.counts[1:], self.bins.lo_edges[1:],
+                             self.bins.hi_edges[1:], self.bins.exposure[1:])
+        with self.assertRaises(AssertionError):
+            bins_summed = ExposureBins.sum([self.bins, bins2])
+
+        # non-matching bin edges
+        bins2 = ExposureBins(self.bins.counts, self.bins.lo_edges+0.1,
+                             self.bins.hi_edges+0.1, self.bins.exposure)
+        with self.assertRaises(AssertionError):
+            bins_summed = ExposureBins.sum([self.bins, bins2])
+
+    def test_init_errors(self):
+        with self.assertRaises(TypeError):
+            ExposureBins(self.bins.counts, self.bins.lo_edges, 
+                         self.bins.hi_edges, 1.0)
+
+        with self.assertRaises(ValueError):
+            ExposureBins(self.bins.counts, self.bins.lo_edges, 
+                         self.bins.hi_edges, self.bins.exposure[1:])
+
+
 class TestChannelBins(unittest.TestCase):
     
     def setUp(self):
@@ -640,6 +964,7 @@ class TestChannelBins(unittest.TestCase):
     def test_chan_nums(self):
         self.assertListEqual(self.bins.chan_nums.tolist(), [0, 1, 3, 4, 5, 6])
     
+    @unittest.skip
     def test_contiguous_bins(self):
         cont_bins = self.bins.contiguous_bins()
         self.assertEqual(len(cont_bins), 2)

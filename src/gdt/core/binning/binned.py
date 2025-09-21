@@ -57,6 +57,7 @@ def combine_by_factor(counts, count_uncert, exposure, old_edges, bin_factor):
     # then remove the modulo bins
     if mod != 0:
         counts = counts[:-mod]
+        count_uncert = count_uncert[:-mod]
         exposure = exposure[:-mod]
     # reshape and combine counts and exposure
     new_counts = counts.reshape(-1, bin_factor).sum(axis=1)
