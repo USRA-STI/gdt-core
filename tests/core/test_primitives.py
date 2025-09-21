@@ -1105,17 +1105,35 @@ class TestChannelBins(unittest.TestCase):
             ChannelBins.create(self.bins.counts, self.bins.chan_nums[0], 
                                self.bins.exposure)
     
-
+    def test_with_uncerts(self):
+        uncerts = [5, 4, 3, 2, 0, 1]
+        bins = ChannelBins.create(self.bins.counts, self.bins.chan_nums, 
+                                  self.bins.exposure, count_uncerts=uncerts)
+        
+        assert bins.count_uncertainty.tolist() == uncerts
+        
+        sliced = bins.slice(3, 4)
+        assert sliced.count_uncertainty.tolist() == [3, 2]
+        
+        
 class TestTimeBins(unittest.TestCase):
     
-    def test_init(self):
+    def setUp(self):
         counts = [0, 20, 12, 3]
         exposure = [0.9, 0.8, 0.75, 0.75]
         low = [0.0, 1.0, 2.5, 3.5]
         high = [1.0, 2.0, 3.5, 4.5]
-        bins = TimeBins(counts, low, high, exposure)
-        self.assertIsInstance(bins, TimeBins)
-
+        self.bins = TimeBins(counts, low, high, exposure)
+        
+    def test_init(self):
+        self.assertIsInstance(self.bins, TimeBins)
+    
+    def test_with_uncerts(self):
+        uncerts = [0, 1, 2, 3]
+        bins = TimeBins(self.bins.counts, self.bins.lo_edges, self.bins.hi_edges, 
+                        self.bins.exposure, count_uncerts=uncerts)
+        assert bins.count_uncertainty.tolist() == uncerts
+        
 
 class TestEnergyBins(unittest.TestCase):
     
@@ -1172,6 +1190,20 @@ class TestEnergyBins(unittest.TestCase):
         with self.assertRaises(AssertionError):
             bins_summed = EnergyBins.sum([self.bins, bins2])
 
+    def test_with_uncerts(self):
+        uncerts = [4, 3, 2, 1, 0]
+        bins = EnergyBins(self.bins.counts, self.bins.lo_edges, self.bins.hi_edges, 
+                         self.bins.exposure, count_uncerts=uncerts)
+        
+        assert bins.count_uncertainty.tolist() == uncerts
+
+        bins_summed = EnergyBins.sum([bins, bins])
+        self.assertListEqual(bins_summed.counts.tolist(), [40, 100, 34, 6, 0])
+        self.assertListEqual(bins_summed.exposure.tolist(), [20.0]*5)
+        
+        test_uncerts = np.sqrt( 2.0 * (np.array(uncerts) ** 2) )
+        assert np.all(bins_summed.count_uncertainty == test_uncerts)
+        
 
 class TestTimeChannelBins(unittest.TestCase):
     

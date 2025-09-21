@@ -1422,6 +1422,9 @@ class ChannelBins(ExposureBins):
             counts (np.array): The array of counts in each bin
             chan_nums (np.array): The energy channel numbers
             exposure (np.array): The exposure of each bin
+            count_uncerts (np.array, optional): An array the same length as 
+                                                `counts` if the uncertainty is 
+                                                not Poisson.
             precalc_good_segments (bool, optional): If True, calculates contiguous
                                                     bin segments on initialization.
                                                     Default is True.
@@ -1556,7 +1559,8 @@ class ChannelBins(ExposureBins):
         """
         mask = (self.chan_nums <= chan_max) & (self.chan_nums >= chan_min)
         obj = self.__class__.create(self.counts[mask], self.chan_nums[mask],
-                                    self.exposure[mask])
+                                    self.exposure[mask], 
+                                    count_uncerts=self.count_uncertainty[mask])
         return obj
 
 
@@ -1568,6 +1572,11 @@ class TimeBins(ExposureBins):
         lo_edges (np.array): The low-value edges of the bins
         hi_edges (np.array): The high-value edges of the bins
         exposure (np.array): The exposure of each bin
+        count_uncerts (np.array, optional): An array the same length as `counts`
+                                            if the uncertainty is not Poisson.
+        precalc_good_segments (bool, optional): If True, calculates contiguous
+                                                bin segments on initialization.
+                                                Default is True.
     """
     def __init__(self, counts, lo_edges, hi_edges, exposure, **kwargs):
         super().__init__(counts, lo_edges, hi_edges, exposure, **kwargs)
@@ -1581,6 +1590,8 @@ class EnergyBins(ExposureBins):
         lo_edges (np.array): The low-value edges of the bins
         hi_edges (np.array): The high-value edges of the bins
         exposure (np.array): The exposure of each bin
+        count_uncerts (np.array, optional): An array the same length as `counts`
+                                            if the uncertainty is not Poisson.
         precalc_good_segments (bool, optional): If True, calculates contiguous
                                                 bin segments on initialization.
                                                 Default is True.
@@ -1638,7 +1649,10 @@ class EnergyBins(ExposureBins):
     def sum(cls, histos):
         """Sum multiple EnergyBins together if they have the same energy range
         (support).  Example use would be summing two count spectra.
-        
+
+        Note:
+            Count uncertainties are summed in quadrature.
+                
         Args:
             histos (list of :class:`EnergyBins`):  
                 A list containing the EnergyBins to be summed
@@ -1647,6 +1661,7 @@ class EnergyBins(ExposureBins):
             (:class:`EnergyBins`)
         """
         counts = np.zeros(histos[0].size)
+        uncerts = np.zeros(histos[0].size)
         exposure = 0.0
         for histo in histos:
             assert histo.size == histos[0].size, \
@@ -1654,10 +1669,13 @@ class EnergyBins(ExposureBins):
             assert np.all(histo.lo_edges == histos[0].lo_edges), \
                 "The histograms must all have the same support"
             counts += histo.counts
+            uncerts += histo.count_uncertainty ** 2
             exposure += histo.exposure
 
+        uncerts = np.sqrt(uncerts)
+
         sum_bins = cls(counts, histos[0].lo_edges, histos[0].hi_edges,
-                       exposure)
+                       exposure, count_uncerts=uncerts)
         return sum_bins
 
 
