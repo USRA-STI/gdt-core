@@ -82,10 +82,11 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         progress (Progress, optional): The progress bar object
     """
 
-    def __init__(self, progress: Progress = None):
+    def __init__(self, progress: Progress = None, timeout: float = 45.0):
         """Constructor"""
         self._progress = progress
         self._file_list = []
+        self._timeout = timeout
 
     @property
     def files(self):
@@ -242,9 +243,9 @@ class Ftp(BaseProtocol):
         progress (Progress, optional): The progress bar object
     """
 
-    def __init__(self, host='heasarc.gsfc.nasa.gov', progress: Progress = None):
+    def __init__(self, host='heasarc.gsfc.nasa.gov', progress: Progress = None, timeout: float = 45.0):
         """Constructor"""
-        super().__init__(progress)
+        super().__init__(progress, timeout)
         self._host = host
         self._ftp = None
 
@@ -289,7 +290,7 @@ class Ftp(BaseProtocol):
 
         Args:
             file (str): The file name to download
-            file_path (Path): The download file location
+            dest_dir (Path): The download file location
             verbose (bool, optional): If True, will output the download status. 
                                       Default is True.
 
@@ -370,7 +371,7 @@ class Ftp(BaseProtocol):
         """
         if host is not None:
             self._host = host
-        self._ftp = FTP_TLS(host=self._host)
+        self._ftp = FTP_TLS(host=self._host, timeout=self._timeout)
         self._ftp.login()
         self._ftp.prot_p()
 
@@ -388,7 +389,7 @@ class Ftp(BaseProtocol):
         self._ftp = None
         self._file_list = []
 
-    def pwd_r(self) -> str:
+    def pwd_r(self) -> str | None:
         """(str): the current directory."""
         self._validate_connection()
         if self._ftp is not None:
@@ -429,9 +430,9 @@ class Http(BaseProtocol):
 
     def __init__(self, url='https://heasarc.gsfc.nasa.gov/FTP/',
                  start_key='<a href="', end_key='">', table_key='Parent Directory</a>',
-                 progress: Progress = None, context: ssl.SSLContext = None):
+                 progress: Progress = None, context: ssl.SSLContext = None, timeout: float = 45.0):
         """Constructor"""
-        super().__init__(progress)
+        super().__init__(progress, timeout)
         self._url = url
         # keys are used to parse the HTTP/HTTPS file index
         self._start_key = start_key
@@ -461,8 +462,10 @@ class Http(BaseProtocol):
         Returns:
             (list of str)
         """
+        if not path.endswith('/'):
+            path = path + '/'
         files = []
-        page = urlopen(self.urljoin(path), context=self._context)
+        page = urlopen(self.urljoin(path), context=self._context, timeout=self._timeout)
         table = page.read().decode("utf-8").split(self._table_key)[1]
         for line in table.split("\n"):
             if self._start_key in line:
@@ -488,7 +491,7 @@ class Http(BaseProtocol):
 
         Args:
             file (str): The file name to download
-            file_path (Path): The download file location
+            dest_dir (Union[str, Path]): The destination directory
             verbose (bool, optional): If True, will output the download status.
                                       Default is True.        
         
@@ -531,7 +534,7 @@ class Http(BaseProtocol):
         dest_dir.mkdir(parents=True, exist_ok=True)
         file_path = dest_dir.joinpath(file)
 
-        response = urlopen(url, context=self._context)
+        response = urlopen(url, context=self._context, timeout=self._timeout)
         with file_path.open('wb') as fp:
             if verbose:
                 total_size = int(response.headers["Content-Length"])
@@ -585,9 +588,9 @@ class Aws(Http):
     """
     def __init__(self, url='https://nasa-heasarc.s3.amazonaws.com',
                  start_key='<Key>', end_key='</Key>', table_key='</IsTruncated>',
-                 progress: Progress = None, context: ssl.SSLContext = None):
+                 progress: Progress = None, context: ssl.SSLContext = None, timeout: float = 45.0):
 
-        super().__init__(url, start_key, end_key, table_key, progress, context)
+        super().__init__(url, start_key, end_key, table_key, progress, context, timeout)
 
     def _ls(self, path: str):
         """List the directory contents of an AWS directory associated with
@@ -600,7 +603,8 @@ class Aws(Http):
             (list of str)
         """
         files = []
-        page = urlopen(self.urljoin("?list-type=2&prefix=" + path.lstrip("/")), context=self._context)
+        page = urlopen(self.urljoin("?list-type=2&prefix=" + path.lstrip("/")), context=self._context,
+                       timeout=self._timeout)
         table = page.read().decode("utf-8").split(self._table_key)[1]
         for line in table.split(self._start_key)[1:]:
             full_path = line.split(self._end_key)[0]
@@ -633,11 +637,18 @@ class BaseFinder(AbstractContextManager, ABC):
         **kwargs: Options passed to :class:`Http` class for HTTPS protocol and 
                   :class:`Ftp` class for FTP protocol.
     """
+    timeout: int = 30
+
     def __init__(self, *args, protocol='HTTPS', **kwargs):
         """Constructor"""
         self._args = None
         self.protocol = protocol
         self._cwd = ''
+
+        # default timeout
+        if 'timeout' not in kwargs:
+            kwargs['timeout'] = self.timeout
+
         if protocol in ['HTTP', 'HTTPS']:
             self._protocol = Http(**kwargs)
         elif protocol == 'FTP':
@@ -776,10 +787,10 @@ class FileDownloader(AbstractContextManager):
     Parameters:
         progress (Progress, optional): The progress bar object
     """
-    def __init__(self, progress: Progress = None):
+    def __init__(self, progress: Progress = None, timeout: float = 45.0):
         """Constructor"""
-        self._http = Http('', progress=progress)
-        self._ftp = Ftp(host=None, progress=progress)
+        self._http = Http('', progress=progress, timeout=timeout)
+        self._ftp = Ftp(host=None, progress=progress, timeout=timeout)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit current context"""
@@ -805,7 +816,7 @@ class FileDownloader(AbstractContextManager):
         """Download files from a list of URLs.
 
         Args:
-            url (list of str): The urls of files to download
+            urls (list of str): The urls of files to download
             dest_dir (str, Path): The directory where the file will be written
             verbose (bool, optional): If True, will output the download status.
                                       Default is True.
