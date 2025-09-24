@@ -80,9 +80,10 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         
     Parameters:
         progress (Progress, optional): The progress bar object
+        timeout (float, optional): Seconds to wait before timing out operation.
     """
 
-    def __init__(self, progress: Progress = None, timeout: float = 45.0):
+    def __init__(self, progress: Progress = None, timeout: float = 90.0):
         """Constructor"""
         self._progress = progress
         self._file_list = []
@@ -241,9 +242,10 @@ class Ftp(BaseProtocol):
     Parameters:
         host (str, optional): The host of the FTP archive
         progress (Progress, optional): The progress bar object
+        timeout (float, optional): Seconds to wait before timing out operation.
     """
 
-    def __init__(self, host='heasarc.gsfc.nasa.gov', progress: Progress = None, timeout: float = 45.0):
+    def __init__(self, host='heasarc.gsfc.nasa.gov', progress: Progress = None, timeout: float = 90.0):
         """Constructor"""
         super().__init__(progress, timeout)
         self._host = host
@@ -426,11 +428,12 @@ class Http(BaseProtocol):
         table_key (str, optional): Key used to indentify the start of the table with file names
         progress (Progress, optional): The progress bar object
         context (SSLContext, optional): The SSL certificates context
+        timeout (int, optional): The timeout in seconds for the connection
     """
 
     def __init__(self, url='https://heasarc.gsfc.nasa.gov/FTP/',
                  start_key='<a href="', end_key='">', table_key='Parent Directory</a>',
-                 progress: Progress = None, context: ssl.SSLContext = None, timeout: float = 45.0):
+                 progress: Progress = None, context: ssl.SSLContext = None, timeout: float = 90.0):
         """Constructor"""
         super().__init__(progress, timeout)
         self._url = url
@@ -588,7 +591,7 @@ class Aws(Http):
     """
     def __init__(self, url='https://nasa-heasarc.s3.amazonaws.com',
                  start_key='<Key>', end_key='</Key>', table_key='</IsTruncated>',
-                 progress: Progress = None, context: ssl.SSLContext = None, timeout: float = 45.0):
+                 progress: Progress = None, context: ssl.SSLContext = None, timeout: float = 90.0):
 
         super().__init__(url, start_key, end_key, table_key, progress, context, timeout)
 
@@ -637,17 +640,11 @@ class BaseFinder(AbstractContextManager, ABC):
         **kwargs: Options passed to :class:`Http` class for HTTPS protocol and 
                   :class:`Ftp` class for FTP protocol.
     """
-    timeout: int = 30
-
     def __init__(self, *args, protocol='HTTPS', **kwargs):
         """Constructor"""
         self._args = None
         self.protocol = protocol
         self._cwd = ''
-
-        # default timeout
-        if 'timeout' not in kwargs:
-            kwargs['timeout'] = self.timeout
 
         if protocol in ['HTTP', 'HTTPS']:
             self._protocol = Http(**kwargs)
@@ -786,8 +783,9 @@ class FileDownloader(AbstractContextManager):
 
     Parameters:
         progress (Progress, optional): The progress bar object
+        timeout (int, optional): Seconds to wait before timing out operations.
     """
-    def __init__(self, progress: Progress = None, timeout: float = 45.0):
+    def __init__(self, progress: Progress = None, timeout: float = 90.0):
         """Constructor"""
         self._http = Http('', progress=progress, timeout=timeout)
         self._ftp = Ftp(host=None, progress=progress, timeout=timeout)
