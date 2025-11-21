@@ -92,6 +92,21 @@ class NaivePoisson():
         self._actual_widths = actual_widths
         self._rates = rates
 
+        rates_interp = []
+        width_interp = []
+        for i in range(self._numchans):
+            if self._times[i].size-1 == rates[i].size:
+                idx = 0
+            else:
+                idx = 1
+            rates_interp.append(
+                interp1d(self._times[i][idx:-1], rates[i], fill_value='extrapolate'))
+            width_interp.append(
+                interp1d(self._times[i][idx:-1], actual_widths[i], fill_value='extrapolate'))
+
+        self._rates_interp = rates_interp
+        self._width_interp = width_interp
+
     def interpolate(self, tstart, tstop):
         """Interpolate the background at the given times
         
@@ -107,18 +122,9 @@ class NaivePoisson():
         rates = []
         uncert = []
         for i in range(self._numchans):
-            if self._times[i].size-1 == self._rates[i].size:
-                idx = 0
-            else:
-                idx = 1
-            rates_interp = interp1d(self._times[i][idx:-1], self._rates[i],
-                                        fill_value='extrapolate')
-            width_interp = interp1d(self._times[i][idx:-1],
-                                    self._actual_widths[i],
-                                    fill_value='extrapolate')
-            r = rates_interp(times)
+            r = self._rates_interp[i](times)
             r[r < 0.0] = 0.0
-            widths = width_interp(times)
+            widths = self._width_interp[i](times)
             mask = (widths > 0.0)
             u = np.zeros_like(widths)
             u[mask] = np.sqrt(r[mask]/widths[mask])
