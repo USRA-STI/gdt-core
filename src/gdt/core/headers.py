@@ -26,6 +26,9 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import warnings
+from typing import Any, List, Tuple
+
 import astropy.io.fits as fits
 from astropy.time import Time
 
@@ -37,7 +40,7 @@ __all__ = ['Header', 'FileHeaders']
 
 class Header(fits.Header):
     """A FITS header, subclassed from astropy.io.fits.Header.  
-    This class should be further sub-classed with the following the class
+    This class should be furthered sub-classed with the following the class
     variables:
     
         *  name - The name of the extension
@@ -53,31 +56,31 @@ class Header(fits.Header):
     Once initialized, the class behaves as any other astropy.io.fits.Header, 
     however, new keywords cannot be added after initialization.
     """
-    def __init__(self, cards = [], *args, **kwargs):
+    name : str  # Name of extension.
+    keywords : List[Tuple[str, Any, Any] | Tuple[str, Any]] | None
+
+    def __init__(self, cards = None, copy = False, *args, **kwargs):
         
+        super().__init__(
+            cards=cards if cards is not None else [],
+            copy=copy
+        )
+
         # an extension name must be set
         if not hasattr(self, 'name'):
-            raise AttributeError("Header must have class attribute 'name' " \
+            raise AttributeError("Header must have class attribute 'name' "
                                  "defined")
-        
+
         if not hasattr(self, 'keywords'):
             self.keywords = []
             
         self._kw_types = {kw[0]: type(kw[1]) for kw in self.keywords}
         
         # fill the header with the keywords
-        super().__init__()
         for keyword in self.keywords:
-            self.append(keyword)
+            if keyword[0] not in self:
+                self.append(keyword)
         self.keywords = None
-
-        if isinstance(cards, fits.Header):
-            cards = cards.cards
-        elif isinstance(cards, dict):
-            cards = cards.items()
-
-        for card in cards:
-            self[card[0]] = card[1]
 
         for key, val in kwargs.items():
             self[key] = val
@@ -88,7 +91,7 @@ class Header(fits.Header):
     def __setitem__(self, key, val):
         
         # pass-through for COMMENT
-        if isinstance(key, tuple):
+        if isinstance(key, tuple) or isinstance(val, tuple):
             super().__setitem__(key, val)
             return
         
@@ -115,8 +118,8 @@ class Header(fits.Header):
                 'Software and version creating file') 
     
 
-class FileHeaders():
-    """A collection of FITS headers. This class should be further sub-classed 
+class FileHeaders:
+    """A collection of FITS headers. This class should be furthered sub-classed
     with the class variables:
     
         *  _header_templates - A list of :class:`Header`, where each header is
@@ -125,10 +128,12 @@ class FileHeaders():
     Once initialized, each header can be accessed either by the extension name,
     e.g., 'PRIMARY' or by extension index.
     """
+    _header_templates: List[Header] | None
+
     def __init__(self):
         
         if not hasattr(self, '_header_templates'):
-            raise AttributeError('FileHeaders must have class attribute '\
+            raise AttributeError('FileHeaders must have class attribute '
                                  '_header_templates')
         
         self._headers = {h.name: h for h in copy.deepcopy(self._header_templates)}
@@ -164,7 +169,7 @@ class FileHeaders():
         for hdr in self._headers.values():
             try:
                 hdr['DATE'] = date
-            except:
+            except KeyError:
                 pass
                 
     @classmethod
@@ -189,14 +194,28 @@ class FileHeaders():
             cidx = 0
             hidx = 0
             for key in obj[i].keys():
-                if (key == 'COMMENT'):
-                    obj[i][key][cidx] = headers[i][key][cidx]
-                    cidx += 1
-                elif (key == 'HISTORY'):
-                    obj[i][key][hidx] = headers[i][key][hidx]
-                    hidx += 1
+                if key == 'COMMENT':
+                    try:
+                        obj[i][key][cidx] = headers[i][key][cidx]
+                        cidx += 1
+                    except KeyError:
+                        warnings.warn(f'{key} not found in header {obj[i].name}',
+                                      RuntimeWarning, stacklevel=2)
+
+                elif key == 'HISTORY':
+                    try:
+                        obj[i][key][hidx] = headers[i][key][hidx]
+                        hidx += 1
+                    except KeyError:
+                        warnings.warn(f'{key} not found in header {obj[i].name}',
+                                      RuntimeWarning, stacklevel=2)
+
                 else:
-                    obj[i][key] = headers[i][key]
+                    try:
+                        obj[i][key] = headers[i][key]
+                    except KeyError:
+                        warnings.warn(f'{key} not found in header {obj[i].name}',
+                                      RuntimeWarning, stacklevel=2)
         
         return obj
         

@@ -27,6 +27,7 @@
 # License.
 #
 import unittest
+import warnings
 from gdt.core.headers import Header, FileHeaders
 
 # classes for unit tests
@@ -154,6 +155,28 @@ class TestHeader(unittest.TestCase):
         with self.assertRaises(AttributeError):
             MyBadHeader()
 
+    def test_copy_from_header(self):
+        original = MyHeader()
+        original['STRING'] = 'Original String'
+
+        copy = MyHeader(original, copy=True)
+        self.assertEqual('Original String', copy['STRING'])
+
+        copy['STRING'] = 'Copy String'
+        self.assertEqual('Original String', original['STRING'] )
+        self.assertEqual('Copy String', copy['STRING'] )
+
+    def test_from_header(self):
+        original = MyHeader()
+        original['STRING'] = 'Original String'
+
+        copy = MyHeader(original, copy=False)
+        self.assertEqual('Original String', copy['STRING'])
+
+        copy['STRING'] = 'Copy String'
+        self.assertEqual('Copy String', original['STRING'] )
+        self.assertEqual('Copy String', copy['STRING'] )
+
 
 class TestFileHeaders(unittest.TestCase):
     
@@ -192,6 +215,11 @@ class TestFileHeaders(unittest.TestCase):
         with self.assertRaises(ValueError):
              MyFileHeaders.from_headers([MyHeader()])
 
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            MyFileHeaders.from_headers([MyHeader(), MyHeader()])
+            assert len(w) == 3
+
     def test_creator(self):
         creator = self.headers.creator()
         self.assertEqual(creator[0], 'CREATOR')
@@ -199,7 +227,7 @@ class TestFileHeaders(unittest.TestCase):
     def test_init_errors(self):
         with self.assertRaises(AttributeError):
             MyBadFileHeaders()
-           
+
 if __name__ == '__main__':
     unittest.main()
 
