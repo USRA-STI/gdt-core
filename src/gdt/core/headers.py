@@ -80,6 +80,15 @@ class Header(fits.Header):
         for keyword in self.keywords:
             if keyword[0] not in self:
                 self.append(keyword)
+            # If there are already comments or history cards, let's not duplicate an existing one.
+            elif keyword[0] == 'COMMENT' or keyword[0] == 'HISTORY':
+                found = False
+                for card in self.cards:
+                    if card[0] == keyword[0] and card[1] == keyword[1]:
+                        found = True
+                if not found:
+                    self.append(keyword)
+
         self.keywords = None
 
         for key, val in kwargs.items():
