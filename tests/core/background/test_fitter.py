@@ -26,14 +26,14 @@ import os
 import numpy as np
 import unittest
 
-from gdt.core.data_primitives import TimeEnergyBins, Gti, Ebounds, EventList
+from gdt.core.data_primitives import TimeEnergyBins,TimeChannelBins, Gti, Ebounds, EventList
 from gdt.core.phaii import Phaii
 from gdt.core.tte import PhotonList
 from gdt.core.background.fitter import BackgroundFitter
 from gdt.core.background.binned import Polynomial
 from gdt.core.background.unbinned import NaivePoisson
 
-
+this_dir = os.path.dirname(__file__)
 
 class TestBinnedFitter(unittest.TestCase):
 
@@ -85,7 +85,86 @@ class TestBinnedFitter(unittest.TestCase):
         rates = self.fitter.interpolate_bins(self.phaii.data.tstart, 
                                              self.phaii.data.tstop)
         self.assertTupleEqual(rates.size, (6, 8))
-     
+
+    def test_write(self):
+
+        filepath = os.path.join(this_dir, 'test.bak')
+
+        rates = self.fitter.interpolate_bins(self.phaii.data.tstart,
+                                             self.phaii.data.tstop)
+        bak = rates.to_bak(time_range=(0, 1))
+        bak.write(directory=this_dir, filename=os.path.basename(filepath), overwrite=True)
+
+        self.assertTrue(os.path.exists(filepath))
+        os.remove(filepath)
+
+    def test_errors(self):
+        with self.assertRaises(TypeError):
+            BackgroundFitter.from_phaii(0.0, Polynomial)
+        
+        with self.assertRaises(NameError):
+            BackgroundFitter.from_phaii(self.phaii, UndefinedClass)
+        
+        with self.assertRaises(NotImplementedError):
+            BackgroundFitter.from_phaii(self.phaii, Phaii)
+        
+        with self.assertRaises(TypeError):
+            BackgroundFitter.from_phaii(self.phaii, Polynomial, time_ranges=0.0)
+
+class TestBinnedFitterUncalibrated(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        counts = [[ 0,  0,  2,  1,  2,  0,  0,  0],
+                  [ 3, 16, 10, 13, 14,  4,  3,  3],
+                  [ 3, 23, 26, 13,  8,  8,  5,  5],
+                  [ 4, 21, 19, 16, 13,  2,  3,  4],
+                  [ 4, 20, 17, 11, 15,  2,  1,  5],
+                  [ 6, 20, 19, 11, 11,  1,  4,  4]]
+        tstart = [0.0000, 0.0039, 0.0640, 0.1280, 0.1920, 0.2560]          
+        tstop = [0.0039, 0.0640, 0.1280, 0.1920, 0.2560, 0.320]
+        exposure = [0.0038, 0.0598, 0.0638, 0.0638, 0.0638, 0.0638]
+        chan_nums=[0, 1, 2, 3, 4, 5, 6, 7]
+         
+        data = TimeChannelBins(counts, tstart, tstop, exposure, chan_nums)
+        gti = Gti.from_list([(0.0000, 0.320)])
+        cls.phaii = Phaii.from_data(data, gti=gti, trigger_time=356223561.133346)
+        
+        cls.fitter = BackgroundFitter.from_phaii(cls.phaii, Polynomial)
+        cls.fitter.fit(order=1)
+    
+    def test_dof(self):
+        self.assertEqual(self.fitter.dof.size, 8)
+
+    def test_livetime(self):
+        self.assertEqual(self.fitter.livetime, 0.3188)
+
+    def test_method(self):
+        self.assertEqual(self.fitter.method, 'Polynomial')
+
+    def test_parameters(self):
+        self.assertDictEqual(self.fitter.parameters, {'order': 1})
+
+    def test_statistic(self):
+        self.assertEqual(self.fitter.statistic.size, 8)
+    
+    def test_statistic_name(self):
+        self.assertEqual(self.fitter.statistic_name, 'chisq')
+
+    def test_type(self):
+        self.assertEqual(self.fitter.type, 'binned')
+
+    def test_interpolate_bins(self):
+        rates = self.fitter.interpolate_bins(self.phaii.data.tstart, 
+                                             self.phaii.data.tstop)
+        self.assertTupleEqual(rates.size, (6, 8))
+
+    def test_write(self):
+        with self.assertRaises(NotImplementedError):
+            rates=self.fitter.interpolate_bins(self.phaii.data.tstart,
+                                             self.phaii.data.tstop)
+            _ = rates.to_bak()
+
     def test_errors(self):
         with self.assertRaises(TypeError):
             BackgroundFitter.from_phaii(0.0, Polynomial)
@@ -184,5 +263,4 @@ class TestUnbinnedFitter(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
       
-        
         

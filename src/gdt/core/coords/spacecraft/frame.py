@@ -378,6 +378,6 @@ def icrs_to_spacecraft(icrs_frame, sc_frame):
     az = np.arctan2(xyz_prime[:, 1], xyz_prime[:, 0])
     mask = (az < 0.0)
     az[mask] += 2.0 * np.pi
-    el = np.pi / 2.0 - np.arccos(xyz_prime[:, 2])
+    el = np.pi / 2.0 - np.arccos(np.clip(xyz_prime[:, 2],-1,1))
     return type(sc_frame)(az=az * u.radian, el=el * u.radian,
-                          quaternion=sc_frame.quaternion)
+                            quaternion=sc_frame.quaternion)

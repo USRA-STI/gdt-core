@@ -149,7 +149,10 @@ class DataCollection():
         else:
             # or try to insert using filename attribute
             try:
-                self._data_dict[str(data_item.filename)] = data_item
+                if data_item.filename is not None:
+                    self._data_dict[str(data_item.filename)] = data_item
+                else:
+                    self._data_dict['item{}'.format(len(self) + 1)] = data_item
             # otherwise default to ambiguity
             except AttributeError:
                 self._data_dict['item{}'.format(len(self) + 1)] = data_item

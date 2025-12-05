@@ -106,6 +106,13 @@ class TestTteBackgroundSimulator(TestCase):
         ev = self.sim.simulate(0.0, 10.0)
         self.assertAlmostEqual(ev.size, 2450, delta=200)
 
+    def test_set_rng(self):
+        self.sim.set_rng(np.random.default_rng(seed=1))
+        tte = self.sim.to_tte(0, 0.02)
+        ref_times = [0.0023358651492439695, 0.016066268423677706, 0.0196973800922343]
+        for i in range(len(ref_times)):
+            self.assertAlmostEqual(tte.data.times[i], ref_times[i])
+
     def test_errors(self):
         with self.assertRaises(ValueError):
             TteBackgroundSimulator(create_bkgd(), 'Gaussian', linear, 
@@ -164,6 +171,13 @@ class TestTteSourceSimulator(TestCase):
         self.sim.set_time_profile(tophat, (0.01, 1.0, 6.0))
         ev = self.sim.simulate(0.0, 10.0)
         self.assertAlmostEqual(ev.size, 1565, delta=200)
+
+    def test_set_rng(self):
+        self.sim.set_rng(np.random.default_rng(seed=1))
+        tte = self.sim.to_tte(0, 1)
+        ref_times = [1.00001486, 1.00039689]
+        for i in range(len(ref_times)):
+            self.assertAlmostEqual(tte.data.times[i], ref_times[i])
 
     def test_errors(self):
         with self.assertRaises(ValueError):

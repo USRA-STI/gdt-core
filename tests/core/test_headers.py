@@ -214,6 +214,11 @@ class TestFileHeaders(unittest.TestCase):
         # wrong number of headers
         with self.assertRaises(ValueError):
              MyFileHeaders.from_headers([MyHeader()])
+        
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            MyFileHeaders.from_headers([MyHeader(), MyHeader()])
+            assert len(w) == 3
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")

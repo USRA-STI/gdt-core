@@ -30,10 +30,13 @@ import unittest
 import numpy as np
 import astropy.coordinates.representation as r
 import pytest
-from astropy.coordinates import SkyCoord, GCRS, get_moon
+from astropy.coordinates import SkyCoord, GCRS, get_body
 from astropy.time import Time
 from gdt.core.coords import SpacecraftFrame, SpacecraftAxes, Quaternion
 from gdt.core.coords.spacecraft.axes import SpacecraftAxesAttribute
+
+from astropy.coordinates import FunctionTransform, ICRS, frame_transform_graph
+from gdt.core.coords.spacecraft.frame import icrs_to_spacecraft
 
 
 class TestSpacecraftAxes(unittest.TestCase):
@@ -287,9 +290,9 @@ class TestSpacecraftFrame(unittest.TestCase):
         sc_2 = SpacecraftFrame(obsgeoloc=r.CartesianRepresentation(-6353991.5, 44461.45, 2687083.5, unit='m'),
                                obstime=time_2)
 
-        self.assertTrue(sc_1.location_visible(get_moon(time_1)))
+        self.assertTrue(sc_1.location_visible(get_body("moon", time_1)))
         self.assertFalse(sc_1.sun_visible)
-        self.assertFalse(sc_2.location_visible(get_moon(time_2)))
+        self.assertFalse(sc_2.location_visible(get_body("moon", time_2)))
         self.assertTrue(sc_2.sun_visible)
 
     def test_interp_velocity(self):
@@ -399,3 +402,27 @@ class TestSpacecraftAxesAttribute(unittest.TestCase):
         self.assertTrue(isinstance(value, SpacecraftAxes))
         self.assertFalse(converted)
         self.assertEqual(axes, value)
+
+
+class TestFrameTransfer(unittest.TestCase):
+
+    def setUp(self):
+        class TestFrame(SpacecraftFrame):
+            pass
+        quaternion_test = [-0.5636783622078214, 0.35243503385029756,
+                            -0.34740741282879534, 0.6613352708008627]
+        
+        self.sc_frame = TestFrame(quaternion=quaternion_test)
+        self.z_point = SkyCoord(30.271184, 6.667796, unit='deg')
+
+        @frame_transform_graph.transform(FunctionTransform, ICRS, TestFrame)
+        def icrs_to_test_frame(icrs_frame, test_frame):
+            return icrs_to_spacecraft(icrs_frame, test_frame)
+
+    def test_icrs_to_spacecraft(self):
+        zaxis_test =self.z_point.transform_to(self.sc_frame)
+        self.assertAlmostEqual(zaxis_test.el.value[0], 90.0, places=3)
+       
+
+
+

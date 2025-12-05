@@ -3,6 +3,7 @@
 .. |Phaii| replace:: :class:`~gdt.core.phaii.Phaii`
 .. |Pha| replace:: :class:`~gdt.core.pha.Pha`
 .. |EnergyBins| replace:: :class:`~gdt.core.data_primitives.EnergyBins`
+.. |ChannelBins| replace:: :class:`~gdt.core.data_primitives.ChannelBins`
 .. |EventList| replace:: :class:`~gdt.core.data_primitives.EventList`
 .. |Gti| replace:: :class:`~gdt.core.data_primitives.Gti`
 .. |Ebounds| replace:: :class:`~gdt.core.data_primitives.Ebounds`
@@ -65,7 +66,7 @@ Intervals over which the data can be used for science.
   >>> # create the PhotonList object
   >>> from gdt.core.tte import PhotonList
   >>> tte = PhotonList.from_data(data, gti=gti, trigger_time=356223561.,
-                                 event_deadtime=0.001, overflow_deadtime=0.1)
+  >>>                            event_deadtime=0.001, overflow_deadtime=0.1)
   >>> tte
   <PhotonList: 
    trigger time: 356223561.0;
@@ -245,6 +246,61 @@ quite large, so make sure you have sufficient memory to perform such a merge.
    energy range (10.0, 640.0)>
   >>> phaii_merged.gti
   <Gti: 2 intervals; range (1.2671749481077967, 29.060934691909935)>
+
+No Energy Calibration
+=====================
+Sometimes TTE data does not have a native calibration associated with it or
+the calibration is applied at a later time.  We can still create a |PhotonList| 
+object without any energy calibration.
+
+  >>> import numpy as np
+  >>> from gdt.core.data_primitives import EventList, Ebounds, Gti
+  >>> # simulated Poisson rate of 1 count/sec
+  >>> times = np.random.exponential(1.0, size=100).cumsum()
+  >>> # random channel numbers
+  >>> channels = np.random.randint(0, 6, size=100)
+  >>> data = EventList(times, channels)
+  
+  >>> # construct the good time interval(s)
+  >>> gti = Gti.from_list([(0.0000, 100.0)])
+
+  >>> # create the PhotonList object
+  >>> from gdt.core.tte import PhotonList
+  >>> tte = PhotonList.from_data(data, gti=gti, trigger_time=356223561.,
+  >>>                            event_deadtime=0.001, overflow_deadtime=0.1)
+  >>> tte
+    <PhotonList: 
+     trigger time: 356223561.0;
+     time range (3.584498349257886, 114.86435298415644);
+     energy range None>
+
+All of the functionality is maintained when using uncalibrated TTE data, 
+including merging, slicing, rebinning, and converting to PHAII and 
+spectra, with the exception of creating a PHA object, which requires an 
+energy calibration. When converting to a spectrum, a |ChannelBins| object is 
+returned instead of an |EnergyBins| object:
+
+    >>> spectrum = tte.to_spectrum()
+    >>> spectrum
+    <ChannelBins: 6 bins;
+     range (0, 5);
+     1 contiguous segments>
+
+If, after creating the uncalibrated |PhotonList| object, we want to apply an 
+energy calibration, we can do that by creating an |Ebounds| object containing 
+the energy edges.  This will update the energy information within the 
+|EventList| container.
+
+    >>> emin = [10.0, 20.0, 40.0, 80.0, 160.0, 320.0]
+    >>> emax = [20.0, 40.0, 80.0, 160.0, 320.0, 640.0]
+    >>> ebounds = Ebounds.from_bounds(emin, emax)
+    >>> tte.set_ebounds(ebounds)
+    >>> tte
+    <PhotonList: 
+     trigger time: 356223561.0;
+     time range (3.584498349257886, 114.86435298415644);
+     energy range (10.0, 640.0)>
+
 
 
 For Developers:

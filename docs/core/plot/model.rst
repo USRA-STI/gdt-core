@@ -96,7 +96,7 @@ And unfortunately since Matplotlib doesn't currently support updating the
 legend when the corresponding plot elements are changed, we need to update the
 legend as well:
 
-    >>> for item, color in zip(modelplot.ax.get_legend().legendHandles, colors):
+    >>> for item, color in zip(modelplot.ax.get_legend().legend_handles, colors):
     >>>     item.set_color(color)
 
 .. image:: model_figs/modelfig5.png
@@ -125,7 +125,7 @@ spectrum view.  And again, we will have to update the legend.
     >>> for item, color in zip(modelplot.spectrum_model, colors):
     >>>     item.color = color
 
-    >>> for item, color in zip(modelplot.ax.get_legend().legendHandles, colors):
+    >>> for item, color in zip(modelplot.ax.get_legend().legend_handles, colors):
     >>>     item.set_color(color)
 
 .. image:: model_figs/modelfig7.png

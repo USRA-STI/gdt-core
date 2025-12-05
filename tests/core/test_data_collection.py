@@ -24,6 +24,7 @@
 #
 import numpy as np
 import os
+import unittest
 from unittest import TestCase, skip
 from gdt.core.collection import DataCollection
 
@@ -82,6 +83,11 @@ class TestDataCollection(TestCase):
         attributes = self.collection.get_attribute()
         self.assertCountEqual(attributes, [1.0, 2.0, 3.0])
 
+    def test_none_filename(self):
+        d4 = DataObject(None, 1.0)
+        d5 = DataObject(None, 2.0)
+        collection = DataCollection.from_list([d4, d5])
+        assert len(collection) == 2
         
 if __name__ == '__main__':
     unittest.main()

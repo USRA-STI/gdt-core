@@ -9,8 +9,9 @@ The Gamma-ray Data Tools (GDT) is centralized toolkit for hard X-ray and
 gamma-ray astrophysics data analysis, with a focus on providing a uniform 
 interface to the data provided by several different missions and instruments.
 
-The GDT Core Package (``gdt-core``) contains the core components of the GDT that
-can be utilized for various instruments and is a generalized version of the
+The `GDT Core Package <https://github.com/USRA-STI/gdt-core>`_ (``gdt-core``) 
+contains the core components of the GDT that can be utilized for various instruments 
+and is a generalized version of the
 `Fermi GBM Data Tools <https://fermi.gsfc.nasa.gov/ssc/data/analysis/gbm/gbm_data_tools/gdt-docs>`_.
 Individual mission or instrument packages can be developed using the ``gdt-core`` 
 and released under the ``gdt`` namespace (see ``gdt-fermi`` as an example).
@@ -19,6 +20,19 @@ The documentation linked below walks through all of sub-packages and modules
 within the gdt-core, and developers should take special note of the 
 "**For Developers**" sections that detail how to subclass or design plugin functions
 or classes for use in new instrument packages.
+
+.. _mission-packages:
+.. rubric:: GDT Mission Packages
+
+The following mission packages are currently part of the GDT family:
+
+* `gdt-cgro <https://astro-gdt-cgro.readthedocs.io/>`_ (BATSE)
+* `gdt-fermi <https://astro-gdt.readthedocs.io/projects/astro-gdt-fermi/>`_ (GBM)
+* `gdt-hete2 <https://astro-gdt-hete2.readthedocs.io>`_ (FREGATE)
+* `gdt-integral <https://astro-gdt-integral.readthedocs.io>`_ (SPI-ACS)
+* `gdt-maxi <https://astro-gdt-maxi.readthedocs.io>`_ (GSC)
+* `gdt-rxte <https://astro-gdt-rxte.readthedocs.io>`_ (ASM)
+* `gdt-swift <https://astro-gdt-swift.readthedocs.io>`_ (BAT)
 
 .. rubric:: Citing
 
@@ -30,8 +44,8 @@ suggest the following BibTex:
 
  @misc{GDT-Core,
        author = {Adam Goldstein and William H. Cleveland and Daniel Kocevski},
-       title = {Gamma-ray Data Tools Core Package: v2.0.0},
-       year = 2023,
+       title = {Gamma-ray Data Tools Core Package: v2.0.4},
+       year = 2024,
        url = {https://github.com/USRA-STI/gdt-core}
  }
 
@@ -101,6 +115,15 @@ Plotting
    :maxdepth: 2
    
    core/plot/plot
+
+************
+Contributing
+************
+.. toctree::
+   :maxdepth: 2
+
+   contributing
+
 
 *******
 License

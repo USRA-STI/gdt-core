@@ -7,8 +7,10 @@
 .. |Gti| replace:: :class:`~gdt.core.data_primitives.Gti`
 .. |Bins| replace:: :class:`~gdt.core.data_primitives.Bins`
 .. |ExposureBins| replace:: :class:`~gdt.core.data_primitives.ExposureBins`
+.. |ChannelBins| replace:: :class:`~gdt.core.data_primitives.ChannelBins`
 .. |EnergyBins| replace:: :class:`~gdt.core.data_primitives.EnergyBins`
 .. |TimeBins| replace:: :class:`~gdt.core.data_primitives.TimeBins`
+.. |TimeChannelBins| replace:: :class:`~gdt.core.data_primitives.TimeChannelBins`
 .. |TimeEnergyBins| replace:: :class:`~gdt.core.data_primitives.TimeEnergyBins`
 .. |EventList| replace:: :class:`~gdt.core.data_primitives.EventList`
 .. |ResponseMatrix| replace:: :class:`~gdt.core.data_primitives.ResponseMatrix`
@@ -132,9 +134,9 @@ number of items in a series of bins, can be represented by a |Bins| object.
 This is essentially a type of histogram with a variety of useful properties
 and methods.  A useful, specialized histogram for containing gamma-ray data 
 is defined by the |ExposureBins| class.  This class modifies |Bins| by
-incorporating an `exposure` for each bin.  Furthermore, distinct |EnergyBins|
-and |TimeBins| classes are used to contain spectral and temporal data, 
-respectively.
+incorporating an `exposure` for each bin.  Furthermore, distinct |ChannelBins|, 
+|EnergyBins|, and |TimeBins| classes are used to contain spectral and temporal 
+data.
 
 Examples
 --------
@@ -236,18 +238,55 @@ associated uncertainty:
            226.27416998, 452.54833996])
     >>> energy_bins.rates_per_kev
     array([0.01    , 0.01    , 0.0075  , 0.0025  , 0.000625, 0.      ])
+
+In the case were we don't have an energy calibration and instead only have 
+counts in a series of energy channels, we use a |ChannelBins| object. 
+
+    >>> from gdt.core.data_primitives import ChannelBins
+    >>> counts = [1, 2, 3, 2, 1, 0]
+    >>> chan_nums = [0, 1, 2, 3, 4, 5]
+    >>> exposure = 10.0
+    >>> channel_bins = ChannelBins.create(counts, chan_nums, exposure)
+    >>> channel_bins
+    <ChannelBins: 6 bins;
+     range (0, 5);
+     1 contiguous segments>
+
+The concept of bin edges is replaced by a channel number, therefore, we can 
+still perform slicing and rebinning in the same way we do with |EnergyBins|:
     
+    >>> # slice and return channels 1-3
+    >>> channel_bins.slice(1, 3)
+    <ChannelBins: 3 bins;
+     range (1, 3);
+     1 contiguous segments>
+
+    >>> # rebin by factor of 3
+    >>> rebinned_channel_bins = channel_bins.rebin(combine_by_factor, 3)
+    >>> rebinned_channel_bins
+    <ChannelBins: 2 bins;
+     range (0, 3);
+     1 contiguous segments>
+
+One behavior you should take note in rebinning ChannelBins is that the channel 
+numbers are not renumbered:
+
+    >>> rebinned_channel_bins.chan_nums
+    array([0, 3])
+    >>> rebinned_channel_bins.size
+    2
+
 
 .. _core-data_primitives-2d:
 
 2D Binned Data
 ==============
 We extend the philosophy of 1D time *or* energy data to 2D time *and* energy 
-data in the |TimeEnergyBins| class.  This data type is essentially a 2D 
-histogram, where one axis is time, and the other is energy, and the 
-corresponding attributes and methods are available for the respective axes.
-Additionally, this class has the ability to integrate along either axis to 
-produce a |TimeBins| or |EnergyBins|.
+data in the |TimeChannelBins| and |TimeEnergyBins| classes.  These data type 
+are essentially 2D histograms, where one axis is time, and the other is energy, 
+and the corresponding attributes and methods are available for the respective 
+axes. Additionally, this class has the ability to integrate along either axis to 
+produce a |TimeBins| or |ChannelBins|/|EnergyBins|.
 
 Examples
 --------
@@ -294,6 +333,75 @@ can integrate along either axis, as well:
      range (10.0, 80.0);
      1 contiguous segments>
 
+|TimeChannelBins| are initialized in the same way, but instead of energy bin
+edges, the object is initialized with channel numbers:
+
+    >>> from gdt.core.data_primitives import TimeChannelBins
+    >>> counts = [[1, 4, 1], [2, 3, 0], [3, 2, 1], [4, 1, 2]]
+    >>> tstart = [0.1, 0.2, 0.3, 0.4]
+    >>> tstop = [0.2, 0.3, 0.4, 0.5]
+    >>> exposure = [0.8, 0.8, 0.8, 0.8]
+    >>> chan_nums = [0, 1, 2]
+    >>> tc_bins = TimeChannelBins(counts, tstart, tstop, exposure, chan_nums)
+    >>> tc_bins
+    <TimeChannelBins: 4 time bins;
+     time range (0.1, 0.5);
+     1 time segments;
+     3 channels;
+     channel range (0, 2);
+     1 channel segments>
+
+Most attributes and methods are the same between |TimeChannelBins| and 
+|TimeEnergyBins|, with the exception of some of the attributes associated with
+the energy axis. We can integrate over either axis (note that integrating over
+time will return a |ChannelBins| object).
+
+    >>> # create lightcurve
+    >>> tc_bins.integrate_channels(chan_min=1, chan_max=3)
+    <TimeBins: 4 bins;
+     range (0.1, 0.5);
+     1 contiguous segments>
+     
+    >>> # create energy channel spectrum
+    >>> tc_bins.integrate_time()
+    <ChannelBins: 3 bins;
+     range (0, 2);
+     1 contiguous segments>
+
+We can rebin the energy channels:
+
+    >>> tc_bins.rebin_channels(combine_by_factor, 2)
+    <TimeChannelBins: 4 time bins;
+    time range (0.1, 0.5);
+    1 time segments;
+    1 channels;
+    channel range (0, 0);
+    1 channel segments>
+    
+And we can slice by energy channel:
+
+    >>> tc_bins.slice_channels(1, 3)
+    <TimeChannelBins: 4 time bins;
+     time range (0.1, 0.5);
+     1 time segments;
+     2 channels;
+     channel range (1, 2);
+     1 channel segments>
+
+|TimeChannelBins| has the additional function that allows us to apply an 
+energy calibration via an |Ebounds| object and return a |TimeEnergyBins| object:
+
+    >>> emin = [10.0, 20.0, 40.0]
+    >>> emax = [20.0, 40.0, 80.0]
+    >>> ebounds = Ebounds.from_bounds(emin, emax)
+    >>> te_bins = tc_bins.apply_ebounds(ebounds)
+    >>> te_bins
+    <TimeEnergyBins: 4 time bins;
+     time range (0.1, 0.5);
+     1 time segments;
+     3 energy bins;
+     energy range (10.0, 80.0);
+     1 energy segments>
 
 .. _core-data_primitives-event:
 
@@ -389,6 +497,9 @@ spectrum from the EventList:
      range (10.0, 160.0);
      1 contiguous segments>
 
+Note that if the energy calibration (ebounds) is not set for |EventList|, the 
+``bin()`` method will return a |TimeChannelBins| object and the 
+``count_spectrum()`` methods returns a |ChannelBins| object.
 
 Response Matrix
 ===============

@@ -86,6 +86,14 @@ class TestPoissonBackgroundGenerator(TestCase):
         for i in range(3):
             self.assertAlmostEqual(rates_mean[i], rates[i], delta=0.5)        
 
+    def test_set_rng(self):
+        self.gen.set_rng(np.random.default_rng(seed=1))
+        dev = next(self.gen)
+
+        ref_rates = [37.5,  55.25, 19.75]
+        for i in range(3):
+            self.assertAlmostEqual(dev.rates[i], ref_rates[i])
+
 
 class TestGaussianBackgroundGenerator(TestCase):
     

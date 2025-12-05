@@ -60,7 +60,7 @@ class TteSourceSimulator:
                                     recorded. Default 0.
     """
     def __init__(self, rsp, spec_func, spec_params, time_func, time_params,
-                 sample_period=0.001, deadtime=0.0):
+                 sample_period=0.001, deadtime=0.0, rng=None):
         
         
         if sample_period <= 0.0:
@@ -68,6 +68,7 @@ class TteSourceSimulator:
         if deadtime < 0.0:
             raise ValueError('Deadtime must be non-negative')
         
+        self._rng = rng or np.random.default_rng()
         self._rsp = rsp
         self._spec_func = spec_func
         self._spec_params = spec_params
@@ -76,10 +77,22 @@ class TteSourceSimulator:
         self._sample_per = sample_period
         self._spec_gen = VariableSourceSpectrumGenerator(rsp, spec_func,
                                                          spec_params,
-                                                         sample_period)
+                                                         sample_period,
+                                                         rng=self._rng)
         self._event_gen = EventSpectrumGenerator(np.zeros(rsp.num_chans),
                                                  self._sample_per, 
-                                                 min_sep=deadtime)
+                                                 min_sep=deadtime,
+                                                 rng=self._rng)
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng
+        self._spec_gen.set_rng(self._rng)
+        self._event_gen.set_rng(self._rng)
 
     def set_response(self, rsp):
         """Set/change the detector response.
@@ -92,7 +105,8 @@ class TteSourceSimulator:
         self._rsp = rsp
         self._spec_gen = VariableSourceSpectrumGenerator(rsp, self._spec_func,
                                                          self._spec_params,
-                                                         self._sample_per)
+                                                         self._sample_per,
+                                                         rng=self._rng)
 
     def set_spectrum(self, spec_func, spec_params):
         """Set/change the spectrum.
@@ -107,7 +121,8 @@ class TteSourceSimulator:
         self._spec_gen = VariableSourceSpectrumGenerator(self._rsp,
                                                          self._spec_func,
                                                          self._spec_params,
-                                                         self._sample_per)
+                                                         self._sample_per,
+                                                         rng=self._rng)
 
     def set_time_profile(self, time_func, time_params):
         """Set/change the time profile.
@@ -197,15 +212,17 @@ class TteBackgroundSimulator:
         deadtime (float, optional): The dead time in seconds for each recorded 
                                     count during which another count cannot be 
                                     recorded. Default is 0.
+        rng (numpy.random.Generator, optional): random number generator
     """
     def __init__(self, bkgd_spectrum, distrib, time_func, time_params,
-                 sample_period=0.001, deadtime=0.0):
+                 sample_period=0.001, deadtime=0.0, rng=None):
         
         if sample_period <= 0.0:
             raise ValueError('Sample period must be positive')
         if deadtime < 0.0:
             raise ValueError('Deadtime must be non-negative')
-        
+
+        self._rng = rng or np.random.default_rng()
         self._spec_gen = None
         self._bkgd = bkgd_spectrum
         self._time_func = time_func
@@ -214,8 +231,18 @@ class TteBackgroundSimulator:
         self._deadtime = deadtime
         self._event_gen = EventSpectrumGenerator(np.zeros(self._bkgd.size),
                                                  self._sample_per, 
-                                                 min_sep=deadtime)
+                                                 min_sep=deadtime,
+                                                 rng=self._rng)
         self.set_background(bkgd_spectrum, distrib)
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng
+        self._event_gen.set_rng(self._rng)
 
     def set_background(self, bkgd_spectrum, distrib):
         """Set/change the spectrum.
@@ -236,9 +263,9 @@ class TteBackgroundSimulator:
                                   [self._sample_per] * bkgd_spectrum.size)
 
         if distrib == 'Poisson':
-            self._spec_gen = VariablePoissonBackground(bkgd)
+            self._spec_gen = VariablePoissonBackground(bkgd, rng=self._rng)
         elif distrib == 'Gaussian':
-            self._spec_gen = VariableGaussianBackground(bkgd)
+            self._spec_gen = VariableGaussianBackground(bkgd, rng=self._rng)
         else:
             raise ValueError("distrib can only be 'Poisson' or 'Gaussian'")
 
@@ -302,7 +329,7 @@ class TteBackgroundSimulator:
         # because we can end up with fractional counts for the background
         # (the *rate* is what is typically modeled, and so no guarantee that
         #  counts will come out to whole integers)
-        u = np.random.random(counts.size)
+        u = self._rng.random(counts.size)
         whole_counts = counts.astype(int)
         mask = (counts - whole_counts) > u
         whole_counts[mask] += 1
