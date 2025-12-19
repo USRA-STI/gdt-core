@@ -669,17 +669,23 @@ class HealPixLocalization(HealPix):
             center_ra = float(center_ra)
             center_dec = float(center_dec)
             radius = float(radius)
-            sigma = float(sigma)
         except:
-            raise TypeError('center_ra, center_dec, radius, and sigma must be' \
-                            ' floats')
+            raise TypeError('center_ra, center_dec, and radius sigma must be floats')
+        try:
+            sigma = [float(s) for s in sigma]
+        except
+            raise TypeError('sigma must be a list or numpy array')
+
         center_ra = center_ra % 360.0
         if center_dec < -90.0 or center_dec > 90.0:
             raise ValueError('center_dec must be between -90 and 90')
         if radius < 0:
             raise ValueError('radius must be positive')
-        if sigma < 0:
-            raise ValueError('sigma must be positive')
+        if len(sigma) > 2:
+            raise ValueError('sigma must have only 1 or 2 elements')
+        for s in sigma:
+            if s < 0:
+                raise ValueError('all elements in sigma must be positive')
 
         # Automatically calculate appropriate nside by taking the closest nside
         # with an average resolution that matches 0.2*sigma
@@ -701,8 +707,17 @@ class HealPixLocalization(HealPix):
 
         # calculate normal distribution about annulus radius with sigma width
         x = np.linspace(0.0, np.pi, int(10.0*np.pi/res))
-        pdf = norm.pdf(x, loc=radius_rad, scale=sigma_rad)
-
+        if isinstance(sigma_rad, float) or len(sigma) == 1:
+            pdf = norm.pdf(x, loc=radius_rad, scale=sigma_rad)
+        else:
+            mask_lo = x <= radius_rad
+            mask_hi = x > radius_rad
+            pdf_lo = norm.pdf(x[mask_lo], loc=radius_rad, scale=sigma_rad[0])
+            pdf_hi = norm.pdf(x[mask_hi], loc=radius_rad, scale=sigma_rad[1])
+            pdf_lo /= max(pdf_lo)
+            pdf_hi /= max(pdf_hi)
+            pdf = np.array(list(pdf_lo) + list(pdf_hi))
+            
         # cycle through annuli of radii from 0 to 180 degree with the
         # appropriate amplitude and fill the probability map
         probmap = np.zeros(hp.nside2npix(nside))
