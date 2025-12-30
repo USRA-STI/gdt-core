@@ -58,6 +58,8 @@ class NaivePoisson():
         self._window_width = None
         self._actual_widths = None
         self._rates = None
+        self._rates_interp = None
+        self._width_interp = None
 
     def fit(self, window_width=100.0, fast=True):
         """Fit the data via Naive Poisson Maximum Likelihood.
@@ -92,20 +94,17 @@ class NaivePoisson():
         self._actual_widths = actual_widths
         self._rates = rates
 
-        rates_interp = []
-        width_interp = []
+        self._rates_interp = []
+        self._width_interp = []
         for i in range(self._numchans):
-            if self._times[i].size-1 == rates[i].size:
+            if self._times[i].size-1 == self._rates[i].size:
                 idx = 0
             else:
                 idx = 1
-            rates_interp.append(
-                interp1d(self._times[i][idx:-1], rates[i], fill_value='extrapolate'))
-            width_interp.append(
-                interp1d(self._times[i][idx:-1], actual_widths[i], fill_value='extrapolate'))
-
-        self._rates_interp = rates_interp
-        self._width_interp = width_interp
+            self._rates_interp.append(
+                interp1d(self._times[i][idx:-1], self._rates[i], fill_value='extrapolate'))
+            self._width_interp.append(
+                interp1d(self._times[i][idx:-1], self._actual_widths[i], fill_value='extrapolate'))
 
     def interpolate(self, tstart, tstop):
         """Interpolate the background at the given times
