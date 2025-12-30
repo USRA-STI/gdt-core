@@ -219,11 +219,15 @@ class TestUnbinnedFitter(unittest.TestCase):
     def test_type(self):
         self.assertEqual(self.fitter.type, 'unbinned')
 
-    def test_zeros(self):
+    def test_empty_channel(self):
+        # select energy channel with 0 events
+        empty_channel = 3
+
+        # check that fit method returns zero for all rates
         tstart = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
         tstop = np.array([2.0, 3.0, 4.0, 4.0, 6.0])
         rates, uncert = self.fitter._method.interpolate(tstart, tstop)
-        self.assertListEqual(list(rates[:,3]), [0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertListEqual(list(rates[:, empty_channel]), [0.0, 0.0, 0.0, 0.0, 0.0])
 
     def test_interpolate_times(self):
     
@@ -251,6 +255,18 @@ class TestUnbinnedFitter(unittest.TestCase):
         self.assertListEqual(rates.emin.tolist(), ebounds.low_edges())
         self.assertListEqual(rates.emax.tolist(), ebounds.high_edges())
         self.assertListEqual(rates.exposure.tolist(), [0]*100)
+
+    def test_interpolate_bins(self):
+        tstart = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        tstop = np.array([2.0, 3.0, 4.0, 4.0, 6.0])
+
+        rates = self.fitter.interpolate_bins(tstart, tstop)
+        self.assertTupleEqual(rates.size, (5, 6))
+        self.assertListEqual(rates.tstart.tolist(), tstart.tolist())
+        self.assertListEqual(rates.tstop.tolist(), tstop.tolist())
+        self.assertListEqual(rates.emin.tolist(), self.fitter._data_obj.ebounds.low_edges())
+        self.assertListEqual(rates.emax.tolist(), self.fitter._data_obj.ebounds.high_edges())
+        self.assertListEqual(rates.exposure.tolist(), [0.999, 1.0, 0.998, 0.0, 0.9])
 
     def test_errors(self):
         with self.assertRaises(TypeError):
