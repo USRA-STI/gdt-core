@@ -219,6 +219,12 @@ class TestUnbinnedFitter(unittest.TestCase):
     def test_type(self):
         self.assertEqual(self.fitter.type, 'unbinned')
 
+    def test_zeros(self):
+        tstart = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        tstop = np.array([2.0, 3.0, 4.0, 4.0, 6.0])
+        rates, uncert = self.fitter._method.interpolate(tstart, tstop)
+        self.assertListEqual(list(rates[:,3]), [0.0, 0.0, 0.0, 0.0, 0.0])
+
     def test_interpolate_times(self):
     
         # simulated Poisson rate of 1 count/sec
