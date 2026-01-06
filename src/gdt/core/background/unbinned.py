@@ -58,6 +58,8 @@ class NaivePoisson():
         self._window_width = None
         self._actual_widths = None
         self._rates = None
+        self._rates_interp = None
+        self._width_interp = None
 
     def fit(self, window_width=100.0, fast=True):
         """Fit the data via Naive Poisson Maximum Likelihood.
@@ -77,20 +79,33 @@ class NaivePoisson():
                      fixed window, but is much slower.
         """
         self._window_width = window_width
-        actual_widths = []
-        rates = []
-        uncerts = []
+        self._actual_widths = []
+        self._rates = []
         for i in range(self._numchans):
             if fast:
                 r, u, w = self._fit_one_fast(i)
             else:
                 r, u, w = self._fit_one_exact(i)
-            rates.append(r)
-            uncerts.append(u)
-            actual_widths.append(w)
+            self._rates.append(r)
+            self._actual_widths.append(w)
+            # note: uncertainty 'u' from the fit is unused since
+            # we compute our own uncertainty during interpolate()
 
-        self._actual_widths = actual_widths
-        self._rates = rates
+        self._rates_interp = []
+        self._width_interp = []
+        for i in range(self._numchans):
+            if self._rates[i].size == 0:
+                self._rates_interp.append(None)
+                self._width_interp.append(None)
+                continue
+            if self._times[i].size-1 == self._rates[i].size:
+                idx = 0
+            else:
+                idx = 1
+            self._rates_interp.append(
+                interp1d(self._times[i][idx:-1], self._rates[i], fill_value='extrapolate'))
+            self._width_interp.append(
+                interp1d(self._times[i][idx:-1], self._actual_widths[i], fill_value='extrapolate'))
 
     def interpolate(self, tstart, tstop):
         """Interpolate the background at the given times
@@ -107,18 +122,13 @@ class NaivePoisson():
         rates = []
         uncert = []
         for i in range(self._numchans):
-            if self._times[i].size-1 == self._rates[i].size:
-                idx = 0
-            else:
-                idx = 1
-            rates_interp = interp1d(self._times[i][idx:-1], self._rates[i],
-                                        fill_value='extrapolate')
-            width_interp = interp1d(self._times[i][idx:-1],
-                                    self._actual_widths[i],
-                                    fill_value='extrapolate')
-            r = rates_interp(times)
+            if self._rates_interp[i] is None:
+                rates.append(np.zeros_like(times))
+                uncert.append(np.zeros_like(times))
+                continue
+            r = self._rates_interp[i](times)
             r[r < 0.0] = 0.0
-            widths = width_interp(times)
+            widths = self._width_interp[i](times)
             mask = (widths > 0.0)
             u = np.zeros_like(widths)
             u[mask] = np.sqrt(r[mask]/widths[mask])
