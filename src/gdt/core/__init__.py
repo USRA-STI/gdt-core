@@ -34,7 +34,7 @@ from importlib.resources import files
 
 _gdt_data = files('gdt.data')
 
-__version__ = '2.2.1'
+__version__ = '2.2.2'
 
 suite_path = Path(__file__).parent.parent
 

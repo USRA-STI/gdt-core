@@ -226,8 +226,7 @@ class TestSpectralFitterOne(unittest.TestCase):
         hessian = self.fitter.hessian.flatten()
         # different results on different machines
         test_vals = [-5.52657433e+5, -1.08974205e+4, -1.08974205e+4, -1.73589253e+3]
-        alt_test_vals = [-552656.27458062, -10897.85461506, -10897.85461506,
-                          -1735.97269208]
+        alt_test_vals = [-552656.27458062, -10897.85461506, -10897.85461506, -1735.97269208]
         try:
             npt.assert_allclose(hessian, test_vals)
         except AssertionError:
