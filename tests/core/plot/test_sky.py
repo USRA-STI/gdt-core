@@ -27,11 +27,23 @@ import numpy as np
 import healpy as hp
 import unittest
 import matplotlib.pyplot as plt
+import astropy.coordinates.representation as r
+import astropy.units as u
 
+from astropy.time import Time
+from gdt.core.coords import SpacecraftFrame, Quaternion
 from gdt.core.healpix import HealPixLocalization
 from gdt.core.plot.sky import SkyPlot, EquatorialPlot
+from gdt.core.detector import Detectors
 
 this_dir = os.path.dirname(__file__)
+
+
+class TestDetectors(Detectors):
+    __test__ = False
+    det0 = ('Det0', 0,  45.0 * u.deg,  45.0 * u.deg)
+    det1 = ('Det1', 1, 270.0 * u.deg, 135.0 * u.deg)
+
 
 class TestEquatorialPlot(unittest.TestCase):
 
@@ -47,10 +59,31 @@ class TestEquatorialPlot(unittest.TestCase):
 
         cls.hpx = HealPixLocalization.from_data(arr)
 
+        cls.hpx.frame = SpacecraftFrame(
+            quaternion=Quaternion.from_xyz_w(xyz=[0.0, 1.0, 0.0], w=1.0),
+            obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
+            obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
+            detectors=TestDetectors)
+
+        cls.image_file = os.path.join(this_dir, "test.png")
+
+    def tearDown(self):
+        try:
+            os.remove(self.image_file)
+        except:
+            pass
+
     def test_clevel_plot(self):
         plot = EquatorialPlot()
-        plot.add_localization(self.hpx, clevels=[0.90, 0.50], gradient=False, detectors=[])
+        plot.add_localization(self.hpx, clevels=[0.90, 0.50], gradient=False)
+        plt.savefig(self.image_file) 
 
     def test_gradient_plot(self):
         plot = EquatorialPlot()
         plot.add_localization(self.hpx, clevels=[], gradient=True, detectors=[])
+        plt.savefig(self.image_file)
+
+    def test_frame_plot(self):
+        plot = EquatorialPlot()
+        plot.add_frame(self.hpx.frame)
+        plt.savefig(self.image_file) 
