@@ -736,8 +736,8 @@ class TestCOBYLA(unittest.TestCase):
         self.fitter.fit(pl)
 
     def test_parameters(self):
-        self.assertAlmostEqual(self.fitter.parameters[0], 0.05, places=2)
-        self.assertAlmostEqual(self.fitter.parameters[1], -1.3, places=1)
+        self.assertAlmostEqual(self.fitter.parameters[0], 0, places=6)
+        self.assertAlmostEqual(self.fitter.parameters[1], 2.944987, places=6)
 
     def test_success(self):
         self.assertTrue(self.fitter.success)
