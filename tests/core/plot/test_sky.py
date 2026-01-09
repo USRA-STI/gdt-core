@@ -32,7 +32,7 @@ import astropy.units as u
 
 from astropy.time import Time
 from gdt.core.coords import SpacecraftFrame, Quaternion
-from gdt.core.healpix import HealPixLocalization
+from gdt.core.healpix import HealPixLocalization, HealPixEffectiveArea
 from gdt.core.plot.sky import SkyPlot, EquatorialPlot
 from gdt.core.detector import Detectors
 from gdt.core.plot.plot import PlotElementCollection
@@ -124,6 +124,13 @@ class TestSkyPlot(unittest.TestCase):
         heatmap = plot.plot_heatmap(arr, x, y)
         plt.savefig(self.image_file)
 
+    def test_effective_area_plot(self):
+        hpx = HealPixEffectiveArea.from_cosine(45, 45, 100, nside=8)
+
+        plot = MySkyPlot()
+        plot.add_effective_area(hpx)
+        plt.savefig(self.image_file)
+
 
 class TestEquatorialPlot(unittest.TestCase):
 
@@ -188,3 +195,21 @@ class TestEquatorialPlot(unittest.TestCase):
 
         self.assertEqual(len(plot1.detectors), 1)
         self.assertEqual(len(plot2.detectors), 2)
+
+    def test_effective_area_plot(self):
+        hpx = HealPixEffectiveArea.from_cosine(45, 45, 100, nside=8)
+
+        plot1 = EquatorialPlot()
+        plot1.add_effective_area(hpx, frame=self.hpx.frame, sun=True, earth=True, galactic_plane=True)
+        plt.savefig(self.image_file)
+
+        plot2 = EquatorialPlot()
+        plot2.add_effective_area(hpx, frame=self.hpx.frame, detectors='all')
+        plt.savefig(self.image_file)
+
+        plot3 = EquatorialPlot()
+        plot3.add_effective_area(hpx, frame=self.hpx.frame, detectors='det1')
+        plt.savefig(self.image_file)
+
+        with self.assertRaises(ValueError):
+            plot3.add_effective_area(hpx)
