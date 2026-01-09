@@ -35,14 +35,34 @@ from gdt.core.coords import SpacecraftFrame, Quaternion
 from gdt.core.healpix import HealPixLocalization
 from gdt.core.plot.sky import SkyPlot, EquatorialPlot
 from gdt.core.detector import Detectors
+from gdt.core.plot.plot import PlotElementCollection
 
 this_dir = os.path.dirname(__file__)
 
 
-class TestDetectors(Detectors):
-    __test__ = False
+class MyDetectors(Detectors):
     det0 = ('Det0', 0,  45.0 * u.deg,  45.0 * u.deg)
     det1 = ('Det1', 1, 270.0 * u.deg, 135.0 * u.deg)
+
+
+class MySkyPlot(SkyPlot):
+    _x_start = 0
+    _y_start = 0
+
+
+class TestSkyPlot(unittest.TestCase):
+
+    def test_fontsize(self):
+        plot = MySkyPlot()
+        self.assertEqual(plot.fontsize, 10)
+        plot.fontsize = 12
+        self.assertEqual(plot.fontsize, 12)
+
+    def test_text_color(self):
+        plot = MySkyPlot()
+        self.assertEqual(plot.text_color, 'black')
+        plot.text_color = 'red'
+        self.assertEqual(plot.text_color, 'red')
 
 
 class TestEquatorialPlot(unittest.TestCase):
@@ -63,7 +83,7 @@ class TestEquatorialPlot(unittest.TestCase):
             quaternion=Quaternion.from_xyz_w(xyz=[0.0, 1.0, 0.0], w=1.0),
             obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
             obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
-            detectors=TestDetectors)
+            detectors=MyDetectors)
 
         cls.image_file = os.path.join(this_dir, "test.png")
 
@@ -86,4 +106,13 @@ class TestEquatorialPlot(unittest.TestCase):
     def test_frame_plot(self):
         plot = EquatorialPlot()
         plot.add_frame(self.hpx.frame)
-        plt.savefig(self.image_file) 
+        plt.savefig(self.image_file)
+
+    def test_detectors(self):
+        plot = EquatorialPlot()
+        self.assertTrue(isinstance(plot.detectors, PlotElementCollection))
+        self.assertEqual(len(plot.detectors), 0)
+        plot.add_frame(self.hpx.frame)
+        self.assertEqual(len(plot.detectors), 2)
+
+
