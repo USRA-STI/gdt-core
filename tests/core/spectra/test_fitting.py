@@ -228,7 +228,7 @@ class TestSpectralFitterOne(unittest.TestCase):
         hessian = self.fitter.hessian.flatten()
         # different results on different machines
         test_vals = [-552658.1438, -10897.17019, -10897.17019, -1735.923535]
-        npt.assert_allclose(hessian, test_vals, rtol=2e-2)
+        npt.assert_allclose(hessian, test_vals, rtol=2.2e-5)
 
     def test_jacobian(self):
         jac = self.fitter.jacobian.tolist()
@@ -334,7 +334,6 @@ class TestSpectralFitterOne(unittest.TestCase):
         # different results on different machines
         test_vals = [1.7751575, -1.008375, 0.121024, -0.007504]
         npt.assert_allclose(resids[0], test_vals, atol=2.7e-4, rtol=2e-4)
-
 
         # different results on different machines
         test_vals = [2.5807625, 0.8994165, 0.1262425, 0.013881]
