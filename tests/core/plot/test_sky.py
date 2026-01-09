@@ -33,7 +33,7 @@ import astropy.units as u
 from astropy.time import Time
 from gdt.core.coords import SpacecraftFrame, Quaternion
 from gdt.core.healpix import HealPixLocalization, HealPixEffectiveArea
-from gdt.core.plot.sky import SkyPlot, EquatorialPlot
+from gdt.core.plot.sky import SkyPlot, EquatorialPlot, GalacticPlot, SpacecraftPlot
 from gdt.core.detector import Detectors
 from gdt.core.plot.plot import PlotElementCollection
 
@@ -213,3 +213,34 @@ class TestEquatorialPlot(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             plot3.add_effective_area(hpx)
+
+
+class TestGalacticPlot(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.frame = SpacecraftFrame(
+            quaternion=Quaternion.from_xyz_w(xyz=[0.0, 1.0, 0.0], w=1.0),
+            obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
+            obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
+            detectors=MyDetectors)
+
+        cls.image_file = os.path.join(this_dir, "test.png")
+
+    def tearDown(self):
+        plt.close('all')
+        try:
+            os.remove(self.image_file)
+        except:
+            pass
+
+    def test_effective_area_plot(self):
+        hpx = HealPixEffectiveArea.from_cosine(45, 45, 100, nside=8)
+
+        plot = GalacticPlot()
+        plot.add_effective_area(hpx, frame=self.frame, sun=True, earth=True, galactic_plane=True)
+        plt.savefig(self.image_file)
+        plt.show()
+
+        with self.assertRaises(ValueError):
+            plot.add_effective_area(hpx)
