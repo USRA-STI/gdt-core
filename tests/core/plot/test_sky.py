@@ -104,7 +104,7 @@ class TestEquatorialPlot(unittest.TestCase):
 
     def test_clevel_plot(self):
         plot = EquatorialPlot()
-        plot.add_localization(self.hpx, clevels=[0.90, 0.50], gradient=False)
+        plot.add_localization(self.hpx, gradient=False)
         plt.savefig(self.image_file) 
 
     def test_gradient_plot(self):
