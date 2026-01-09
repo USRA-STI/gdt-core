@@ -116,7 +116,12 @@ class TestEquatorialPlot(unittest.TestCase):
         plt.savefig(self.image_file)
 
     def test_frame_plot(self):
-        plot = EquatorialPlot()
-        plot.add_frame(self.hpx.frame)
-        self.assertEqual(len(plot.detectors), 2)
+        plot1 = EquatorialPlot()
+        plot1.add_frame(self.hpx.frame, detectors='det1')
         plt.savefig(self.image_file)
+
+        plot2 = EquatorialPlot()
+        plot2.add_frame(self.hpx.frame)
+
+        self.assertEqual(len(plot1.detectors), 1)
+        self.assertEqual(len(plot2.detectors), 2)
