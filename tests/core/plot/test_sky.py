@@ -51,8 +51,17 @@ class MySkyPlot(SkyPlot):
 
 
 class TestSkyPlot(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.image_file = os.path.join(this_dir, "test.png")
+
     def tearDown(self):
         plt.close('all')
+        try:
+            os.remove(self.image_file)
+        except:
+            pass
 
     def test_fontsize(self):
         plot = MySkyPlot()
@@ -100,6 +109,20 @@ class TestSkyPlot(unittest.TestCase):
             plot.add_frame(frames)
         with self.assertRaises(TypeError):
             plot.add_frame(frames, trigtime=0.0)
+
+    def test_heatmap(self):
+        az = np.linspace(0.0, 360, 10)
+        el = np.linspace(-90, 90, 10)
+
+        x, y = np.meshgrid(az, el)
+        arr = np.zeros_like(x)
+        for i in range(10):
+            arr[i, :] = i + 1
+        arr /= arr.sum()
+
+        plot = MySkyPlot()
+        heatmap = plot.plot_heatmap(arr, x, y)
+        plt.savefig(self.image_file)
 
 
 class TestEquatorialPlot(unittest.TestCase):
