@@ -332,13 +332,9 @@ class TestSpectralFitterOne(unittest.TestCase):
         _, _, resids, uncerts = self.fitter.residuals(sigma=False)
 
         # different results on different machines
-        test_vals = [1.77541636, -1.00830332, 1.21027754e-1, -7.50400385e-3]
-        alt_test_vals = [1.77511686, -1.0084741, 0.12099988, -0.00750508]
-        try:
-            npt.assert_allclose(resids[0], test_vals)
-        except AssertionError:
-            npt.assert_allclose(resids[0], alt_test_vals)
-            
+        test_vals = [1.7751575, -1.008375, 0.121024, -0.007504]
+        npt.assert_allclose(resids[0], test_vals, atol=2.7e-4, rtol=2e-4)
+
 
         # different results on different machines
         test_vals = [2.58075373, 8.99414291e-1, 1.262423e-1, 1.38805636e-2]
