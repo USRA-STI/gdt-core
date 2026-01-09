@@ -76,6 +76,29 @@ class TestSkyPlot(unittest.TestCase):
         self.assertEqual(len(plot.loc_contours), 0)
         self.assertIsInstance(plot.loc_contours, PlotElementCollection)
 
+    def test_add_frame(self):
+        w = 3 * [1]
+        xyz = 3 * [[0.0, 1.0, 0.0]]
+        eic = [
+            (-6320675.5, -1513143.1, 2313154.5),
+            (-6320575.5, -1513043.1, 2313154.5),
+            (-6320475.5, -1512943.1, 2313154.5)
+        ]
+        time_str = ['2017-08-17 12:41:00.249', '2017-08-17 12:42:00.249', '2017-08-17 12:43:00.249']
+        frames = SpacecraftFrame(
+            quaternion=Quaternion.from_xyz_w(xyz=xyz, w=w),
+            obsgeoloc=r.CartesianRepresentation(eic, unit='m'),
+            obstime=Time(time_str, format='iso', scale='utc'),
+            detectors=MyDetectors)
+
+        plot = MySkyPlot()
+        plot.add_frame(frames, trigtime=frames[1].obstime, detectors=[], sun=False, earth=False, galactic_plane=False)
+
+        with self.assertRaises(ValueError):
+            plot.add_frame(frames)
+        with self.assertRaises(TypeError):
+            plot.add_frame(frames, trigtime=0.0)
+
 
 class TestEquatorialPlot(unittest.TestCase):
 
