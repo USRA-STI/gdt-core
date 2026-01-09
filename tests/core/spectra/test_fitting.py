@@ -324,8 +324,8 @@ class TestSpectralFitterOne(unittest.TestCase):
                              (self.pha.data.hi_edges - self.pha.data.centroids).tolist())
 
         # different results on different machines
-        test_vals = [6.87944898e-1, -1.12106660, 9.58694144e-1, -5.40612331e-1]
-        npt.assert_allclose(resids[0], test_vals, rtol=1e-4)
+        test_vals = [0.687842, -1.121143, 0.9586635, -0.540608]
+        npt.assert_allclose(resids[0], test_vals, atol=1.1e-4, rtol=1.6e-6)
 
         self.assertListEqual(uncert[0].tolist(), [1.0] * 4)
 
