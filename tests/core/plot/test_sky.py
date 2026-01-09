@@ -71,7 +71,10 @@ class TestSkyPlot(unittest.TestCase):
         self.assertEqual(plot.effective_area, None)
         self.assertEqual(plot.galactic_plane, None)
         self.assertEqual(plot.loc_posterior, None)
+        self.assertEqual(len(plot.detectors), 0)
+        self.assertIsInstance(plot.detectors, PlotElementCollection)
         self.assertEqual(len(plot.loc_contours), 0)
+        self.assertIsInstance(plot.loc_contours, PlotElementCollection)
 
 
 class TestEquatorialPlot(unittest.TestCase):
@@ -115,13 +118,5 @@ class TestEquatorialPlot(unittest.TestCase):
     def test_frame_plot(self):
         plot = EquatorialPlot()
         plot.add_frame(self.hpx.frame)
-        plt.savefig(self.image_file)
-
-    def test_detectors(self):
-        plot = EquatorialPlot()
-        self.assertTrue(isinstance(plot.detectors, PlotElementCollection))
-        self.assertEqual(len(plot.detectors), 0)
-        plot.add_frame(self.hpx.frame)
         self.assertEqual(len(plot.detectors), 2)
-
-
+        plt.savefig(self.image_file)
