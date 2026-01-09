@@ -246,10 +246,10 @@ class SkyPlot(GdtPlot):
                 information
             detectors ('all' or list):
                 A list of detectors or "all" to plot the pointings on the sky
-            earth (bool, optional): If True, plot the Earth. Default is True.
-            sun (bool, optional): If True, plot the Sun. Default is True.
+            earth (bool, optional): If True, plot the Earth. Default is False.
+            sun (bool, optional): If True, plot the Sun. Default is False.
             galactic_plane (bool, optional):
-                If True, plot the Galactic plane. Default is True.
+                If True, plot the Galactic plane. Default is False.
         """
         # determine what the resolution of the sky grid should be based on the
         # resolution of the healpix
