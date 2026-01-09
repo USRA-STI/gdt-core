@@ -64,6 +64,15 @@ class TestSkyPlot(unittest.TestCase):
         plot.text_color = 'red'
         self.assertEqual(plot.text_color, 'red')
 
+    def test_properties(self):
+        plot = MySkyPlot()
+        self.assertEqual(plot.sun, None)
+        self.assertEqual(plot.earth, None)
+        self.assertEqual(plot.effective_area, None)
+        self.assertEqual(plot.galactic_plane, None)
+        self.assertEqual(plot.loc_posterior, None)
+        self.assertEqual(len(plot.loc_contours), 0)
+
 
 class TestEquatorialPlot(unittest.TestCase):
 
