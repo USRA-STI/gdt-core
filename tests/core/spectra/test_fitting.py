@@ -337,12 +337,8 @@ class TestSpectralFitterOne(unittest.TestCase):
 
 
         # different results on different machines
-        test_vals = [2.58075373, 8.99414291e-1, 1.262423e-1, 1.38805636e-2]
-        alt_test_vals = [2.58076372, 0.89941926, 0.12624329, 0.01388067]
-        try:
-            npt.assert_allclose(uncerts[0], test_vals)
-        except AssertionError:
-            npt.assert_allclose(uncerts[0], alt_test_vals, rtol=1e-6)
+        test_vals = [2.5807625, 0.8994165, 0.1262425, 0.013881]
+        npt.assert_allclose(uncerts[0], test_vals, atol=1e-5, rtol=1e-5)
 
     def test_sample_flux(self):
         fluxes = self.fitter.sample_flux((50.0, 300.0), num_samples=10)
