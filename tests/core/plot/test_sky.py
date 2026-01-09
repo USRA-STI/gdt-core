@@ -51,6 +51,8 @@ class MySkyPlot(SkyPlot):
 
 
 class TestSkyPlot(unittest.TestCase):
+    def tearDown(self):
+        plt.close('all')
 
     def test_fontsize(self):
         plot = MySkyPlot()
@@ -123,20 +125,35 @@ class TestEquatorialPlot(unittest.TestCase):
         cls.image_file = os.path.join(this_dir, "test.png")
 
     def tearDown(self):
+        plt.close('all')
         try:
             os.remove(self.image_file)
         except:
             pass
 
-    def test_clevel_plot(self):
-        plot = EquatorialPlot()
-        plot.add_localization(self.hpx, gradient=False)
-        plt.savefig(self.image_file) 
-
-    def test_gradient_plot(self):
-        plot = EquatorialPlot()
-        plot.add_localization(self.hpx, clevels=[], gradient=True, detectors=[])
+    def test_add_localization(self):
+        plot1 = EquatorialPlot()
+        plot1.add_localization(self.hpx, gradient=True)
         plt.savefig(self.image_file)
+
+        plot2 = EquatorialPlot()
+        plot2.add_localization(self.hpx, gradient=False, detectors='det0')
+        plt.savefig(self.image_file)
+
+        # backup frame
+        frame = self.hpx.frame
+
+        # create dummy frame that will trigger exception pass for sun & earth plots
+        class DummyFrame:
+            detectors = frame.detectors
+
+        self.hpx.frame = DummyFrame()
+
+        plot3 = EquatorialPlot()
+        plot3.add_localization(self.hpx, gradient=False, detectors=[])
+
+        # restore frame
+        self.hpx.frame = frame
 
     def test_frame_plot(self):
         plot1 = EquatorialPlot()
