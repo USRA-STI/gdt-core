@@ -61,7 +61,7 @@ class MyMixin:
             pass
 
 
-class TestSkyPlot(unittest.TestCase, MyMixin):
+class TestSkyPlot(MyMixin, unittest.TestCase):
 
     def test_fontsize(self):
         plot = MySkyPlot()
@@ -132,20 +132,11 @@ class TestSkyPlot(unittest.TestCase, MyMixin):
         plt.savefig(self.image_file)
 
 
-class TestEquatorialPlot(unittest.TestCase, MyMixin):
+class TestEquatorialPlot(MyMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        nside = 8
-        npix = hp.nside2npix(nside)
-
-        # test map with single pixel smoothed by 0.2 radians
-        arr = np.zeros(npix, dtype=float)
-        arr[int(0.5 * npix)] = 1
-        arr = hp.smoothing(arr, sigma=0.2)
-
-        cls.hpx = HealPixLocalization.from_data(arr)
-
+        cls.hpx = HealPixLocalization.from_gaussian(180, 0, 10, nside=8)
         cls.hpx.frame = SpacecraftFrame(
             quaternion=Quaternion.from_xyz_w(xyz=[0.0, 1.0, 0.0], w=1.0),
             obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
@@ -206,7 +197,7 @@ class TestEquatorialPlot(unittest.TestCase, MyMixin):
             plot3.add_effective_area(hpx)
 
 
-class TestGalacticPlot(unittest.TestCase, MyMixin):
+class TestGalacticPlot(MyMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -225,3 +216,38 @@ class TestGalacticPlot(unittest.TestCase, MyMixin):
 
         with self.assertRaises(ValueError):
             plot.add_effective_area(hpx)
+
+
+class TestSpacecraftPlot(MyMixin, unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.frame = SpacecraftFrame(
+            quaternion=Quaternion.from_xyz_w(xyz=[0.0, 0.0, 1.0], w=1.0),
+            obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
+            obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
+            detectors=MyDetectors)
+
+    def test_localization_plot(self):
+        hpx = HealPixLocalization.from_gaussian(180, 30, 5, nside=64)
+        hpx.frame = self.frame
+
+        plot = SpacecraftPlot()
+        plot.add_localization(hpx, detectors=[])
+        plt.savefig(self.image_file)
+
+    def test_effective_area_plot(self):
+        hpx = HealPixEffectiveArea.from_cosine(0, 0, 100, nside=64)
+
+        plot1 = SpacecraftPlot()
+        plot1.add_effective_area(hpx)
+        plt.savefig(self.image_file)
+
+        plot2 = SpacecraftPlot(zenith=False)
+        plot2.add_effective_area(hpx)
+        plt.savefig(self.image_file)
+
+    def test_frame_plot(self):
+        plot = SpacecraftPlot()
+        plot.add_frame(self.frame)
+        plt.savefig(self.image_file)
