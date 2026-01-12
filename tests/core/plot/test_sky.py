@@ -50,11 +50,8 @@ class MySkyPlot(SkyPlot):
     _y_start = 0
 
 
-class TestSkyPlot(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.image_file = os.path.join(this_dir, "test.png")
+class MyMixin:
+    image_file = os.path.join(this_dir, "test.png")
 
     def tearDown(self):
         plt.close('all')
@@ -62,6 +59,9 @@ class TestSkyPlot(unittest.TestCase):
             os.remove(self.image_file)
         except:
             pass
+
+
+class TestSkyPlot(unittest.TestCase, MyMixin):
 
     def test_fontsize(self):
         plot = MySkyPlot()
@@ -132,7 +132,7 @@ class TestSkyPlot(unittest.TestCase):
         plt.savefig(self.image_file)
 
 
-class TestEquatorialPlot(unittest.TestCase):
+class TestEquatorialPlot(unittest.TestCase, MyMixin):
 
     @classmethod
     def setUpClass(cls):
@@ -151,15 +151,6 @@ class TestEquatorialPlot(unittest.TestCase):
             obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
             obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
             detectors=MyDetectors)
-
-        cls.image_file = os.path.join(this_dir, "test.png")
-
-    def tearDown(self):
-        plt.close('all')
-        try:
-            os.remove(self.image_file)
-        except:
-            pass
 
     def test_add_localization(self):
         plot1 = EquatorialPlot()
@@ -215,24 +206,15 @@ class TestEquatorialPlot(unittest.TestCase):
             plot3.add_effective_area(hpx)
 
 
-class TestGalacticPlot(unittest.TestCase):
+class TestGalacticPlot(unittest.TestCase, MyMixin):
 
     @classmethod
     def setUpClass(cls):
         cls.frame = SpacecraftFrame(
-            quaternion=Quaternion.from_xyz_w(xyz=[0.0, 1.0, 0.0], w=1.0),
+            quaternion=Quaternion.from_xyz_w(xyz=[0.0, 0.0, 1.0], w=1.0),
             obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
             obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
             detectors=MyDetectors)
-
-        cls.image_file = os.path.join(this_dir, "test.png")
-
-    def tearDown(self):
-        plt.close('all')
-        try:
-            os.remove(self.image_file)
-        except:
-            pass
 
     def test_effective_area_plot(self):
         hpx = HealPixEffectiveArea.from_cosine(45, 45, 100, nside=8)
@@ -240,7 +222,6 @@ class TestGalacticPlot(unittest.TestCase):
         plot = GalacticPlot()
         plot.add_effective_area(hpx, frame=self.frame, sun=True, earth=True, galactic_plane=True)
         plt.savefig(self.image_file)
-        plt.show()
 
         with self.assertRaises(ValueError):
             plot.add_effective_area(hpx)
