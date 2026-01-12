@@ -33,6 +33,8 @@ import astropy.units as u
 from gdt.core.plot.lightcurve import Lightcurve
 from gdt.core.data_primitives import TimeEnergyBins, Gti
 from gdt.core.phaii import Phaii
+from gdt.core.background.fitter import BackgroundFitter
+from gdt.core.background.binned import Polynomial
 
 this_dir = os.path.dirname(__file__)
 
@@ -59,7 +61,13 @@ class TestLightcurve(unittest.TestCase):
 
         data = TimeEnergyBins(counts, tstart, tstop, exposure, emin, emax)
         gti = Gti.from_list([(0.0000, 0.320)])
-        cls.phaii = Phaii.from_data(data, gti=gti, trigger_time=356223561.133346)
+        phaii = Phaii.from_data(data, gti=gti, trigger_time=356223561.133346)
+
+        fitter = BackgroundFitter.from_phaii(phaii, Polynomial)
+        fitter.fit(order=1)
+
+        cls.rates = phaii.to_lightcurve()
+        cls.back_rates = fitter.interpolate_bins(phaii.data.tstart, phaii.data.tstop)
 
     def tearDown(self):
         plt.close('all')
@@ -77,6 +85,6 @@ class TestLightcurve(unittest.TestCase):
         self.assertEqual(len(l.selections), 0)
 
     def test_lightcurve(self):
-        l = Lightcurve(data=self.phaii.to_lightcurve())
+        l = Lightcurve(data=self.rates, background=self.back_rates)
         plt.savefig(self.image_file)
         plt.show()
