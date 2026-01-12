@@ -31,7 +31,7 @@ import astropy.coordinates.representation as r
 import astropy.units as u
 
 from gdt.core.plot.lightcurve import Lightcurve
-from gdt.core.data_primitives import TimeEnergyBins, Gti
+from gdt.core.data_primitives import TimeEnergyBins, Gti, TimeBins
 from gdt.core.phaii import Phaii
 from gdt.core.background.fitter import BackgroundFitter
 from gdt.core.background.binned import Polynomial
@@ -66,6 +66,7 @@ class TestLightcurve(unittest.TestCase):
         fitter = BackgroundFitter.from_phaii(phaii, Polynomial)
         fitter.fit(order=1)
 
+        cls.phaii = phaii
         cls.rates = phaii.to_lightcurve()
         cls.back_rates = fitter.interpolate_bins(phaii.data.tstart, phaii.data.tstop)
 
@@ -87,4 +88,25 @@ class TestLightcurve(unittest.TestCase):
     def test_lightcurve(self):
         l = Lightcurve(data=self.rates, background=self.back_rates)
         plt.savefig(self.image_file)
-        plt.show()
+
+    def test_selection(self):
+        l = Lightcurve(data=self.rates, background=self.back_rates)
+        l.add_selection(self.phaii.to_lightcurve(time_range=(0.2, 0.3)))
+        self.assertEqual(len(l.selections), 1)
+        plt.savefig(self.image_file)
+
+    def test_remove(self):
+        l = Lightcurve(data=self.rates, background=self.back_rates)
+        l.add_selection(self.phaii.to_lightcurve(time_range=(0.2, 0.3)))
+
+        l.remove_errorbars()
+        l.remove_data()
+        l.remove_background()
+        l.remove_selections()
+
+        self.assertEqual(l.errorbars, None)
+        self.assertEqual(l.lightcurve, None)
+        self.assertEqual(l.background, None)
+        self.assertEqual(len(l.selections), 0)
+
+        plt.savefig(self.image_file)
