@@ -143,7 +143,7 @@ class Lightcurve(GdtPlot):
         color, alpha, band_alpha, kwargs = self._bkgd_settings()
         self._bkgd = LightcurveBackground(background, self._ax, color=color,
                                           alpha=alpha, band_alpha=band_alpha,
-                                          zorder=1000, **kwargs)
+                                          zorder=kwargs.pop("zorder", 1000), **kwargs)
 
     def set_data(self, data):
         """Set the lightcurve plotting data. If a lightcurve already exists,
