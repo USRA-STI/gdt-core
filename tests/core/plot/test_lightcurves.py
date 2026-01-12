@@ -69,6 +69,7 @@ class TestLightcurve(unittest.TestCase):
         cls.phaii = phaii
         cls.rates = phaii.to_lightcurve()
         cls.back_rates = fitter.interpolate_bins(phaii.data.tstart, phaii.data.tstop)
+        cls.selections = phaii.to_lightcurve(time_range=(0.2, 0.3))
 
     def tearDown(self):
         plt.close('all')
@@ -83,13 +84,13 @@ class TestLightcurve(unittest.TestCase):
 
     def test_selection(self):
         l = Lightcurve(data=self.rates, background=self.back_rates)
-        l.add_selection(self.phaii.to_lightcurve(time_range=(0.2, 0.3)))
+        l.add_selection(self.selections)
         self.assertEqual(len(l.selections), 1)
         plt.savefig(self.image_file)
 
     def test_remove(self):
         l = Lightcurve(data=self.rates, background=self.back_rates)
-        l.add_selection(self.phaii.to_lightcurve(time_range=(0.2, 0.3)))
+        l.add_selection(self.selections)
 
         l.remove_errorbars()
         l.remove_data()
@@ -100,5 +101,16 @@ class TestLightcurve(unittest.TestCase):
         self.assertEqual(l.lightcurve, None)
         self.assertEqual(l.background, None)
         self.assertEqual(len(l.selections), 0)
+
+        plt.savefig(self.image_file)
+
+    def test_set(self):
+        l = Lightcurve(data=self.rates, background=self.back_rates)
+        l.add_selection(self.selections)
+
+        # set all values again to test changes to existing lightcurve
+        l.set_data(self.rates)
+        l.set_background(self.back_rates)
+        l.add_selection(self.selections)
 
         plt.savefig(self.image_file)
