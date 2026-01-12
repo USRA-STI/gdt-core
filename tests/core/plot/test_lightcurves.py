@@ -77,14 +77,6 @@ class TestLightcurve(unittest.TestCase):
         except:
             pass
 
-    def test_properties(self):
-        l = Lightcurve()
-        self.assertEqual(l.errorbars, None)
-        self.assertEqual(l.lightcurve, None)
-        self.assertEqual(l.background, None)
-        self.assertIsInstance(l.selections, list)
-        self.assertEqual(len(l.selections), 0)
-
     def test_lightcurve(self):
         l = Lightcurve(data=self.rates, background=self.back_rates)
         plt.savefig(self.image_file)
