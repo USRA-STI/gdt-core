@@ -31,16 +31,52 @@ import astropy.coordinates.representation as r
 import astropy.units as u
 
 from gdt.core.plot.lightcurve import Lightcurve
+from gdt.core.data_primitives import TimeEnergyBins, Gti
+from gdt.core.phaii import Phaii
 
 this_dir = os.path.dirname(__file__)
 
 
 class TestLightcurve(unittest.TestCase):
 
-     def test_properties(self):
+    @classmethod
+    def setUpClass(cls):
+        cls.image_file = os.path.join(this_dir, "test.png")
+
+        counts = [[ 0,  0,  2,  1,  2,  0,  0,  0],
+                  [ 3, 16, 10, 13, 14,  4,  3,  3],
+                  [ 3, 23, 26, 13,  8,  8,  5,  5],
+                  [ 4, 21, 19, 16, 13,  2,  3,  4],
+                  [ 4, 20, 17, 11, 15,  2,  1,  5],
+                  [ 6, 20, 19, 11, 11,  1,  4,  4]]
+        tstart = [0.0000, 0.0039, 0.0640, 0.1280, 0.1920, 0.2560]
+        tstop = [0.0039, 0.0640, 0.1280, 0.1920, 0.2560, 0.320]
+        exposure = [0.0038, 0.0598, 0.0638, 0.0638, 0.0638, 0.0638]
+        emin = [4.323754, 11.464164, 26.22962, 49.60019, 101.016815,
+                290.46063, 538.1436, 997.2431]
+        emax = [11.464164, 26.22962, 49.60019, 101.016815, 290.46063,
+                538.1436, 997.2431, 2000.]
+
+        data = TimeEnergyBins(counts, tstart, tstop, exposure, emin, emax)
+        gti = Gti.from_list([(0.0000, 0.320)])
+        cls.phaii = Phaii.from_data(data, gti=gti, trigger_time=356223561.133346)
+
+    def tearDown(self):
+        plt.close('all')
+        try:
+            os.remove(self.image_file)
+        except:
+            pass
+
+    def test_properties(self):
         l = Lightcurve()
         self.assertEqual(l.errorbars, None)
         self.assertEqual(l.lightcurve, None)
         self.assertEqual(l.background, None)
         self.assertIsInstance(l.selections, list)
         self.assertEqual(len(l.selections), 0)
+
+    def test_lightcurve(self):
+        l = Lightcurve(data=self.phaii.to_lightcurve())
+        plt.savefig(self.image_file)
+        plt.show()
