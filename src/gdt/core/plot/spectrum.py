@@ -118,7 +118,7 @@ class Spectrum(GdtPlot):
         color, alpha, band_alpha, kwargs = self._bkgd_settings()
         self._bkgd = SpectrumBackground(background, self._ax, color=color,
                                         alpha=alpha, band_alpha=band_alpha,
-                                        zorder=1000, **kwargs)
+                                        zorder=kwargs.pop("zorder", 1000), **kwargs)
 
     def set_data(self, data):
         """Set the count spectrum plotting data. If a count spectrum already 
