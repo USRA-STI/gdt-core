@@ -36,6 +36,7 @@ from gdt.core.detector import Detectors
 from gdt.core.coords import SpacecraftFrame, Quaternion
 from gdt.core.spectra.fitting import SpectralFitterPgstat
 from gdt.core.plot.model import ModelFit
+from gdt.core.plot.plot import Histo, ModelSamples, PlotElementCollection
 
 this_dir = os.path.dirname(__file__)
 
@@ -50,42 +51,50 @@ class MyMixin:
 
     def tearDown(self):
         plt.close('all')
-        #try:
-        #    os.remove(self.image_file)
-        #except:
-        #    pass
+        try:
+            os.remove(self.image_file)
+        except:
+            pass
 
 
 class TestModelFitPlot(MyMixin, unittest.TestCase):
     
     def test_plot(self):
         plot = ModelFit(fitter=self.fitter)
-        #plt.savefig(self.image_file)
+        self.assertEqual(plot.view, "counts")
+        self.assertIsInstance(plot.count_data, PlotElementCollection)
+        self.assertEqual(len(plot.count_data), 3)
+        self.assertIsInstance(plot.count_models, PlotElementCollection)
+        self.assertEqual(len(plot.count_models), 3)
+        plt.savefig(self.image_file)
     
     def test_hide_residuals(self):
         plot = ModelFit(fitter=self.fitter)
         plot.hide_residuals()
-        #plt.savefig(self.image_file)
+        plt.savefig(self.image_file)
 
     def test_show_residuals(self):
         plot = ModelFit(fitter=self.fitter, resid=False)
         plot.show_residuals(sigma=False)
-    #    plt.savefig(self.image_file)
+        self.assertIsInstance(plot.residuals, PlotElementCollection)
+        self.assertEqual(len(plot.residuals), 3)
+        plt.savefig(self.image_file)
 
     def test_photon_spectrum(self):
-        plot = ModelFit(fitter=self.fitter)
-        plot.photon_spectrum()
-        #plt.savefig(self.image_file)
+        plot = ModelFit(fitter=self.fitter, view="photon")
+        self.assertIsInstance(plot.spectrum_model, PlotElementCollection)
+        self.assertEqual(len(plot.spectrum_model), 3)
+        plt.savefig(self.image_file)
 
     def test_energy_spectrum(self):
         plot = ModelFit(fitter=self.fitter)
         plot.energy_spectrum(plot_components=False, num_samples=10)
-        #plt.savefig(self.image_file)
+        plt.savefig(self.image_file)
 
     def test_nufnu_spectrum(self):
         plot = ModelFit(fitter=self.fitter)
         plot.nufnu_spectrum(num_samples=10)
-        #plt.savefig(self.image_file)
+        plt.savefig(self.image_file)
 
     def test_set(self):
         plot = ModelFit(fitter=self.fitter, view="test")
