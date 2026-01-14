@@ -31,7 +31,7 @@ import astropy.coordinates.representation as r
 import astropy.units as u
 
 from gdt.core.plot.lightcurve import Lightcurve
-from gdt.core.data_primitives import TimeEnergyBins, Gti, TimeBins
+from gdt.core.data_primitives import TimeEnergyBins, Gti, ChannelBins
 from gdt.core.phaii import Phaii
 from gdt.core.background.fitter import BackgroundFitter
 from gdt.core.background.binned import Polynomial
@@ -115,4 +115,13 @@ class TestLightcurve(unittest.TestCase):
         s.add_selection(self.selections)
 
         plt.savefig(self.image_file)
-        plt.show()
+
+    def test_channel_bins(self):
+        counts = [20, 50, 17, 3, 0, 3]
+        chan_nums = [0, 1, 3, 4, 5, 6]
+        exposure = 10.0
+        channel_bins = ChannelBins.create(counts, chan_nums, exposure)
+
+        s = Spectrum(data=channel_bins)
+
+        plt.savefig(self.image_file)
