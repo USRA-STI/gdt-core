@@ -188,9 +188,9 @@ class PhotonEffectiveArea(GdtPlot):
             _alpha = None
             _kwargs = {}
         else:
-            _color = self._data.color
-            _alpha = self._data.alpha
-            _kwargs = self._data._kwargs
+            _color = self._drm.color
+            _alpha = self._drm.alpha
+            _kwargs = self._drm._kwargs
         return (_color, _alpha, _kwargs)
 
 
@@ -265,7 +265,7 @@ class ChannelEffectiveArea(GdtPlot):
             _alpha = None
             _kwargs = {}
         else:
-            _color = self._data.color
-            _alpha = self._data.alpha
-            _kwargs = self._data._kwargs
+            _color = self._drm.color
+            _alpha = self._drm.alpha
+            _kwargs = self._drm._kwargs
         return (_color, _alpha, _kwargs)
