@@ -35,7 +35,7 @@ from gdt.core.detector import Detectors
 from gdt.core.coords import SpacecraftFrame, Quaternion
 from gdt.core.plot.earthplot import EarthPlot
 from gdt.core.geomagnetic import SouthAtlanticAnomaly
-from gdt.core.plot.plot import EarthPoints
+from gdt.core.plot.plot import EarthPoints, SAA, EarthLine
 
 this_dir = os.path.dirname(__file__)
 
@@ -70,6 +70,7 @@ class TestEarthPlot(MyMixin, unittest.TestCase):
     def test_earth_plot(self):
         plot = EarthPlot()
         plt.savefig(self.image_file)
+        self.assertNotEqual(plot.geoaxes, None)
 
     def test_frame(self):
         w = 3 * [1]
@@ -94,12 +95,12 @@ class TestEarthPlot(MyMixin, unittest.TestCase):
         plot2 = EarthPlot()
         plot2.add_spacecraft_frame(frames, trigtime=frames[1].obstime, icon=EarthPoints, marker='*')
         plt.savefig(self.image_file)
+        self.assertIsInstance(plot2.orbit, EarthLine)
 
     def test_saa(self):
         plot = EarthPlot(saa=MySaa())
         plt.savefig(self.image_file)
-
-        self.assertIsInstance(plot.saa, MySaa)
+        self.assertIsInstance(plot.saa, SAA)
 
     def test_errors(self):
         with self.assertRaises(TypeError):
