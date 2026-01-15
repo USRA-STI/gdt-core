@@ -94,8 +94,16 @@ class TestEarthPlot(MyMixin, unittest.TestCase):
 
         plot2 = EarthPlot()
         plot2.add_spacecraft_frame(frames, trigtime=frames[1].obstime, icon=EarthPoints, marker='*')
+        plot2.orbit.linestyle = ":"
+        plot2.orbit.linewidth = 5.0
         plt.savefig(self.image_file)
+
         self.assertIsInstance(plot2.orbit, EarthLine)
+        self.assertEqual(plot2.orbit.linestyle, ":")
+        self.assertEqual(plot2.orbit.linewidth, 5.0)
+        self.assertEqual(str(plot2.orbit)[:10], "<EarthLine")
+
+        self.assertEqual(str(plot2.spacecraft)[:12], "<EarthPoints")
 
     def test_saa(self):
         plot = EarthPlot(saa=MySaa())
@@ -106,13 +114,13 @@ class TestEarthPlot(MyMixin, unittest.TestCase):
         plt.savefig(self.image_file)
 
         arr = np.array([0])
+        self.assertIsInstance(plot.saa, SAA)
         self.assertTrue(plot.saa.in_saa(arr, arr)[0])
         self.assertEqual(plot.saa.fill, False)
         self.assertEqual(plot.saa.hatch, "o")
         self.assertEqual(plot.saa.linestyle, ":")
         self.assertEqual(plot.saa.linewidth, 5.0)
         self.assertEqual(str(plot.saa)[:4], "<SAA")
-        self.assertIsInstance(plot.saa, SAA)
 
     def test_errors(self):
         with self.assertRaises(TypeError):
