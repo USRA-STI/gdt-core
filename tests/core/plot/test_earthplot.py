@@ -99,7 +99,19 @@ class TestEarthPlot(MyMixin, unittest.TestCase):
 
     def test_saa(self):
         plot = EarthPlot(saa=MySaa())
+        plot.saa.linestyle = ":"
+        plot.saa.linewidth = 5.0
+        plot.saa.hatch = 'o'
+        plot.saa.fill = False
         plt.savefig(self.image_file)
+
+        arr = np.array([0])
+        self.assertTrue(plot.saa.in_saa(arr, arr)[0])
+        self.assertEqual(plot.saa.fill, False)
+        self.assertEqual(plot.saa.hatch, "o")
+        self.assertEqual(plot.saa.linestyle, ":")
+        self.assertEqual(plot.saa.linewidth, 5.0)
+        self.assertEqual(str(plot.saa)[:4], "<SAA")
         self.assertIsInstance(plot.saa, SAA)
 
     def test_errors(self):
