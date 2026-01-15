@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 import astropy.coordinates.representation as r
 import astropy.units as u
 
+from matplotlib.colors import Normalize
 from gdt.core.plot.plot import *
 from gdt.core.data_primitives import TimeEnergyBins, Gti, TimeBins
 from gdt.core.phaii import Phaii
@@ -94,9 +95,25 @@ class TestPlot(unittest.TestCase):
         h.alpha = 0.53
 
         plt.savefig(self.image_file)
-        plt.show()
 
         self.assertEqual(h.linestyle, ":")
         self.assertEqual(h.linewidth, 2.0)
         self.assertEqual(h.alpha, 0.53)
         self.assertEqual(str(h)[:12], "<HistoFilled")
+
+    def test_heatmap(self):
+        fit = plt.figure()
+        x = [0, 1, 2]
+        y = [0, 1, 2]
+        arr = np.array([[0, 1e-6, 1e-5], [1e-6, 1e-5, 1e-6], [1e-5, 1e-6, 0]])
+
+        h = Heatmap(x, y, arr, plt.gca())
+        plt.savefig(self.image_file)
+
+        h.norm = Normalize()
+        plt.savefig(self.image_file)
+
+        with self.assertRaises(TypeError):
+            h.color = 1.0
+
+        self.assertEqual(str(h)[:8], "<Heatmap")

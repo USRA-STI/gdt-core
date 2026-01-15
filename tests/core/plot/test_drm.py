@@ -97,7 +97,16 @@ class TestChannelEffectiveAreaPlot(MyMixin, unittest.TestCase):
     
     def test_plot(self):
         plot = ChannelEffectiveArea(drm=self.drm)
+        plot.drm.alpha = 0.28
+        plot.drm.linestyle = ":"
+        plot.drm.linewidth = 5.0
+
         plt.savefig(self.image_file)
+
+        self.assertEqual(plot.drm.alpha, 0.28)
+        self.assertEqual(plot.drm.linestyle, ":")
+        self.assertEqual(plot.drm.linewidth, 5.0)
+        self.assertEqual(str(plot.drm)[:14], "<EffectiveArea")
 
         # set response again to check re-use of existing plot settings
         plot.set_response(self.drm)
