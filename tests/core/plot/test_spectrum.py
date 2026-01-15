@@ -81,7 +81,16 @@ class TestLightcurve(unittest.TestCase):
 
     def test_spectrum(self):
         s = Spectrum(data=self.spec, background=self.back_spec)
+        s.background.alpha = 0.28
+        s.background.linestyle = ":"
+        s.background.linewidth = 5.0
+
         plt.savefig(self.image_file)
+
+        self.assertEqual(s.background.alpha, 0.28)
+        self.assertEqual(s.background.linestyle, ":")
+        self.assertEqual(s.background.linewidth, 5.0)
+        self.assertEqual(str(s.background)[:19], "<SpectrumBackground")
 
     def test_selection(self):
         s = Spectrum(data=self.spec, background=self.back_spec)

@@ -66,7 +66,12 @@ class TestDrmPlot(MyMixin, unittest.TestCase):
     def test_plot(self):
         plot = ResponsePlot(drm=self.drm)
         plt.savefig(self.image_file)
+
         self.assertIsInstance(plot.drm, Heatmap)
+        self.assertEqual(str(plot.drm)[:8], "<Heatmap")
+        self.assertEqual(plot.drm.num_contours, 100)
+        self.assertEqual(plot.drm.norm.vmin, 0.0)
+        self.assertEqual(plot.drm.colorbar.vmax, 0.3)
 
     def test_multi(self):
         plot = ResponsePlot(drm=self.drm, multi=True)

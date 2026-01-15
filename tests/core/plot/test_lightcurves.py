@@ -80,7 +80,16 @@ class TestLightcurve(unittest.TestCase):
 
     def test_lightcurve(self):
         l = Lightcurve(data=self.rates, background=self.back_rates)
+        l.background.alpha = 0.28
+        l.background.linestyle = ":"
+        l.background.linewidth = 5.0
+
         plt.savefig(self.image_file)
+
+        self.assertEqual(l.background.alpha, 0.28)
+        self.assertEqual(l.background.linestyle, ":")
+        self.assertEqual(l.background.linewidth, 5.0)
+        self.assertEqual(str(l.background)[:21], "<LightcurveBackground")
 
     def test_selection(self):
         l = Lightcurve(data=self.rates, background=self.back_rates)
