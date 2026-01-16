@@ -103,6 +103,7 @@ class TestEarthPlot(MyMixin, unittest.TestCase):
         self.assertEqual(plot2.orbit.linewidth, 5.0)
         self.assertEqual(str(plot2.orbit)[:10], "<EarthLine")
 
+        self.assertEqual(plot2.spacecraft.sizes[0], 10)
         self.assertEqual(str(plot2.spacecraft)[:12], "<EarthPoints")
 
     def test_saa(self):
