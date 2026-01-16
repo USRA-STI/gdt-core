@@ -66,12 +66,18 @@ class TestModelFitPlot(MyMixin, unittest.TestCase):
         self.assertEqual(len(plot.count_data), 3)
         self.assertIsInstance(plot.count_models, PlotElementCollection)
         self.assertEqual(len(plot.count_models), 3)
+
+        model_data = plot.count_data.get_item("n0")
+        self.assertEqual(str(model_data)[:10], "<ModelData")
+
         plt.savefig(self.image_file)
-    
+        plt.ioff()
+
     def test_hide_residuals(self):
         plot = ModelFit(fitter=self.fitter)
         plot.hide_residuals()
         plt.savefig(self.image_file)
+        plt.ioff()
 
     def test_show_residuals(self):
         plot = ModelFit(fitter=self.fitter, resid=False)
@@ -79,22 +85,36 @@ class TestModelFitPlot(MyMixin, unittest.TestCase):
         self.assertIsInstance(plot.residuals, PlotElementCollection)
         self.assertEqual(len(plot.residuals), 3)
         plt.savefig(self.image_file)
+        plt.ioff()
 
     def test_photon_spectrum(self):
         plot = ModelFit(fitter=self.fitter, view="photon")
         self.assertIsInstance(plot.spectrum_model, PlotElementCollection)
         self.assertEqual(len(plot.spectrum_model), 3)
+
+        model_samples = plot.spectrum_model.get_item("item1")
+        model_samples.linestyle = ":"
+        model_samples.linewidth = 5.0
+
         plt.savefig(self.image_file)
+
+        self.assertEqual(model_samples.linestyle, ":")
+        self.assertEqual(model_samples.linewidth, 5.0)
+        self.assertEqual(str(model_samples)[:13], "<ModelSamples")
+
+        plt.ioff()
 
     def test_energy_spectrum(self):
         plot = ModelFit(fitter=self.fitter)
         plot.energy_spectrum(plot_components=False, num_samples=10)
         plt.savefig(self.image_file)
+        plt.ioff()
 
     def test_nufnu_spectrum(self):
         plot = ModelFit(fitter=self.fitter)
         plot.nufnu_spectrum(num_samples=10)
         plt.savefig(self.image_file)
+        plt.ioff()
 
     def test_set(self):
         plot = ModelFit(fitter=self.fitter, view="test")
@@ -104,3 +124,4 @@ class TestModelFitPlot(MyMixin, unittest.TestCase):
         plot.set_fit(self.fitter)
         plot._view = "nufnu"
         plot.set_fit(self.fitter)
+        plt.ioff()

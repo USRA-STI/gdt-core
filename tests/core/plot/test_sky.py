@@ -31,6 +31,7 @@ import astropy.coordinates.representation as r
 import astropy.units as u
 
 from astropy.time import Time
+from matplotlib.colors import Normalize
 from gdt.core.coords import SpacecraftFrame, Quaternion
 from gdt.core.healpix import HealPixLocalization, HealPixEffectiveArea
 from gdt.core.plot.sky import SkyPlot, EquatorialPlot, GalacticPlot, SpacecraftPlot
@@ -146,11 +147,55 @@ class TestEquatorialPlot(MyMixin, unittest.TestCase):
     def test_add_localization(self):
         plot1 = EquatorialPlot()
         plot1.add_localization(self.hpx, gradient=True)
+
+        # sun settings
+        plot1.sun.size = 5.0
+
+        # contour settings
+        contour = plot1.loc_contours.get_item("0.955_0")
+        contour.linewidth = 5.0
+        contour.linestyle = ":"
+
+        # localization gradient settings
+        plot1.loc_posterior.norm = Normalize()
+        with self.assertRaises(TypeError):
+            plot1.loc_posterior.color = None
+
+        # check if properties match settings
+        self.assertEqual(contour.linewidth, 5.0)
+        self.assertEqual(contour.linestyle, ":")
+        self.assertEqual(str(contour)[:8], "<SkyLine")
+        self.assertEqual(plot1.sun.size, 5.0)
+        self.assertEqual(str(plot1.sun)[:4], "<Sun")
+        self.assertAlmostEqual(plot1.loc_posterior.norm.vmax, 0.001, 3)
+        self.assertEqual(str(plot1.loc_posterior)[:11], "<SkyHeatmap")
+
         plt.savefig(self.image_file)
 
         plot2 = EquatorialPlot()
         plot2.add_localization(self.hpx, gradient=False, detectors='det0')
+
+        # contour settings
+        contour = plot2.loc_contours.get_item("0.955_0")
+        contour.fill = True
+        contour.hatch = "o"
+        contour.linewidth = 5.0
+        contour.linestyle = ":"
+        contour.color = 'g'
+        contour.alpha = 0.47
+
         plt.savefig(self.image_file)
+
+        # check if properties match settings
+        self.assertEqual(contour.fill, True)
+        self.assertEqual(contour.hatch, "o")
+        self.assertEqual(contour.linewidth, 5.0)
+        self.assertEqual(contour.linestyle, ":")
+        for c in [contour.color, contour.face_color, contour.edge_color]:
+            self.assertEqual(c, "g")
+        for a in [contour.alpha, contour.face_alpha, contour.edge_alpha]:
+            self.assertEqual(a, 0.47)
+        self.assertEqual(str(contour)[:11], "<SkyPolygon")
 
         # backup frame
         frame = self.hpx.frame
@@ -170,7 +215,20 @@ class TestEquatorialPlot(MyMixin, unittest.TestCase):
     def test_frame_plot(self):
         plot1 = EquatorialPlot()
         plot1.add_frame(self.hpx.frame, detectors='det1')
+
+        # modify detector pointing
+        pointing = plot1.detectors.det1
+        pointing.font_alpha = 0.67
+        pointing.font_color = "g"
+        pointing.fontsize = 10
+
         plt.savefig(self.image_file)
+
+        # verify detector pointing settings
+        self.assertEqual(pointing.font_alpha, 0.67)
+        self.assertEqual(pointing.font_color, "g")
+        self.assertEqual(pointing.fontsize, 10)
+        self.assertEqual(str(pointing)[:17], "<DetectorPointing")
 
         plot2 = EquatorialPlot()
         plot2.add_frame(self.hpx.frame)
@@ -211,8 +269,10 @@ class TestGalacticPlot(MyMixin, unittest.TestCase):
         hpx = HealPixEffectiveArea.from_cosine(45, 45, 100, nside=8)
 
         plot = GalacticPlot()
-        plot.add_effective_area(hpx, frame=self.frame, sun=True, earth=True, galactic_plane=True)
+        plot.add_effective_area(hpx, frame=self.frame, sun=True, earth=True, galactic_plane=True, detectors='all')
         plt.savefig(self.image_file)
+
+        self.assertEqual(plot.galactic_plane.line_alpha, 0.5)
 
         with self.assertRaises(ValueError):
             plot.add_effective_area(hpx)

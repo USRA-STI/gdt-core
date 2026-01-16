@@ -36,6 +36,7 @@ from gdt.core.data_primitives import TimeEnergyBins, Gti, TimeBins
 from gdt.core.phaii import Phaii
 from gdt.core.background.fitter import BackgroundFitter
 from gdt.core.background.binned import Polynomial
+from gdt.core.plot.sky import EquatorialPlot
 
 this_dir = os.path.dirname(__file__)
 
@@ -102,7 +103,7 @@ class TestPlot(unittest.TestCase):
         self.assertEqual(str(h)[:12], "<HistoFilled")
 
     def test_heatmap(self):
-        fit = plt.figure()
+        fig = plt.figure()
         x = [0, 1, 2]
         y = [0, 1, 2]
         arr = np.array([[0, 1e-6, 1e-5], [1e-6, 1e-5, 1e-6], [1e-5, 1e-6, 0]])
@@ -117,3 +118,60 @@ class TestPlot(unittest.TestCase):
             h.color = 1.0
 
         self.assertEqual(str(h)[:8], "<Heatmap")
+
+    def test_sky_circle(self):
+        plot = EquatorialPlot()
+        s = SkyCircle(270, 30, 5, plot.ax, alpha=0.22)
+        plt.savefig(self.image_file)
+
+        self.assertEqual(s.alpha, 0.22)
+
+        s.fill = False
+        s.hatch = "o"
+        s.color = "g"
+        s.alpha = 0.47
+        s.linewidth = 5.0
+        s.linestyle = ":"
+
+        self.assertFalse(s.fill)
+        self.assertEqual(s.hatch, "o")
+        self.assertEqual(s.linewidth, 5.0)
+        self.assertEqual(s.linestyle, ":")
+        for c in [s.color, s.face_color, s.edge_color]:
+            self.assertEqual(c, "g")
+        for a in [s.alpha, s.face_alpha, s.edge_alpha]:
+            self.assertEqual(a, 0.47)
+        self.assertEqual(str(s)[:10], "<SkyCircle")
+
+    def test_sky_annulus(self):
+        plot = EquatorialPlot()
+        s = SkyAnnulus(270, 30, 25, 1, plot.ax)
+        plt.savefig(self.image_file)
+
+        s.hatch = "o"
+        s.color = "g"
+        s.linewidth = 5.0
+        s.linestyle = ":"
+
+        self.assertEqual(s.hatch, "o")
+        self.assertEqual(s.color, "g")
+        self.assertEqual(s.linewidth, 5.0)
+        self.assertEqual(s.linestyle, ":")
+        self.assertEqual(str(s)[:11], "<SkyAnnulus")
+
+    def test_galactic_plane(self):
+        plot = EquatorialPlot()
+        g = GalacticPlane(plot.ax, color='m', alpha=0.66)
+        plt.savefig(self.image_file)
+
+        for c in [g.color, g.inner_color, g.outer_color]:
+            self.assertEqual(c, "m")
+        for a in [g.alpha, g.center_alpha, g.line_alpha]:
+            self.assertEqual(a, 0.66)
+        self.assertEqual(str(g)[:14], "<GalacticPlane")
+
+        # test setters
+        g.color = "g"
+        self.assertEqual(g.color, "g")
+        g.alpha = 0.33
+        self.assertEqual(g.alpha, 0.33)
