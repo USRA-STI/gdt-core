@@ -61,6 +61,40 @@ class TestPlot(unittest.TestCase):
         except:
             pass
 
+    def test_cmap(self):
+        cmap = GdtCmap("BuPu")
+
+        def callback():
+            print("callback function")
+        cmap.set_callback(callback)
+
+        cmap.alpha_scale = 'log'
+        cmap.alpha_min = 0
+        cmap.alpha_max = 0.5
+        cmap.name = "Blues"
+
+        self.assertEqual(cmap.alpha_scale, 'log')
+        self.assertEqual(cmap.alpha_min, 1e-10)
+        self.assertEqual(cmap.alpha_max, 0.5)
+        self.assertEqual(cmap.name, "Blues")
+        self.assertEqual(str(cmap)[:8], "<GdtCmap")
+
+        with self.assertRaises(ValueError):
+            cmap.alpha_min = -1
+        with self.assertRaises(ValueError):
+            cmap.alpha_min = 0.7
+        with self.assertRaises(ValueError):
+            cmap.alpha_max = -1
+        with self.assertRaises(ValueError):
+            cmap.alpha_min = 0.1
+            cmap.alpha_max = 0.05
+        with self.assertRaises(ValueError):
+            cmap.alpha_scale = 'test'
+        with self.assertRaises(ValueError):
+            cmap = GdtCmap("BuPu", alpha_min=1000)
+        with self.assertRaises(RuntimeError):
+            cmap.set_callback([])
+
     def test_histo(self):
         fig = plt.figure()
 
