@@ -99,14 +99,25 @@ class TestPlot(unittest.TestCase):
         fig = plt.figure()
 
         h = Histo(self.data, plt.gca(), label="test")
+        h.color = "g"
+        h.alpha = 0.67
         h.linewidth = 2.0
         h.linestyle = ":"
+        h.zorder = 1000
 
         plt.savefig(self.image_file)
 
+        self.assertEqual(h.color, "g")
+        self.assertEqual(h.alpha, 0.67)
         self.assertEqual(h.linestyle, ":")
         self.assertEqual(h.linewidth, 2.0)
+        self.assertEqual(h.zorder, 1000)
         self.assertEqual(str(h)[:6], "<Histo")
+
+        h.hide()
+        h.show()
+        h.toggle()
+        self.assertFalse(h.visible)
 
     def test_histo_errorbars(self):
         fig = plt.figure()
