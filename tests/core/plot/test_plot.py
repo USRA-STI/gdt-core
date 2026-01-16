@@ -61,6 +61,31 @@ class TestPlot(unittest.TestCase):
         except:
             pass
 
+    def test_plot(self):
+        plot = GdtPlot(interactive=True)
+        plt.ioff()
+
+        plot.xlim = (0.1, 1)
+        plot.ylim = (0.1, 1)
+        plot.xscale = 'log'
+        plot.yscale = 'log'
+
+        self.assertEqual(plot.xscale, 'log')
+        self.assertEqual(plot.yscale, 'log')
+        self.assertEqual(plot.xlim[0], 0.1)
+        self.assertEqual(plot.xlim[1], 1.0)
+        self.assertEqual(plot.ylim[0], 0.1)
+        self.assertEqual(plot.ylim[1], 1.0)
+
+        with self.assertRaises(ValueError):
+            plot.xscale = 'test'
+        with self.assertRaises(ValueError):
+            plot.yscale = 'test'
+
+        plot2 = GdtPlot(ax=plot.ax)
+        self.assertEqual(plot2.canvas, None)
+        self.assertEqual(plot2.fig, None)
+
     def test_cmap(self):
         cmap = GdtCmap("BuPu")
 
