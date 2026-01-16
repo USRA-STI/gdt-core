@@ -159,6 +159,42 @@ class TestPlot(unittest.TestCase):
         self.assertEqual(s.linestyle, ":")
         self.assertEqual(str(s)[:11], "<SkyAnnulus")
 
+    def test_sky_polygon(self):
+        plot = EquatorialPlot()
+        x = np.array([180, 270, 270, 180, 180])
+        y = np.array([0, 0, 50, 50, 0])
+        s = SkyPolygon(x, y, plot.ax)
+        plt.savefig(self.image_file)
+
+        s.fill = False
+        s.hatch = "o"
+        s.color = "g"
+        s.alpha = 0.47
+        s.linewidth = 5.0
+        s.linestyle = ":"
+
+        self.assertFalse(s.fill)
+        self.assertEqual(s.hatch, "o")
+        self.assertEqual(s.linewidth, 5.0)
+        self.assertEqual(s.linestyle, ":")
+        for c in [s.color, s.face_color, s.edge_color]:
+            self.assertEqual(c, "g")
+        for a in [s.alpha, s.face_alpha, s.edge_alpha]:
+            self.assertEqual(a, 0.47)
+        self.assertEqual(str(s)[:11], "<SkyPolygon")
+
+    def test_sky_points(self):
+        plot = EquatorialPlot()
+        x = np.array([180, 270, 270, 180])
+        y = np.array([0, 0, 50, 50])
+        s = SkyPoints(x, y, plot.ax)
+        s.sizes = 15
+        plt.savefig(self.image_file)
+
+        self.assertEqual(s.sizes[0], 15)
+        self.assertEqual(s.num_points, 4)
+        self.assertEqual(str(s)[:10], "<SkyPoints")
+
     def test_galactic_plane(self):
         plot = EquatorialPlot()
         g = GalacticPlane(plot.ax, color='m', alpha=0.66)

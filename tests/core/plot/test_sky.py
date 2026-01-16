@@ -174,28 +174,7 @@ class TestEquatorialPlot(MyMixin, unittest.TestCase):
 
         plot2 = EquatorialPlot()
         plot2.add_localization(self.hpx, gradient=False, detectors='det0')
-
-        # contour settings
-        contour = plot2.loc_contours.get_item("0.955_0")
-        contour.fill = True
-        contour.hatch = "o"
-        contour.linewidth = 5.0
-        contour.linestyle = ":"
-        contour.color = 'g'
-        contour.alpha = 0.47
-
         plt.savefig(self.image_file)
-
-        # check if properties match settings
-        self.assertEqual(contour.fill, True)
-        self.assertEqual(contour.hatch, "o")
-        self.assertEqual(contour.linewidth, 5.0)
-        self.assertEqual(contour.linestyle, ":")
-        for c in [contour.color, contour.face_color, contour.edge_color]:
-            self.assertEqual(c, "g")
-        for a in [contour.alpha, contour.face_alpha, contour.edge_alpha]:
-            self.assertEqual(a, 0.47)
-        self.assertEqual(str(contour)[:11], "<SkyPolygon")
 
         # backup frame
         frame = self.hpx.frame
