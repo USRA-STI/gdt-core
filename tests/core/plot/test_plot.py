@@ -22,44 +22,28 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
 import numpy as np
-import healpy as hp
 import unittest
 import matplotlib.pyplot as plt
-import astropy.coordinates.representation as r
-import astropy.units as u
 
 from matplotlib.colors import Normalize
 from gdt.core.plot.plot import *
-from gdt.core.data_primitives import TimeEnergyBins, Gti, TimeBins
-from gdt.core.phaii import Phaii
-from gdt.core.background.fitter import BackgroundFitter
-from gdt.core.background.binned import Polynomial
+from gdt.core.data_primitives import TimeBins
 from gdt.core.plot.sky import EquatorialPlot
 
-this_dir = os.path.dirname(__file__)
+from . import MyMixin
 
 
-class TestPlot(unittest.TestCase):
+class TestPlot(MyMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.image_file = os.path.join(this_dir, "test.png")
-
         counts = [98, 103, 100, 94, 105, 101, ]
         tstart = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
         tstop = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
         exposure = 6 * [1.0]
 
         cls.data = TimeBins(counts, tstart, tstop, exposure)
-
-    def tearDown(self):
-        plt.close('all')
-        try:
-            os.remove(self.image_file)
-        except:
-            pass
 
     def test_plot(self):
         plot = GdtPlot(interactive=True)
