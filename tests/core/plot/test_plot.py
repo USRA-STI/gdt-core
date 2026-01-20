@@ -31,10 +31,10 @@ from gdt.core.plot.plot import *
 from gdt.core.data_primitives import TimeBins
 from gdt.core.plot.sky import EquatorialPlot
 
-from . import MyMixin
+from . import ImageFileMixin
 
 
-class TestPlot(MyMixin, unittest.TestCase):
+class TestPlot(ImageFileMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):

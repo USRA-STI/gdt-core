@@ -30,7 +30,7 @@ from gdt.core.plot.drm import ResponsePlot, PhotonEffectiveArea, ChannelEffectiv
 from gdt.core.plot.plot import Heatmap
 from gdt.core.data_primitives import ResponseMatrix
 
-from . import MyMixin
+from . import ImageFileMixin
 
 
 class DrmMixin:
@@ -45,7 +45,7 @@ class DrmMixin:
         cls.drm = ResponseMatrix(matrix, emin, emax, chanlo, chanhi)
 
 
-class TestDrmPlot(MyMixin, DrmMixin, unittest.TestCase):
+class TestDrmPlot(ImageFileMixin, DrmMixin, unittest.TestCase):
     
     def test_plot(self):
         plot = ResponsePlot(drm=self.drm)
@@ -67,7 +67,7 @@ class TestDrmPlot(MyMixin, DrmMixin, unittest.TestCase):
         plt.savefig(self.image_file)
 
 
-class TestPhotonEffectiveAreaPlot(MyMixin, DrmMixin, unittest.TestCase):
+class TestPhotonEffectiveAreaPlot(ImageFileMixin, DrmMixin, unittest.TestCase):
     
     def test_plot(self):
         plot = PhotonEffectiveArea(drm=self.drm)
@@ -77,7 +77,7 @@ class TestPhotonEffectiveAreaPlot(MyMixin, DrmMixin, unittest.TestCase):
         plot.set_response(self.drm)
 
 
-class TestChannelEffectiveAreaPlot(MyMixin, DrmMixin, unittest.TestCase):
+class TestChannelEffectiveAreaPlot(ImageFileMixin, DrmMixin, unittest.TestCase):
     
     def test_plot(self):
         plot = ChannelEffectiveArea(drm=self.drm)

@@ -34,7 +34,7 @@ from gdt.core.healpix import HealPixLocalization, HealPixEffectiveArea
 from gdt.core.plot.sky import SkyPlot, EquatorialPlot, GalacticPlot, SpacecraftPlot
 from gdt.core.plot.plot import PlotElementCollection
 
-from . import MyMixin, MyDetectors
+from . import ImageFileMixin, ExampleDetectors
 
 
 class MySkyPlot(SkyPlot):
@@ -42,7 +42,7 @@ class MySkyPlot(SkyPlot):
     _y_start = 0
 
 
-class TestSkyPlot(MyMixin, unittest.TestCase):
+class TestSkyPlot(ImageFileMixin, unittest.TestCase):
 
     def test_fontsize(self):
         plot = MySkyPlot()
@@ -81,7 +81,7 @@ class TestSkyPlot(MyMixin, unittest.TestCase):
             quaternion=Quaternion.from_xyz_w(xyz=xyz, w=w),
             obsgeoloc=r.CartesianRepresentation(eic, unit='m'),
             obstime=Time(time_str, format='iso', scale='utc'),
-            detectors=MyDetectors)
+            detectors=ExampleDetectors)
 
         plot = MySkyPlot()
         plot.add_frame(frames, trigtime=frames[1].obstime, detectors=[], sun=False, earth=False, galactic_plane=False)
@@ -113,7 +113,7 @@ class TestSkyPlot(MyMixin, unittest.TestCase):
         plt.savefig(self.image_file)
 
 
-class TestEquatorialPlot(MyMixin, unittest.TestCase):
+class TestEquatorialPlot(ImageFileMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -122,7 +122,7 @@ class TestEquatorialPlot(MyMixin, unittest.TestCase):
             quaternion=Quaternion.from_xyz_w(xyz=[0.0, 1.0, 0.0], w=1.0),
             obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
             obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
-            detectors=MyDetectors)
+            detectors=ExampleDetectors)
 
     def test_add_localization(self):
         plot1 = EquatorialPlot()
@@ -214,7 +214,7 @@ class TestEquatorialPlot(MyMixin, unittest.TestCase):
             plot3.add_effective_area(hpx)
 
 
-class TestGalacticPlot(MyMixin, unittest.TestCase):
+class TestGalacticPlot(ImageFileMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -222,7 +222,7 @@ class TestGalacticPlot(MyMixin, unittest.TestCase):
             quaternion=Quaternion.from_xyz_w(xyz=[0.0, 0.0, 1.0], w=1.0),
             obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
             obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
-            detectors=MyDetectors)
+            detectors=ExampleDetectors)
 
     def test_effective_area_plot(self):
         hpx = HealPixEffectiveArea.from_cosine(45, 45, 100, nside=8)
@@ -237,7 +237,7 @@ class TestGalacticPlot(MyMixin, unittest.TestCase):
             plot.add_effective_area(hpx)
 
 
-class TestSpacecraftPlot(MyMixin, unittest.TestCase):
+class TestSpacecraftPlot(ImageFileMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -245,7 +245,7 @@ class TestSpacecraftPlot(MyMixin, unittest.TestCase):
             quaternion=Quaternion.from_xyz_w(xyz=[0.0, 0.0, 1.0], w=1.0),
             obsgeoloc=r.CartesianRepresentation(-6320675.5, -1513143.1, 2313154.5, unit='m'),
             obstime=Time('2017-08-17 12:41:00.249', format='iso', scale='utc'),
-            detectors=MyDetectors)
+            detectors=ExampleDetectors)
 
     def test_localization_plot(self):
         hpx = HealPixLocalization.from_gaussian(180, 30, 5, nside=64)

@@ -30,10 +30,10 @@ from gdt.core.spectra.fitting import SpectralFitterPgstat
 from gdt.core.plot.model import ModelFit
 from gdt.core.plot.plot import PlotElementCollection
 
-from . import MyMixin
+from . import ImageFileMixin
 
 
-class TestModelFitPlot(MyMixin, unittest.TestCase):
+class TestModelFitPlot(ImageFileMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):

@@ -32,10 +32,10 @@ from gdt.core.background.fitter import BackgroundFitter
 from gdt.core.background.binned import Polynomial
 from gdt.core.plot.spectrum import Spectrum
 
-from . import MyMixin
+from . import ImageFileMixin
 
 
-class TestLightcurve(MyMixin, unittest.TestCase):
+class TestLightcurve(ImageFileMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):

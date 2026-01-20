@@ -33,7 +33,7 @@ from gdt.core.plot.earthplot import EarthPlot
 from gdt.core.geomagnetic import SouthAtlanticAnomaly
 from gdt.core.plot.plot import EarthPoints, SAA, EarthLine
 
-from . import MyMixin, MyDetectors
+from . import ImageFileMixin, ExampleDetectors
 
 
 class MySaa(SouthAtlanticAnomaly):
@@ -45,7 +45,7 @@ class MySaa(SouthAtlanticAnomaly):
     _longitude = [-90.0, -90.0, 30.0, 30.0, -90.0]
 
 
-class TestEarthPlot(MyMixin, unittest.TestCase):
+class TestEarthPlot(ImageFileMixin, unittest.TestCase):
 
     def test_earth_plot(self):
         plot = EarthPlot()
@@ -65,7 +65,7 @@ class TestEarthPlot(MyMixin, unittest.TestCase):
             quaternion=Quaternion.from_xyz_w(xyz=xyz, w=w),
             obsgeoloc=r.CartesianRepresentation(eic, unit='m'),
             obstime=Time(time_str, format='iso', scale='utc'),
-            detectors=MyDetectors)
+            detectors=ExampleDetectors)
 
         plot1 = EarthPlot()
         plot1.add_spacecraft_frame(frames, trigtime=frames[1].obstime)

@@ -28,7 +28,7 @@ import astropy.units as u
 
 from gdt.core.detector import Detectors
 
-class MyMixin:
+class ImageFileMixin:
     this_dir = os.path.dirname(__file__)
     image_file = os.path.join(this_dir, "test.png")
 
@@ -40,6 +40,6 @@ class MyMixin:
             pass
 
 
-class MyDetectors(Detectors):
+class ExampleDetectors(Detectors):
     det0 = ('Det0', 0,  45.0 * u.deg,  45.0 * u.deg)
     det1 = ('Det1', 1, 270.0 * u.deg, 135.0 * u.deg)
