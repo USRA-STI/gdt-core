@@ -22,9 +22,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
 import numpy as np
-import healpy as hp
 import unittest
 import matplotlib.pyplot as plt
 import astropy.coordinates.representation as r
@@ -36,15 +34,13 @@ from gdt.core.phaii import Phaii
 from gdt.core.background.fitter import BackgroundFitter
 from gdt.core.background.binned import Polynomial
 
-this_dir = os.path.dirname(__file__)
+from . import MyMixin
 
 
-class TestLightcurve(unittest.TestCase):
+class TestLightcurve(MyMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.image_file = os.path.join(this_dir, "test.png")
-
         counts = [[ 0,  0,  2,  1,  2,  0,  0,  0],
                   [ 3, 16, 10, 13, 14,  4,  3,  3],
                   [ 3, 23, 26, 13,  8,  8,  5,  5],
@@ -70,13 +66,6 @@ class TestLightcurve(unittest.TestCase):
         cls.rates = phaii.to_lightcurve()
         cls.back_rates = fitter.interpolate_bins(phaii.data.tstart, phaii.data.tstop)
         cls.selections = phaii.to_lightcurve(time_range=(0.2, 0.3))
-
-    def tearDown(self):
-        plt.close('all')
-        try:
-            os.remove(self.image_file)
-        except:
-            pass
 
     def test_lightcurve(self):
         l = Lightcurve(data=self.rates, background=self.back_rates)
