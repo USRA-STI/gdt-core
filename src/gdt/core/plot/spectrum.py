@@ -46,7 +46,7 @@ class Spectrum(GdtPlot):
             The count spectrum data to plot
         background (:class:`~gdt.background.primitives.BackgroundSpectrum`, optional): 
             The background spectrum to plot
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     def __init__(self, data=None, background=None, canvas=None, **kwargs):
         super().__init__(canvas=canvas, **kwargs)
@@ -72,25 +72,25 @@ class Spectrum(GdtPlot):
 
     @property
     def background(self):
-        """(:class:`~gdt.plot.plot.SpectrumBackground`): The count spectrum 
+        """(:class:`~gdt.core.plot.plot.SpectrumBackground`): The count spectrum
         background plot element"""
         return self._bkgd
 
     @property
     def errorbars(self):
-        """(:class:`~gdt.plot.plot.HistoErrorbars`): The error bars plot element
+        """(:class:`~gdt.core.plot.plot.HistoErrorbars`): The error bars plot element
         """
         return self._errorbars
 
     @property
     def selections(self):
-        """(list of :class:`~gdt.plot.plot.HistoFilled`): The count spectrum 
+        """(list of :class:`~gdt.core.plot.plot.HistoFilled`): The count spectrum
         selection plot element"""
         return self._selections
 
     @property
     def spectrum(self):
-        """(:class:`~gdt.plot.plot.Histo`): The count spectrum plot element"""
+        """(:class:`~gdt.core.plot.plot.Histo`): The count spectrum plot element"""
         return self._spec
 
     # mark FIXME: store selections in a collection

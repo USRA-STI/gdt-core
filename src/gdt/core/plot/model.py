@@ -47,7 +47,7 @@ class ModelFit(GdtPlot):
                               'energy' or 'nufnu'. Default is 'counts'
         resid (bool, optional): If True, plots the residuals in counts view. 
                                 Default is True.
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`        
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     colors = '#7F3C8D,#11A579,#3969AC,#F2B701,#E73F74,#80BA5A,#E68310,#008695,#CF1C90,#f97b72,#4b4b8f,#A5AA99'.split(',')
     """(list): A list of default plotting colors to cycle through"""
@@ -82,25 +82,25 @@ class ModelFit(GdtPlot):
     
     @property
     def count_data(self):
-        """(:class:`~gdt.plot.plot.PlotElementCollection` of :class:`~gdt.plot.plot.ModelData`):
+        """(:class:`~gdt.core.plot.plot.PlotElementCollection` of :class:`~gdt.core.plot.plot.ModelData`):
         The count data plot elements"""
         return self._count_data
     
     @property
     def count_models(self):
-        """(:class:`~gdt.plot.plot.PlotElementCollection` of :class:`~gdt.plot.plot.Histo`): 
+        """(:class:`~gdt.core.plot.plot.PlotElementCollection` of :class:`~gdt.core.plot.plot.Histo`):
         The count model plot elements"""
         return self._count_models
     
     @property
     def spectrum_model(self):
-        """(:class:`~gdt.plot.plot.PlotElementCollection` of :class:`~gdt.plot.plot.ModelSamples`):
+        """(:class:`~gdt.core.plot.plot.PlotElementCollection` of :class:`~gdt.core.plot.plot.ModelSamples`):
         The model spectrum sample elements"""
         return self._spectrum_model
     
     @property
     def residuals(self):
-        """(:class:`~gdt.plot.plot.PlotElementCollection` of :class:`~gdt.plot.plot.ModelData`):
+        """(:class:`~gdt.core.plot.plot.PlotElementCollection` of :class:`~gdt.core.plot.plot.ModelData`):
         The fit residual plot elements"""
         return self._resids
     

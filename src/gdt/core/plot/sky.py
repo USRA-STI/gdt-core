@@ -78,7 +78,7 @@ class SkyPlot(GdtPlot):
                                       longitudinal tick marks. Default is 30.
         yticks_res (float, optional): The resolution, in degrees, of the 
                                       latitudinal tick marks. Default is 15.
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     _background = 'antiquewhite'
     _textcolor = 'black'
@@ -112,19 +112,19 @@ class SkyPlot(GdtPlot):
 
     @property
     def detectors(self):
-        """(:class:`~gdt.plot.plot.PlotElementCollection` of \
-        :class:`~gdt.plot.plot.DetectorPointing`): The collection of detector 
+        """(:class:`~gdt.core.plot.plot.PlotElementCollection` of \
+        :class:`~gdt.core.plot.plot.DetectorPointing`): The collection of detector
         plot elements"""
         return self._detectors
 
     @property
     def earth(self):
-        """(:class:`~gdt.plot.plot.SkyCircle`): The Earth plot element"""
+        """(:class:`~gdt.core.plot.plot.SkyCircle`): The Earth plot element"""
         return self._earth
     
     @property
     def effective_area(self):
-        """(:class:`~gdt.plot.plot.SkyHeatmap`): The effective area plot element"""
+        """(:class:`~gdt.core.plot.plot.SkyHeatmap`): The effective area plot element"""
         return self._eff_area
            
     @property
@@ -141,26 +141,26 @@ class SkyPlot(GdtPlot):
 
     @property
     def galactic_plane(self):
-        """(:class:`~gdt.plot.plot.GalacticPlane`): The galactic plane plot 
+        """(:class:`~gdt.core.plot.plot.GalacticPlane`): The galactic plane plot
         element"""
         return self._galactic_plane
 
     @property
     def loc_contours(self):
-        """(:class:`~gdt.plot.plot.PlotElementCollection` of \
-        :class:`~gdt.plot.plot.SkyLine` or :class:`~gdt.plot.plot.SkyPolygon`):
+        """(:class:`~gdt.core.plot.plot.PlotElementCollection` of \
+        :class:`~gdt.core.plot.plot.SkyLine` or :class:`~gdt.core.plot.plot.SkyPolygon`):
         The localization contour plot elements"""
         return self._clevels
 
     @property
     def loc_posterior(self):
-        """(:class:`~gdt.plot.plot.SkyHeatmap`): The localization gradient plot 
+        """(:class:`~gdt.core.plot.plot.SkyHeatmap`): The localization gradient plot
         element"""
         return self._posterior
 
     @property
     def sun(self):
-        """(:class:`~gdt.plot.plot.Sun`): The Sun plot element"""
+        """(:class:`~gdt.core.plot.plot.Sun`): The Sun plot element"""
         return self._sun
 
     @property
@@ -408,7 +408,7 @@ class SkyPlot(GdtPlot):
             det (str): The detector name
             radius (float, optional): The radius of pointing, in degrees. 
                                       Default is 10.0
-            **kwargs: Options to pass to :class:`~gdt.plot.plot.SkyCircle`
+            **kwargs: Options to pass to :class:`~gdt.core.plot.plot.SkyCircle`
         """
         x, y = get_lonlat(det_coord.transform_to(self._astropy_frame))
         pointing = DetectorPointing(x.value, y.value, radius, det, 
@@ -423,7 +423,7 @@ class SkyPlot(GdtPlot):
             geo_coord (astropy.coordinates.SkyCoord): The coordinates of the 
                                                       geocenter.
             radius (astropy.quantity.Quantity): The angular radius of the Earth
-            **kwargs: Options to pass to :class:`~gdt.plot.plot.SkyCircle`
+            **kwargs: Options to pass to :class:`~gdt.core.plot.plot.SkyCircle`
         """
         geo_coord = SkyCoord(geo_coord.ra, geo_coord.dec, frame='gcrs')
         lon, lat = get_lonlat(geo_coord.transform_to(self._astropy_frame))
@@ -446,7 +446,7 @@ class SkyPlot(GdtPlot):
             heatmap (np.array): A 2D array of values
             ra_array (np.array): The array of longitudinal gridpoints
             dec_array (np.array): The array of latitudinal gridpoints
-            **kwargs: Options to pass to :class:`~gdt.plot.plot.SkyHeatmap`
+            **kwargs: Options to pass to :class:`~gdt.core.plot.plot.SkyHeatmap`
         """
         if lon_array.ndim == 1 and lat_array.ndim == 1:
             x, y = np.meshgrid(lon_array, lat_array)
@@ -478,7 +478,7 @@ class SkyPlot(GdtPlot):
 
         Args:
             time (astropy.time.Time): The time at which to plot the sun
-            **kwargs: Options to pass to :class:`~gdt.plot.plot.Sun`
+            **kwargs: Options to pass to :class:`~gdt.core.plot.plot.Sun`
         """
         sun_coord = get_sun(time)
         sun_coord = SkyCoord(sun_coord.ra, sun_coord.dec, 
@@ -544,7 +544,7 @@ class EquatorialPlot(SkyPlot):
                                       longitudinal tick marks. Default is 30.
         yticks_res (float, optional): The resolution, in degrees, of the 
                                       latitudinal tick marks. Default is 15.
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     _x_start = 0
     _y_start = 0
@@ -572,7 +572,7 @@ class GalacticPlot(SkyPlot):
                                       longitudinal tick marks. Default is 30.
         yticks_res (float, optional): The resolution, in degrees, of the 
                                       latitudinal tick marks. Default is 15.
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     _x_start = 180
     _y_start = 0
@@ -603,7 +603,7 @@ class SpacecraftPlot(SkyPlot):
                                       longitudinal tick marks. Default is 30.
         yticks_res (float, optional): The resolution, in degrees, of the 
                                       latitudinal tick marks. Default is 15.
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     _x_start = 180
     _y_start = -90
