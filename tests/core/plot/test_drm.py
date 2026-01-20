@@ -34,12 +34,15 @@ from . import MyMixin
 
 
 class DrmMixin:
-    matrix = np.diag([0.1, 0.2, 0.3, 0.2, 0.1, 0.1])
-    emin = [10., 20., 40., 80., 160., 320.]
-    emax = [20., 40., 80., 160., 320., 640.]
-    chanlo = [10.1, 20.1, 40.1, 80.1, 160.1, 320.1]
-    chanhi = [20.1, 40.1, 80.1, 160.1, 320.1, 640.1]
-    drm = ResponseMatrix(matrix, emin, emax, chanlo, chanhi)
+
+    @classmethod
+    def setUpClass(cls):
+        matrix = np.diag([0.1, 0.2, 0.3, 0.2, 0.1, 0.1])
+        emin = [10., 20., 40., 80., 160., 320.]
+        emax = [20., 40., 80., 160., 320., 640.]
+        chanlo = [10.1, 20.1, 40.1, 80.1, 160.1, 320.1]
+        chanhi = [20.1, 40.1, 80.1, 160.1, 320.1, 640.1]
+        cls.drm = ResponseMatrix(matrix, emin, emax, chanlo, chanhi)
 
 
 class TestDrmPlot(MyMixin, DrmMixin, unittest.TestCase):
