@@ -37,7 +37,7 @@ from gdt.core.plot.plot import PlotElementCollection
 from . import ImageFileMixin, ExampleDetectors
 
 
-class MySkyPlot(SkyPlot):
+class ExampleSkyPlot(SkyPlot):
     _x_start = 0
     _y_start = 0
 
@@ -45,19 +45,19 @@ class MySkyPlot(SkyPlot):
 class TestSkyPlot(ImageFileMixin, unittest.TestCase):
 
     def test_fontsize(self):
-        plot = MySkyPlot()
+        plot = ExampleSkyPlot()
         self.assertEqual(plot.fontsize, 10)
         plot.fontsize = 12
         self.assertEqual(plot.fontsize, 12)
 
     def test_text_color(self):
-        plot = MySkyPlot()
+        plot = ExampleSkyPlot()
         self.assertEqual(plot.text_color, 'black')
         plot.text_color = 'red'
         self.assertEqual(plot.text_color, 'red')
 
     def test_properties(self):
-        plot = MySkyPlot()
+        plot = ExampleSkyPlot()
         self.assertEqual(plot.sun, None)
         self.assertEqual(plot.earth, None)
         self.assertEqual(plot.effective_area, None)
@@ -83,7 +83,7 @@ class TestSkyPlot(ImageFileMixin, unittest.TestCase):
             obstime=Time(time_str, format='iso', scale='utc'),
             detectors=ExampleDetectors)
 
-        plot = MySkyPlot()
+        plot = ExampleSkyPlot()
         plot.add_frame(frames, trigtime=frames[1].obstime, detectors=[], sun=False, earth=False, galactic_plane=False)
 
         with self.assertRaises(ValueError):
@@ -101,14 +101,14 @@ class TestSkyPlot(ImageFileMixin, unittest.TestCase):
             arr[i, :] = i + 1
         arr /= arr.sum()
 
-        plot = MySkyPlot()
+        plot = ExampleSkyPlot()
         heatmap = plot.plot_heatmap(arr, x, y)
         plt.savefig(self.image_file)
 
     def test_effective_area_plot(self):
         hpx = HealPixEffectiveArea.from_cosine(45, 45, 100, nside=8)
 
-        plot = MySkyPlot()
+        plot = ExampleSkyPlot()
         plot.add_effective_area(hpx)
         plt.savefig(self.image_file)
 

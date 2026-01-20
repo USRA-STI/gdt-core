@@ -36,11 +36,7 @@ from gdt.core.plot.plot import EarthPoints, SAA, EarthLine
 from . import ImageFileMixin, ExampleDetectors
 
 
-class MySaa(SouthAtlanticAnomaly):
-    """The coordinates of the GBM SAA boundary in latitude and East longitude
-    used from launch (0 seconds) until 18:30:09 UTC on June 9, 2010. This
-    is the original SAA polygon.
-    """
+class ExampleSaa(SouthAtlanticAnomaly):
     _latitude = [-30.0, 5.0, 5.0, -30.0, -30.0]
     _longitude = [-90.0, -90.0, 30.0, 30.0, -90.0]
 
@@ -87,7 +83,7 @@ class TestEarthPlot(ImageFileMixin, unittest.TestCase):
         self.assertEqual(str(plot2.spacecraft)[:12], "<EarthPoints")
 
     def test_saa(self):
-        plot = EarthPlot(saa=MySaa())
+        plot = EarthPlot(saa=ExampleSaa())
         plot.saa.linestyle = ":"
         plot.saa.linewidth = 5.0
         plot.saa.hatch = 'o'
