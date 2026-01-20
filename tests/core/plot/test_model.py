@@ -22,43 +22,24 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
-import numpy as np
-import healpy as hp
 import unittest
 import matplotlib.pyplot as plt
-import astropy.coordinates.representation as r
-import astropy.units as u
 
-from astropy.time import Time
 from gdt.core import data_path
-from gdt.core.detector import Detectors
-from gdt.core.coords import SpacecraftFrame, Quaternion
 from gdt.core.spectra.fitting import SpectralFitterPgstat
 from gdt.core.plot.model import ModelFit
-from gdt.core.plot.plot import Histo, ModelSamples, PlotElementCollection
+from gdt.core.plot.plot import PlotElementCollection
 
-this_dir = os.path.dirname(__file__)
+from . import MyMixin
 
 
-class MyMixin:
-    image_file = os.path.join(this_dir, "test.png")
+class TestModelFitPlot(MyMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         fit = data_path.joinpath('specfit.npz')
         cls.fitter = SpectralFitterPgstat.load(fit)
 
-    def tearDown(self):
-        plt.close('all')
-        try:
-            os.remove(self.image_file)
-        except:
-            pass
-
-
-class TestModelFitPlot(MyMixin, unittest.TestCase):
-    
     def test_plot(self):
         plot = ModelFit(fitter=self.fitter)
         self.assertEqual(plot.view, "counts")
