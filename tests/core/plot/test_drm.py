@@ -22,46 +22,27 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
 import numpy as np
-import healpy as hp
 import unittest
 import matplotlib.pyplot as plt
-import astropy.coordinates.representation as r
-import astropy.units as u
 
-from astropy.time import Time
-from gdt.core.detector import Detectors
-from gdt.core.coords import SpacecraftFrame, Quaternion
-from gdt.core.response import Rsp, Rsp2
 from gdt.core.plot.drm import ResponsePlot, PhotonEffectiveArea, ChannelEffectiveArea
 from gdt.core.plot.plot import Heatmap
-from gdt.core.data_primitives import ResponseMatrix, Ebounds, EnergyBins, TimeBins
+from gdt.core.data_primitives import ResponseMatrix
 
-this_dir = os.path.dirname(__file__)
-
-
-class MyMixin:
-    image_file = os.path.join(this_dir, "test.png")
-
-    @classmethod
-    def setUpClass(cls):
-        matrix = np.diag([0.1, 0.2, 0.3, 0.2, 0.1, 0.1])
-        emin = [10., 20., 40., 80., 160., 320.]
-        emax = [20., 40., 80., 160., 320., 640.]
-        chanlo = [10.1, 20.1, 40.1, 80.1, 160.1, 320.1]
-        chanhi = [20.1, 40.1, 80.1, 160.1, 320.1, 640.1]
-        cls.drm = ResponseMatrix(matrix, emin, emax, chanlo, chanhi)
-
-    def tearDown(self):
-        plt.close('all')
-        try:
-            os.remove(self.image_file)
-        except:
-            pass
+from . import MyMixin
 
 
-class TestDrmPlot(MyMixin, unittest.TestCase):
+class DrmMixin:
+    matrix = np.diag([0.1, 0.2, 0.3, 0.2, 0.1, 0.1])
+    emin = [10., 20., 40., 80., 160., 320.]
+    emax = [20., 40., 80., 160., 320., 640.]
+    chanlo = [10.1, 20.1, 40.1, 80.1, 160.1, 320.1]
+    chanhi = [20.1, 40.1, 80.1, 160.1, 320.1, 640.1]
+    drm = ResponseMatrix(matrix, emin, emax, chanlo, chanhi)
+
+
+class TestDrmPlot(MyMixin, DrmMixin, unittest.TestCase):
     
     def test_plot(self):
         plot = ResponsePlot(drm=self.drm)
@@ -83,7 +64,7 @@ class TestDrmPlot(MyMixin, unittest.TestCase):
         plt.savefig(self.image_file)
 
 
-class TestPhotonEffectiveAreaPlot(MyMixin, unittest.TestCase):
+class TestPhotonEffectiveAreaPlot(MyMixin, DrmMixin, unittest.TestCase):
     
     def test_plot(self):
         plot = PhotonEffectiveArea(drm=self.drm)
@@ -93,7 +74,7 @@ class TestPhotonEffectiveAreaPlot(MyMixin, unittest.TestCase):
         plot.set_response(self.drm)
 
 
-class TestChannelEffectiveAreaPlot(MyMixin, unittest.TestCase):
+class TestChannelEffectiveAreaPlot(MyMixin, DrmMixin, unittest.TestCase):
     
     def test_plot(self):
         plot = ChannelEffectiveArea(drm=self.drm)
