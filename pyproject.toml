@@ -27,7 +27,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     'pyproj>=1.9.6',
-    'numpy>=2.2.3',
+    'numpy>=2.2.3,<2.4.0',
     'scipy==1.15.2',
     'astropy>=7.0.0',
     'matplotlib~=3.10.0',
