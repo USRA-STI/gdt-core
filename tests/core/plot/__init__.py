@@ -24,7 +24,9 @@
 #
 import os
 import matplotlib.pyplot as plt
+import astropy.units as u
 
+from gdt.core.detector import Detectors
 
 class MyMixin:
     this_dir = os.path.dirname(__file__)
@@ -36,3 +38,8 @@ class MyMixin:
             os.remove(self.image_file)
         except:
             pass
+
+
+class MyDetectors(Detectors):
+    det0 = ('Det0', 0,  45.0 * u.deg,  45.0 * u.deg)
+    det1 = ('Det1', 1, 270.0 * u.deg, 135.0 * u.deg)

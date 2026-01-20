@@ -22,27 +22,18 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-import os
 import numpy as np
-import healpy as hp
 import unittest
 import matplotlib.pyplot as plt
 import astropy.coordinates.representation as r
-import astropy.units as u
 
 from astropy.time import Time
-from gdt.core.detector import Detectors
 from gdt.core.coords import SpacecraftFrame, Quaternion
 from gdt.core.plot.earthplot import EarthPlot
 from gdt.core.geomagnetic import SouthAtlanticAnomaly
 from gdt.core.plot.plot import EarthPoints, SAA, EarthLine
 
-this_dir = os.path.dirname(__file__)
-
-
-class MyDetectors(Detectors):
-    det0 = ('Det0', 0,  45.0 * u.deg,  45.0 * u.deg)
-    det1 = ('Det1', 1, 270.0 * u.deg, 135.0 * u.deg)
+from . import MyMixin, MyDetectors
 
 
 class MySaa(SouthAtlanticAnomaly):
@@ -52,17 +43,6 @@ class MySaa(SouthAtlanticAnomaly):
     """
     _latitude = [-30.0, 5.0, 5.0, -30.0, -30.0]
     _longitude = [-90.0, -90.0, 30.0, 30.0, -90.0]
-
-
-class MyMixin:
-    image_file = os.path.join(this_dir, "test.png")
-
-    def tearDown(self):
-        plt.close('all')
-        try:
-            os.remove(self.image_file)
-        except:
-            pass
 
 
 class TestEarthPlot(MyMixin, unittest.TestCase):
