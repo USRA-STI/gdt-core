@@ -27,13 +27,14 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     'pyproj>=1.9.6',
-    'numpy>=2.2.3,<2.4.0',
-    'scipy==1.15.2',
+    'numpy>=2.2.3',
+    'scipy>=1.16.3',
     'astropy>=7.0.0',
     'matplotlib~=3.10.0',
     'healpy~=1.18.0',
     'cartopy>=0.21.1',
-    'rich>=13.3.3'
+    'rich>=13.3.3',
+    "scipy-stubs~=1.15.2",
 ]
 dynamic = ["version"]
 
