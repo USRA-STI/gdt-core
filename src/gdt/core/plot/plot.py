@@ -1069,7 +1069,7 @@ class EarthPoints(PlotElement):
     @property
     def num_points(self):
         """(int): Number of plotted points"""
-        return len(self.sizes)
+        return len(self._artists[0].get_offsets())
     
     @property
     def sizes(self):
@@ -1134,7 +1134,7 @@ class SkyPoints(PlotElement):
     @property
     def num_points(self):
         """(int): The number of points plotted"""
-        return len(self.sizes)
+        return len(self._artists[0].get_offsets())
     
     @property
     def sizes(self):
