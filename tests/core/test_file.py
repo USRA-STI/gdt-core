@@ -177,6 +177,21 @@ class TestFitsFileContextManager(unittest.TestCase):
             fpath = Path(this_path, self.fits_file.name)
             self.assertTrue(fpath.exists())
 
+    def test_fsspec_cache_open_fits(self):
+        trigger_name = "bn190915240"
+        cache_path = self.temp_dir
+        fsspec_kwargs = {"simplecache": {"cache_storage": cache_path, "same_names": True}}
+        for fits_file in ["tcat", "trigdat"]:
+            file_name = f"glg_{fits_file}_all_{trigger_name}_v0[0-9].fit"
+            fits_url = f"simplecache::https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/20{trigger_name[2:4]}/{trigger_name}/current/{file_name}"
+            with FitsFileContextManager.open(fits_url, use_fsspec=True, fsspec_kwargs=fsspec_kwargs) as f:
+                assert f is not None
+                assert f.num_hdus >= 1
+                assert f.hdulist[0].name
+                assert f.hdulist[0].header
+                assert len(f.hdulist[0].header.cards) >= 1
+                assert next(Path(cache_path).glob(file_name))
+
     def test_new_repr_html_no_builder(self):
         """Test html representation of a newly created object without a hdu builder."""
         f = FitsFileContextManager()
@@ -215,4 +230,3 @@ class TestFitsFileContextManager(unittest.TestCase):
                           r"<tr><td>1</td><td></td><td>1</td><td>BinTableHDU</td><td>62</td><td>5R x 19C</td></tr>"
                           r"</table>")
         self.assertRegex(repr_html, expected_object_info + expected_table)
-
