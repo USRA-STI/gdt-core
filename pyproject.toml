@@ -34,12 +34,12 @@ dependencies = [
     'healpy~=1.18.0',
     'cartopy>=0.21.1',
     'rich>=13.3.3',
-    "scipy-stubs~=1.15.2",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 test = ["pytest"]
+dev = ["scipy-stubs~=1.15.2"]
 docs = ["Sphinx==5.0.2", "astropy-sphinx-theme", "nbsphinx", "sphinx-automodapi"]
 
 [tool.setuptools]
