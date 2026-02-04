@@ -1762,6 +1762,10 @@ class DetectorPointing(SkyCircle):
         self._fontsize = size
 
     def _annotate(self, x, y, ax, flipped, frame):
+        # Need to demote (1,) arrays into scalars
+        x = x[0] if isinstance(x, np.ndarray) and x.shape == (1,) else x
+        y = y[0] if isinstance(y, np.ndarray) and y.shape == (1,) else y
+
         theta = np.deg2rad(y)
         phi = np.deg2rad(180.0 - x)
         if frame == 'spacecraft':
