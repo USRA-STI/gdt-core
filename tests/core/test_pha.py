@@ -26,6 +26,7 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import numpy as np
 import os
 import unittest
 from gdt.core.data_primitives import EnergyBins, Gti, Ebounds
@@ -255,7 +256,6 @@ class TestPhaChannelMask(unittest.TestCase):
             Pha.from_data(self.pha.data, self.pha.gti, channel_mask=[True, False])
             
 
-
 class TestPhaValidChannels(unittest.TestCase):
     
     @classmethod
@@ -317,6 +317,137 @@ class TestPhaZeroCounts(unittest.TestCase):
         assert self.pha.valid_channels.tolist() == [1, 3, 5]
 
 
+class TestPhaAsRates(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        counts = [119, 71, 34, 30, 21, 6, 2, 19]
+        emin = [4.323754, 11.464164, 26.22962, 49.60019, 101.016815,
+                290.46063, 538.1436, 997.2431]
+        emax = [11.464164, 26.22962, 49.60019, 101.016815, 290.46063,
+                538.1436, 997.2431, 2000.]
+        exposure = 0.25459924
+         
+        data = EnergyBins(counts, emin, emax, exposure)
+        gti = Gti.from_list([(-899.0864419937134, -898.8306360244751)])
+        cls.pha = Pha.from_data(data, gti=gti, trigger_time=356223561.133346)
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            os.remove(os.path.join(this_dir, 'test_pha.pha'))
+        except:
+            pass
+        cls.pha.close()
+
+    def test_write_read(self):
+        self.pha.write(this_dir, 'test_pha.pha', rates=True)
+        pha2 = Pha.open(os.path.join(this_dir, 'test_pha.pha'))
+
+        # test data
+        assert np.all(pha2.data.counts.astype(int) \
+                      == self.pha.data.counts.astype(int))
+        for i in range(pha2.num_chans):
+            self.assertAlmostEqual(pha2.data.lo_edges[i],
+                                   self.pha.data.lo_edges[i], places=4)
+        for i in range(pha2.num_chans):
+            self.assertAlmostEqual(pha2.data.hi_edges[i],
+                                   self.pha.data.hi_edges[i], places=4)
+        # test ebounds
+        for i in range(pha2.num_chans):
+            self.assertAlmostEqual(pha2.ebounds.low_edges()[i],
+                                   self.pha.ebounds.low_edges()[i], places=4)
+        for i in range(pha2.num_chans):
+            self.assertAlmostEqual(pha2.ebounds.high_edges()[i],
+                                   self.pha.ebounds.high_edges()[i], places=4)
+
+        # test gti
+        self.assertListEqual(pha2.gti.low_edges(), self.pha.gti.low_edges())
+        self.assertListEqual(pha2.gti.high_edges(), self.pha.gti.high_edges())
+
+        # test attributes
+        self.assertEqual(pha2.filename, 'test_pha.pha')
+        self.assertEqual(pha2.num_chans, self.pha.num_chans)
+        self.assertEqual(pha2.trigtime, self.pha.trigtime)
+        
+        # test headers
+        self.assertEqual(pha2.headers['PRIMARY']['TSTART'], -899.0864419937134)
+        self.assertEqual(pha2.headers['PRIMARY']['TSTOP'], -898.8306360244751)
+        self.assertEqual(pha2.headers['PRIMARY']['TRIGTIME'], 356223561.133346)
+        self.assertEqual(pha2.headers['EBOUNDS']['DETCHANS'], 8)
+        self.assertEqual(pha2.headers['SPECTRUM']['DETCHANS'], 8)
+        self.assertEqual(pha2.headers['SPECTRUM']['EXPOSURE'], 0.25459924)
+        
+        pha2.write(this_dir, overwrite=True)
+        pha2.close()
+
+
+class TestPhaNotPoisson(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        counts = [119, 71, 34, 30, 21, 6, 2, 19]
+        uncerts = [8, 7, 6, 5, 4, 3, 2, 1]
+        emin = [4.323754, 11.464164, 26.22962, 49.60019, 101.016815,
+                290.46063, 538.1436, 997.2431]
+        emax = [11.464164, 26.22962, 49.60019, 101.016815, 290.46063,
+                538.1436, 997.2431, 2000.]
+        exposure = 0.25459924
+         
+        data = EnergyBins(counts, emin, emax, exposure, count_uncerts=uncerts)
+        gti = Gti.from_list([(-899.0864419937134, -898.8306360244751)])
+        cls.pha = Pha.from_data(data, gti=gti, trigger_time=356223561.133346)
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            os.remove(os.path.join(this_dir, 'test_pha.pha'))
+        except:
+            pass
+        cls.pha.close()
+
+    def test_write_read(self):
+        self.pha.write(this_dir, 'test_pha.pha', poisson_errs=False)
+        pha2 = Pha.open(os.path.join(this_dir, 'test_pha.pha'))
+
+        # test data
+        assert np.all(pha2.data.counts.astype(int) \
+                      == self.pha.data.counts.astype(int))
+        for i in range(pha2.num_chans):
+            self.assertAlmostEqual(pha2.data.lo_edges[i],
+                                   self.pha.data.lo_edges[i], places=4)
+        for i in range(pha2.num_chans):
+            self.assertAlmostEqual(pha2.data.hi_edges[i],
+                                   self.pha.data.hi_edges[i], places=4)
+        # test ebounds
+        for i in range(pha2.num_chans):
+            self.assertAlmostEqual(pha2.ebounds.low_edges()[i],
+                                   self.pha.ebounds.low_edges()[i], places=4)
+        for i in range(pha2.num_chans):
+            self.assertAlmostEqual(pha2.ebounds.high_edges()[i],
+                                   self.pha.ebounds.high_edges()[i], places=4)
+
+        # test gti
+        self.assertListEqual(pha2.gti.low_edges(), self.pha.gti.low_edges())
+        self.assertListEqual(pha2.gti.high_edges(), self.pha.gti.high_edges())
+
+        # test attributes
+        self.assertEqual(pha2.filename, 'test_pha.pha')
+        self.assertEqual(pha2.num_chans, self.pha.num_chans)
+        self.assertEqual(pha2.trigtime, self.pha.trigtime)
+        
+        # test headers
+        self.assertEqual(pha2.headers['PRIMARY']['TSTART'], -899.0864419937134)
+        self.assertEqual(pha2.headers['PRIMARY']['TSTOP'], -898.8306360244751)
+        self.assertEqual(pha2.headers['PRIMARY']['TRIGTIME'], 356223561.133346)
+        self.assertEqual(pha2.headers['EBOUNDS']['DETCHANS'], 8)
+        self.assertEqual(pha2.headers['SPECTRUM']['DETCHANS'], 8)
+        self.assertEqual(pha2.headers['SPECTRUM']['EXPOSURE'], 0.25459924)
+        
+        pha2.write(this_dir, overwrite=True)
+        pha2.close()
+
+
 class TestBak(unittest.TestCase):
     
     @classmethod
@@ -354,7 +485,7 @@ class TestBak(unittest.TestCase):
         self.assertEqual(self.bak.headers['SPECTRUM']['EXPOSURE'], 2.021)
 
     def test_write_read(self):
-        self.bak.write(this_dir, 'test_bak.bak')
+        self.bak.write(this_dir, 'test_bak.bak', rates=True)
         bak2 = Bak.open(os.path.join(this_dir, 'test_bak.bak'))
         
         # test data
@@ -375,8 +506,8 @@ class TestBak(unittest.TestCase):
                                    self.bak.ebounds.high_edges()[i], places=4)
 
         # test gti
-        self.assertListEqual(bak2.gti.low_edges(), self.bak.gti.low_edges())
-        #self.assertListEqual(bak2.gti.high_edges(), self.bak.gti.high_edges())
+        np.testing.assert_allclose(bak2.gti.low_edges(), self.bak.gti.low_edges())
+        np.testing.assert_allclose(bak2.gti.high_edges(), self.bak.gti.high_edges())
 
         # test attributes
         self.assertEqual(bak2.filename, 'test_bak.bak')
@@ -391,11 +522,6 @@ class TestBak(unittest.TestCase):
         self.assertEqual(bak2.headers['SPECTRUM']['DETCHANS'], 8)
         self.assertEqual(bak2.headers['SPECTRUM']['EXPOSURE'], 2.021)
         
-        bak2.write(this_dir, overwrite=True)
+        bak2.write(this_dir, overwrite=True, rates=True)
         bak2.close()
-
-
-if __name__ == '__main__':
-    unittest.main()
-
 
