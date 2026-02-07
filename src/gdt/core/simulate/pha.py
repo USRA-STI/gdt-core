@@ -50,15 +50,27 @@ class PhaSimulator:
             A modeled background spectrum
         bkgd_distrib (str): The distribution from which the background is
                             simulated; either 'Poisson' or 'Gaussian'
+        rng (numpy.random.Generator, optional): random number generator
     """
-    def __init__(self, rsp, function, params, exposure, bkgd, bkgd_distrib):
+    def __init__(self, rsp, function, params, exposure, bkgd, bkgd_distrib, rng=None):
+        self._rng = rng or np.random.default_rng()
         self._rsp = rsp
         self._function = function
         self._params = params
         self._exposure = exposure
         self._src_gen = SourceSpectrumGenerator(rsp, function, params,
-                                                exposure)
+                                                exposure, self._rng)
         self.set_background(bkgd, bkgd_distrib)
+
+    def set_rng(self, rng):
+        """Set/change the generator.
+
+        Args:
+            rng (numpy.random.Generator): random number generator
+        """
+        self._rng = rng
+        self._src_gen.set_rng(self._rng)
+        self._bkgd_gen.set_rng(self._rng)
 
     def set_background(self, bkgd, bkgd_distrib):
         """Set/change the background model.
@@ -75,9 +87,9 @@ class PhaSimulator:
                                            bkgd.lo_edges, bkgd.hi_edges,
                                            [self._exposure] * bkgd.size)
         if bkgd_distrib == 'Poisson':
-            self._bkgd_gen = PoissonBackgroundGenerator(bkgd_spectrum)
+            self._bkgd_gen = PoissonBackgroundGenerator(bkgd_spectrum, self._rng)
         elif bkgd_distrib == 'Gaussian':
-            self._bkgd_gen = GaussianBackgroundGenerator(bkgd_spectrum)
+            self._bkgd_gen = GaussianBackgroundGenerator(bkgd_spectrum, self._rng)
         else:
             raise ValueError(
                 "bkgd_distrib can only be 'Poisson' or 'Gaussian'")
@@ -92,7 +104,8 @@ class PhaSimulator:
             raise TypeError('rsp must be a Rsp object')
         self._src_gen = SourceSpectrumGenerator(rsp, self._function,
                                                 self._params,
-                                                self._exposure)
+                                                self._exposure,
+                                                self._rng)
         self._rsp = rsp
 
     def set_source(self, function, params, exposure):
@@ -105,7 +118,7 @@ class PhaSimulator:
             exposure (float): The source exposure
         """
         self._src_gen = SourceSpectrumGenerator(self._rsp, function, params,
-                                                exposure)
+                                                exposure, self._rng)
         self._exposure = exposure
         if self._bkgd_gen.__class__.__name__.startswith('Poisson'):
             distrib = 'Poisson'
@@ -158,7 +171,7 @@ class PhaSimulator:
             bkgd_counts[bkgd_counts < 0] = 0
             bkgd_counts_int = bkgd_counts.astype(int)
             bkgd_counts_frac = bkgd_counts - bkgd_counts_int
-            extra_counts = (np.random.random(
+            extra_counts = (self._rng.random(
                 bkgd_counts_frac.size) > bkgd_counts_frac)
             bkgd_counts_int += extra_counts.astype(int)
 
@@ -198,7 +211,7 @@ class PhaSimulator:
             tstart (float, optional): The start time. If not set, then is zero.
             tstop (float, optional): Then end time. If not set, then is the 
                                      exposure.
-            **kwargs: Options passed to :class:`~gdt.core.pha.Pha`
+            **kwargs: Options passed to :meth:`~gdt.core.pha.Pha.from_data`
         
         Returns:
             (list of :class:`~gdt.core.pha.Pha`)

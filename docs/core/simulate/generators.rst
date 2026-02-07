@@ -12,6 +12,7 @@
 .. |bkgd| replace:: :ref:`Background Primitives<background_primitives>`
 .. |rsp| replace:: :ref:`The Rsp Class<core-response>`
 .. |functions| replace:: :ref:`Spectral Functions<spectra-functions>`
+.. |set_rng| replace:: :meth:`~gdt.core.simulate.generators.SimGenerator.set_rng`
 
 
 ************************************************************
@@ -262,6 +263,34 @@ Setting ``min_sep > 0`` imposes a "dead time" during which events cannot be
 recorded which simulated the real deadtime experience by real detectors and 
 will affect the observed count rate for relatively high rates.
 
+Setting Generator Seeds
+=======================
+Users can set the seed used by each random generator object with a
+``rng`` keyword when initializing the class:
+
+    >>> import numpy as np
+    >>> rng = np.random.default_rng(seed=1)
+    >>>
+    >>> from gdt.core.simulate.generators import EventSpectrumGenerator
+    >>> count_spec = np.array([17, 19, 12,  1])
+    >>> gen = EventSpectrumGenerator(count_spec, 1e-6, rng=rng)
+
+This is useful in cases where reproducibility with a known seed is desired,
+such as for publicly shared simulation results.
+
+Additionally, the random generator seed can be modified after initialization
+with the |set_rng| function:
+
+    >>> gen.set_rng(rng)
+
+In cases where the user does not seed the generator class it
+will use ``np.random.default_rng()`` to create a seed from the computer's clock time.
+This will produce a different result whenever the simulation is performed at a different time.
+Simulations run at the same time will produce the same result, which can be problematic for users
+trying to run simulations as parallel processes. To avoid this, users should
+provide unique seeds to each simulation process when running in parallel.
+See :ref:`Seeding Event Data<sim-tte-seed>` and :ref:`Seeding PHA Data<sim-pha-seed>`
+for parallel processing examples.
 
 Reference/API
 =============

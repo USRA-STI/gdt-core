@@ -1,4 +1,44 @@
 # Release Notes for Gamma-ray Data Tools: Core Library
+## Version 2.2.2 (Released Jan 6, 2026)
+
+This release included the following updates from pull requests:  
+
+- Fixed an issue discovered in testing by creating an experimental continuous flag for ChannelBins
+- Fixed a bug preventing a copy of Headers by accepting cards like fits.Header [#10](https://github.com/USRA-STI/gdt-core/pull/10)[#110](https://github.com/USRA-STI/gdt-core/pull/110)
+- Use ebounds for energy bin edges because it works for binned and unbinned fits [#112](https://github.com/USRA-STI/gdt-core/pull/112)
+- Speed optimizations for unbinned NaivePoisson background fit [#109](https://github.com/USRA-STI/gdt-core/pull/109)
+
+## Version 2.2.1 (Released Nov 19, 2025)
+
+This release included the following updates from pull requests:  
+
+- Update HEASARC Catalog Link [#91](https://github.com/USRA-STI/gdt-core/pull/91)
+- Added support for retrieving HEASARC data from AWS servers [#92](https://github.com/USRA-STI/gdt-core/pull/92)
+- Fix the finder behavior when using the AWS protocol to search directories instead of files [#93](https://github.com/USRA-STI/gdt-core/pull/93)
+- Added links to GitHub repo and related pages (issues, pull requests) to documents [#95](https://github.com/USRA-STI/gdt-core/pull/95)
+- Moved setting the x-axis limits to after the axes were configured [#98](https://github.com/USRA-STI/gdt-core/pull/98)
+- Fixes an issue with rebinned channelize spectrum having gaps in the step plots. [#102](https://github.com/USRA-STI/gdt-core/pull/102)
+- Fix tte deadtime [#103](https://github.com/USRA-STI/gdt-core/pull/103)
+- Fixes issues with HEASARC change directory [#107](https://github.com/USRA-STI/gdt-core/pull/107)
+
+## Version 2.2.0 (Released Apr 17, 2025)
+
+This release included the following updates from pull requests:  
+
+- Bug fix for DataCollection where names is None [#62](https://github.com/USRA-STI/gdt-core/issues/62)
+- Added detector propagation to rebin and resample. [#65](https://github.com/USRA-STI/gdt-core/pull/65)
+- Added functions to create FITS headers with floating-point values. [#69](https://github.com/USRA-STI/gdt-core/pull/69)
+- Updated calls to matplotlib and fixed some headers. [#71](https://github.com/USRA-STI/gdt-core/pull/71)
+- Renamed exponential_card to scientific_card and added some options. [#72](https://github.com/USRA-STI/gdt-core/pull/72)
+- Reduced polygon artifacts for maps with fragmented contours. [#77](https://github.com/USRA-STI/gdt-core/pull/77)
+- Fixed creating and plotting effective area on the sky. [#81](https://github.com/USRA-STI/gdt-core/pull/81)
+- Fixed 'Pha.energy_range' when creating from Phaii.to_pha(). [#82](https://github.com/USRA-STI/gdt-core/pull/82)
+- Improved the creation of PHA objects with 'valid_channels'. [#83](https://github.com/USRA-STI/gdt-core/pull/83)
+- Removed the need for using a FILENAME in the header of a PHA file. [#84](https://github.com/USRA-STI/gdt-core/pull/84)
+- Added translation function to Range. [#85](https://github.com/USRA-STI/gdt-core/pull/85)
+- Fixed more calls to matplotlib. [#86](https://github.com/USRA-STI/gdt-core/pull/86)
+- Added support for trigger detection. [#90](https://github.com/USRA-STI/gdt-core/pull/90)
+
 ## Version 2.1.0 (Released Aug 16, 2024)  
 
 This release included the following updates from pull requests:  

@@ -46,7 +46,7 @@ class Spectrum(GdtPlot):
             The count spectrum data to plot
         background (:class:`~gdt.background.primitives.BackgroundSpectrum`, optional): 
             The background spectrum to plot
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     def __init__(self, data=None, background=None, canvas=None, **kwargs):
         super().__init__(canvas=canvas, **kwargs)
@@ -72,25 +72,25 @@ class Spectrum(GdtPlot):
 
     @property
     def background(self):
-        """(:class:`~gdt.plot.plot.SpectrumBackground`): The count spectrum 
+        """(:class:`~gdt.core.plot.plot.SpectrumBackground`): The count spectrum
         background plot element"""
         return self._bkgd
 
     @property
     def errorbars(self):
-        """(:class:`~gdt.plot.plot.HistoErrorbars`): The error bars plot element
+        """(:class:`~gdt.core.plot.plot.HistoErrorbars`): The error bars plot element
         """
         return self._errorbars
 
     @property
     def selections(self):
-        """(list of :class:`~gdt.plot.plot.HistoFilled`): The count spectrum 
+        """(list of :class:`~gdt.core.plot.plot.HistoFilled`): The count spectrum
         selection plot element"""
         return self._selections
 
     @property
     def spectrum(self):
-        """(:class:`~gdt.plot.plot.Histo`): The count spectrum plot element"""
+        """(:class:`~gdt.core.plot.plot.Histo`): The count spectrum plot element"""
         return self._spec
 
     # mark FIXME: store selections in a collection
@@ -118,7 +118,7 @@ class Spectrum(GdtPlot):
         color, alpha, band_alpha, kwargs = self._bkgd_settings()
         self._bkgd = SpectrumBackground(background, self._ax, color=color,
                                         alpha=alpha, band_alpha=band_alpha,
-                                        zorder=1000, **kwargs)
+                                        zorder=kwargs.pop("zorder", 1000), **kwargs)
 
     def set_data(self, data):
         """Set the count spectrum plotting data. If a count spectrum already 
@@ -139,7 +139,6 @@ class Spectrum(GdtPlot):
         self._errorbars = HistoErrorbars(data, self._ax, color=eb_color,
                                          alpha=eb_alpha, **eb_kwargs)
 
-        self._ax.set_xlim(data.range)
         mask = (data.rates > 0.0)
         
         if isinstance(data, ChannelBins):
@@ -151,7 +150,10 @@ class Spectrum(GdtPlot):
         else:
             self._ax.set_ylim(0.9 * data.rates_per_kev[mask].min(),
                               1.1 * data.rates_per_kev.max())
-    
+
+        self._ax.set_xlim(data.range)
+
+
     def remove_background(self):
         """Remove the background from the plot.
         """

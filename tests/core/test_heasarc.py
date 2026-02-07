@@ -125,6 +125,9 @@ class TestFtp(TestMixin, unittest.TestCase):
         self.assertEqual(str(protocol), '<Ftp: host heasarc.gsfc.nasa.gov>')
 
 
+@unittest.skipIf(
+    os.environ.get('SKIP_HEASARC_HTTP_TESTS', False), 'Skipping HEASARC HTTP tests'
+)
 class TestHttp(TestMixin, unittest.TestCase):
 
     def test_download_url(self):
@@ -170,10 +173,15 @@ class TestFinder(TestMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls._test_protocols = ['FTP', 'HTTPS']
+        cls._test_protocols = ['FTP', 'HTTPS', 'AWS']
         if os.environ.get('SKIP_HEASARC_FTP_TESTS', False):
             print('Skipping HEASARC FTP tests')
-            cls._test_protocols = ['HTTPS']
+            i = cls._test_protocols.index("FTP")
+            cls._test_protocols.pop(i)
+        if os.environ.get('SKIP_HEASARC_HTTP_TESTS', False):
+            print('Skipping HEASARC HTTP/HTTPS tests')
+            i = cls._test_protocols.index("HTTPS")
+            cls._test_protocols.pop(i)
 
     def test_initialize(self):
         for protocol in self._test_protocols:
@@ -212,7 +220,7 @@ class TestFinder(TestMixin, unittest.TestCase):
 
 
     def test_errors(self):
-        keyword = {"HTTP": "url", "HTTPS": "url", "FTP": "host"}
+        keyword = {"HTTP": "url", "HTTPS": "url", "FTP": "host", "AWS": "url"}
         for protocol in self._test_protocols:
             with self.assertRaises(ValueError):
                 MyFinder('oops i did it again', protocol=protocol)
@@ -233,28 +241,35 @@ class TestFinder(TestMixin, unittest.TestCase):
                 pass
 
     def test_repr(self):
-        finder = MyFinder('170817529')
-        self.assertEqual(str(finder), '<MyFinder: 170817529>')
+        for protocol in self._test_protocols:
+            finder = MyFinder('170817529', protocol=protocol)
+            self.assertEqual(str(finder), '<MyFinder: 170817529>')
 
 class TestFileDownloader(TestMixin, unittest.TestCase):
 
     def test_download(self):
         downloader = FileDownloader()
-        downloader.download_url(self.https_urls[0], this_dir)
-        downloader.download_url(self.ftp_urls[0], this_dir)
+        if not os.environ.get('SKIP_HEASARC_HTTP_TESTS', False):
+            downloader.download_url(self.https_urls[0], this_dir)
+        if not os.environ.get('SKIP_HEASARC_FTP_TESTS', False):
+            downloader.download_url(self.ftp_urls[0], this_dir)
 
         with self.assertRaises(ValueError):
             downloader.download_url('bad', this_dir)
 
     def test_bulk(self):
         downloader = FileDownloader()
-        downloader.bulk_download(self.https_urls, this_dir)
+        if not os.environ.get('SKIP_HEASARC_HTTP_TESTS', False):
+            downloader.bulk_download(self.https_urls, this_dir)
 
     def test_context(self):
         with FileDownloader() as downloader:
             pass
 
 
+@unittest.skipIf(
+    os.environ.get('SKIP_HEASARC_HTTP_TESTS', False), 'Skipping HEASARC HTTP/HTTPS tests'
+)
 class TestBrowseCatalog(unittest.TestCase):
     
     @classmethod
