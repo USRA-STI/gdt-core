@@ -982,7 +982,7 @@ class TestChannelBins(unittest.TestCase):
     def test_chan_nums(self):
         self.assertListEqual(self.bins.chan_nums.tolist(), [0, 1, 3, 4, 5, 6])
     
-    @unittest.skip
+    @unittest.skip('This is broken due to the change in PR #102')
     def test_contiguous_bins(self):
         cont_bins = self.bins.contiguous_bins()
         self.assertEqual(len(cont_bins), 2)
