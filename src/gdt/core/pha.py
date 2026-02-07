@@ -441,6 +441,11 @@ class Pha(FitsFileContextManager):
         
         return obj
 
+    def write(self, directory, filename=None, rates=False, poisson_errs=False,
+              **kwargs):
+        self._hdulist = self._build_hdulist(rates=rates, poisson_errs=poisson_errs)
+        super().write(directory, filename=filename, **kwargs)
+        
     def _assert_range(self, valrange):
         if valrange[0] is None and valrange[1] is None:
             return valrange
@@ -456,7 +461,7 @@ class Pha(FitsFileContextManager):
         range_list = [self._assert_range(r) for r in range_list]
         return range_list
     
-    def _build_hdulist(self):
+    def _build_hdulist(self, rates=False, poisson_errs=False):
         """This builds the HDU list for the FITS file.  
         
         If this class is inherited, this method may be over-written if a 
@@ -466,6 +471,13 @@ class Pha(FitsFileContextManager):
         This method should construct each HDU (PRIMARY, SPECTRUM, EBOUNDS, GTI, 
         etc.) containing the respective header and data. The HDUs should then 
         be inserted into a HDUList and that list returned
+        
+        Args:
+            rates (bool): Set to True to write out the data as rates instead of
+                          counts. Default is to write counts.
+            poisson_errs (bool): Set to True to write with Poisson errors.  
+                                 Default is to *not* assume Poisson errors and
+                                 create a STAT_ERRS column.
         
         Returns:
             (:class:`astropy.io.fits.HDUList`)
@@ -477,9 +489,8 @@ class Pha(FitsFileContextManager):
             primary_hdu.header[key] = val
         hdulist.append(primary_hdu)
         
-        # mark: TODO give option to write COUNT or RATE column
         # the spectrum extension
-        spectrum_hdu = self._spectrum_table()
+        spectrum_hdu = self._spectrum_table(rates, poisson_errs)
         hdulist.append(spectrum_hdu)        
 
         # the ebounds extension
@@ -535,20 +546,48 @@ class Pha(FitsFileContextManager):
 
         return hdu
 
-    def _spectrum_table(self):
+    def _spectrum_table(self, use_rates, is_poisson):
+ 
         chan_col = fits.Column(name='CHANNEL', format='1I', 
                                array=np.arange(self.num_chans, dtype=int))
-        counts_col = fits.Column(name='COUNTS', format='J', bzero=32768, 
-                                 bscale=1, unit='count', array=self.data.counts)
+       
+        if use_rates:
+            data_col = fits.Column(name='RATE', format='E', unit='count/s', 
+                                   array=self.data.rates)
+        else:
+            data_col = fits.Column(name='COUNTS', format='J', bzero=32768, 
+                                   bscale=1, unit='count', array=self.data.counts)
+
+        columns = [chan_col, data_col]
+                
+        if not is_poisson:
+            if use_rates:
+                staterr_col = fits.Column(name='STAT_ERR', format='E', 
+                                          unit='count/s', 
+                                          array=self.data.rate_uncertainty)
+            else:
+                staterr_col = fits.Column(name='STAT_ERR', format='E', 
+                                          unit='count', 
+                                          array=self.data.count_uncertainty)
+            columns.append(staterr_col)
+        
+        
         qual_col = fits.Column(name='QUALITY', format='1I', 
                                array=(~self.channel_mask).astype(int))
+        columns.append(qual_col)
         
-        hdu = fits.BinTableHDU.from_columns([chan_col, counts_col, qual_col], 
+        hdu = fits.BinTableHDU.from_columns(columns, 
                                             header=self.headers['SPECTRUM'])
         for key, val in self.headers['SPECTRUM'].items():
             hdu.header[key] = val
-        hdu.header.comments['TZERO2'] = 'offset for unsigned integers'
-        hdu.header.comments['TSCAL2'] = 'data are not scaled'
+        hdu.header['POISERR'] = is_poisson            
+        if not use_rates:
+            hdu.header['HDUCLAS3'] = 'COUNT'
+            hdu.header.comments['TZERO2'] = 'offset for unsigned integers'
+            hdu.header.comments['TSCAL2'] = 'data are not scaled'
+        else:
+            hdu.header['HDUCLAS3'] = 'RATE'
+        
         return hdu
 
     def _gti_table(self):
@@ -622,17 +661,26 @@ class Bak(Pha):
         """Not Implemented"""
         raise NotImplementedError('Function not available for BAK objects')
 
-    def _spectrum_table(self):
+    def _spectrum_table(self, use_rates, is_poisson):
+        
         chan_col = fits.Column(name='CHANNEL', format='1I', 
                                array=np.arange(self.num_chans, dtype=int))
-        rates_col = fits.Column(name='RATE', format='1D', unit='count/s', 
-                                array=self.data.rates)
-        staterr_col = fits.Column(name='STAT_ERR', format='1D', unit='count/s', 
-                                  array=self.data.rate_uncertainty)
-        
-        hdu = fits.BinTableHDU.from_columns([chan_col, rates_col, staterr_col], 
+
+        if use_rates:
+            data_col = fits.Column(name='RATE', format='1D', unit='count/s', 
+                                   array=self.data.rates)
+            staterr_col = fits.Column(name='STAT_ERR', format='E', 
+                                          unit='count/s', 
+                                          array=self.data.rate_uncertainty)
+        else:
+            data_col = fits.Column(name='COUNTS', format='J', bzero=32768, 
+                                   bscale=1, unit='count', array=self.data.counts)
+            staterr_col = fits.Column(name='STAT_ERR', format='E', 
+                                          unit='count', 
+                                          array=self.data.count_uncertainty)        
+       
+        hdu = fits.BinTableHDU.from_columns([chan_col, data_col, staterr_col], 
                                             header=self.headers['SPECTRUM'])
         for key, val in self.headers['SPECTRUM'].items():
             hdu.header[key] = val
         return hdu
-
