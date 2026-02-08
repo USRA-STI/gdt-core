@@ -27,18 +27,19 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     'pyproj>=1.9.6',
-    'numpy~=2.2.3',
-    'scipy~=1.15.2',
+    'numpy>=2.2.3',
+    'scipy>=1.16.3',
+    'astropy>=7.0.0',
     'matplotlib~=3.10.0',
-    'astropy~=7.0.0',
     'healpy~=1.18.0',
     'cartopy>=0.21.1',
-    'rich>=13.3.3'
+    'rich>=13.3.3',
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 test = ["pytest"]
+dev = ["scipy-stubs~=1.15.2"]
 docs = ["Sphinx==5.0.2", "astropy-sphinx-theme", "nbsphinx", "sphinx-automodapi"]
 
 [tool.setuptools]
