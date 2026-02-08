@@ -115,7 +115,7 @@ class TestFitsFileContextManager(unittest.TestCase):
                                                         17.2239933013916, 17.18284797668457]), format='1E', unit='deg'),
             fits.Column(name='FLAGS', array=np.array([1, 1, 1, 1, 1]), format='1I', bscale=1, bzero=32768)
         ])
-
+        table.header['EXTNAME'] = 'POSHIST'
         cls.temp_dir = mkdtemp()
         cls.fits_file = Path(cls.temp_dir) / 'test_data.fits'
         table.writeto(cls.fits_file)
@@ -129,7 +129,12 @@ class TestFitsFileContextManager(unittest.TestCase):
         with FitsFileContextManager.open(self.fits_file) as f:
             self.assertEqual(f.num_hdus, 2)
             self.assertIsInstance(f.hdulist, fits.hdu.hdulist.HDUList)
-
+    
+    def test_hdu_index_from_name(self):
+        with FitsFileContextManager.open(self.fits_file) as f:
+            assert f.hdu_index_from_name('POSHIST') == 1
+            assert f.hdu_index_from_name('TEST') is None
+    
     def test_filename(self):
         with FitsFileContextManager.open(self.fits_file) as f:
             self.assertEqual(f.filename, self.fits_file.name)
@@ -199,7 +204,6 @@ class TestFitsFileContextManager(unittest.TestCase):
                           r"</table>")
         self.assertRegex(repr_html, expected_object_info + expected_table)
 
-
     def test_repr_html_with_file(self):
         """Test html representation of a fits file"""
         with FitsFileContextManager.open(self.fits_file) as f:
@@ -212,7 +216,7 @@ class TestFitsFileContextManager(unittest.TestCase):
         expected_table = (r"<table>"
                           r"<tr><th>No.</th><th>Name</th><th>Ver</th><th>Type</th><th>Cards</th><th>Dimensions</th></tr>"
                           r"<tr><td>0</td><td>PRIMARY</td><td>1</td><td>PrimaryHDU</td><td>4</td><td>\(\)</td></tr>"
-                          r"<tr><td>1</td><td></td><td>1</td><td>BinTableHDU</td><td>62</td><td>5R x 19C</td></tr>"
+                          r"<tr><td>1</td><td>POSHIST</td><td>1</td><td>BinTableHDU</td><td>63</td><td>5R x 19C</td></tr>"
                           r"</table>")
         self.assertRegex(repr_html, expected_object_info + expected_table)
 

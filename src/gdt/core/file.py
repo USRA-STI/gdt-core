@@ -131,7 +131,27 @@ class FitsFileContextManager(AbstractContextManager):
             return self.hdulist[hdu_num].data.dtype.names
         except:
             return ()
-
+    
+    def hdu_index_from_name(self, ext_name):
+        """Returns the index into the HDU list based on the extension name.
+        If there is no match, returns None.
+        
+        Args:
+            ext_name (str): The extension name
+        
+        Returns:
+            (int)
+        """
+        for i, hdu in enumerate(self.hdulist):
+            try:
+                if hdu.header['EXTNAME'] == ext_name:
+                    return i
+            except KeyError:
+                pass
+            continue
+        
+        return None
+    
     @classmethod
     def open(cls, file_path: Union[str, Path], mode: str = 'readonly', memmap: bool = None):
         """Open a FITS file.
