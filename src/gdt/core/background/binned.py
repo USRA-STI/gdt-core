@@ -304,6 +304,24 @@ class RoboLowess:
         self._refined_mask = None
         self._signal_mask = None
         self._refit_applied = False
+        self._chisq = None
+        self._dof = None
+        self._statistic_name = 'chisq'
+
+    @property
+    def dof(self):
+        """(np.array): The degrees-of-freedom for each channel"""
+        return self._dof
+
+    @property
+    def statistic(self):
+        """(np.array): The fit chi-squared statistic for each channel"""
+        return self._chisq
+
+    @property
+    def statistic_name(self):
+        """(str): 'chisq'"""
+        return self._statistic_name
 
 
     def fit(self, win_size=None, temporal_resolution=None,
@@ -326,7 +344,8 @@ class RoboLowess:
         """
         # compute win_size
         if win_size is None:
-            raw = 1.1 * (400.0 ** -0.12) * (temporal_resolution ** -0.15) + 0.15
+            data_range = float(self._data.tstop[-1] - self._data.tstart[0])
+            raw = 1.1 * (data_range ** -0.12) * (temporal_resolution ** -0.15) + 0.15
             win_size = min(max(min_win, raw), max_win)
 
         num_channels = self._data.rates.shape[1]
@@ -438,8 +457,28 @@ class RoboLowess:
                 self._refit_applied = not np.allclose(
                     self._backgrounds, bg_before)
 
+        # Compute fit statistics on background bins (per channel)
+        bg_mask = getattr(self, '_last_pass1_mask', None)
+        if bg_mask is None:
+            bg_mask = np.ones(self._data.time_centroids.size, dtype=bool)
+        self._compute_statistics(bg_mask)
+
         return (removed_bins_times, interp_back,
                 self._last_iteration_data)
+
+    def _compute_statistics(self, bg_mask):
+        num_times, num_channels = self._data.rates.shape
+        counts = self._data.rates * self._data.exposure[:, None]
+        expected = self._backgrounds * self._data.exposure[:, None]
+        expected = np.maximum(expected, 1.0)
+
+        counts_bg = counts[bg_mask]
+        expected_bg = expected[bg_mask]
+
+        resid = counts_bg - expected_bg
+        self._chisq = np.sum((resid ** 2) / expected_bg, axis=0)
+        dof_val = max(counts_bg.shape[0] - 1, 1)
+        self._dof = np.full(num_channels, float(dof_val))
 
 
     def _residual_fit(self, time_all, rate_all, exposure_all,
