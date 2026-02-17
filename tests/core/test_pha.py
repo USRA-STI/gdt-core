@@ -216,6 +216,107 @@ class TestPha(unittest.TestCase):
             pha = Pha.from_data(self.pha.data)
             pha.write(this_dir)
 
+
+class TestPhaChannelMask(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        counts = [119, 71, 34, 30, 21, 6, 2, 19]
+        emin = [4.323754, 11.464164, 26.22962, 49.60019, 101.016815,
+                290.46063, 538.1436, 997.2431]
+        emax = [11.464164, 26.22962, 49.60019, 101.016815, 290.46063,
+                538.1436, 997.2431, 2000.]
+        exposure = 0.25459924
+         
+        data = EnergyBins(counts, emin, emax, exposure)
+        gti = Gti.from_list([(-899.0864419937134, -898.8306360244751)])
+        channel_mask = [False, True, True, True, True, True, False, False]
+        cls.pha = Pha.from_data(data, gti=gti, trigger_time=356223561.133346,
+                                channel_mask=channel_mask)
+
+    def test_channel_mask(self):
+        assert self.pha.channel_mask.tolist() == [False, True, True, True, 
+                                                  True, True, False, False]
+    
+    def test_energy_range(self):
+        assert self.pha.energy_range == (11.464164, 538.1436)
+
+    def test_valid_channels(self):
+        assert self.pha.valid_channels.tolist() == [1, 2, 3, 4, 5]
+
+    def test_errors(self):
+        with self.assertRaises(TypeError):
+            Pha.from_data(self.pha.data, self.pha.gti, channel_mask=True)
+        
+        with self.assertRaises(ValueError):
+            Pha.from_data(self.pha.data, self.pha.gti, channel_mask=('test',))
+
+        with self.assertRaises(ValueError):
+            Pha.from_data(self.pha.data, self.pha.gti, channel_mask=[True, False])
+            
+
+
+class TestPhaValidChannels(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        counts = [119, 71, 34, 30, 21, 6, 2, 19]
+        emin = [4.323754, 11.464164, 26.22962, 49.60019, 101.016815,
+                290.46063, 538.1436, 997.2431]
+        emax = [11.464164, 26.22962, 49.60019, 101.016815, 290.46063,
+                538.1436, 997.2431, 2000.]
+        exposure = 0.25459924
+         
+        data = EnergyBins(counts, emin, emax, exposure)
+        gti = Gti.from_list([(-899.0864419937134, -898.8306360244751)])
+        valid_channels = [1, 2, 4, 5]
+        cls.pha = Pha.from_data(data, gti=gti, trigger_time=356223561.133346,
+                                valid_channels=valid_channels)
+
+    def test_channel_mask(self):
+        assert self.pha.channel_mask.tolist() == [False, True, True, False, 
+                                                  True, True, False, False]
+    
+    def test_energy_range(self):
+        assert self.pha.energy_range == (11.464164, 538.1436)
+
+    def test_valid_channels(self):
+        assert self.pha.valid_channels.tolist() == [1, 2, 4, 5]
+
+    def test_errors(self):
+        with self.assertRaises(TypeError):
+            Pha.from_data(self.pha.data, self.pha.gti, valid_channels=0)
+        
+        with self.assertRaises(ValueError):
+            Pha.from_data(self.pha.data, self.pha.gti, valid_channels=('test',))
+            
+
+class TestPhaZeroCounts(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        counts = [0, 71, 0, 30, 0, 6, 0, 0]
+        emin = [4.323754, 11.464164, 26.22962, 49.60019, 101.016815,
+                290.46063, 538.1436, 997.2431]
+        emax = [11.464164, 26.22962, 49.60019, 101.016815, 290.46063,
+                538.1436, 997.2431, 2000.]
+        exposure = 0.25459924
+         
+        data = EnergyBins(counts, emin, emax, exposure)
+        gti = Gti.from_list([(-899.0864419937134, -898.8306360244751)])
+        cls.pha = Pha.from_data(data, gti=gti, trigger_time=356223561.133346)
+
+    def test_channel_mask(self):
+        assert self.pha.channel_mask.tolist() == [False, True, False, True, 
+                                                  False, True, False, False]
+    
+    def test_energy_range(self):
+        assert self.pha.energy_range == (11.464164, 538.1436)
+
+    def test_valid_channels(self):
+        assert self.pha.valid_channels.tolist() == [1, 3, 5]
+
+
 class TestBak(unittest.TestCase):
     
     @classmethod

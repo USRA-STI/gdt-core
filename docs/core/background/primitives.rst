@@ -1,8 +1,12 @@
 .. _background_primitives:
 .. |BackgroundRates| replace:: :class:`~gdt.core.background.primitives.BackgroundRates`
 .. |BackgroundSpectrum| replace:: :class:`~gdt.core.background.primitives.BackgroundSpectrum`
+.. |BackgroundChannelRates| replace:: :class:`~gdt.core.background.primitives.BackgroundChannelRates`
+.. |BackgroundChannelSpectrum| replace:: :class:`~gdt.core.background.primitives.BackgroundChannelSpectrum`
 .. |TimeEnergyBins| replace:: :class:`~gdt.core.data_primitives.TimeEnergyBins`
 .. |EnergyBins| replace:: :class:`~gdt.core.data_primitives.EnergyBins`
+.. |TimeChannelBins| replace:: :class:`~gdt.core.data_primitives.TimeChannelBins`
+.. |ChannelBins| replace:: :class:`~gdt.core.data_primitives.ChannelBins`
 .. |BAK| replace:: :class:`~gdt.core.pha.Bak`
 
 **************************************************************************
@@ -16,7 +20,9 @@ There are two "primitive" data classes for background data: the
 for a time history of multi-channel data, and the |BackgroundSpectrum| class, 
 which contains the background model count spectrum.  The former largely inherits
 from the |TimeEnergyBins| primitive, while the latter inherits from the 
-|EnergyBins| primitive.
+|EnergyBins| primitive. These classes are then complimented with their non-energy
+calibrated counterparts, |BackgroundChannelRates| and |BackgroundChannelSpectrum|,
+which instead inherit from |TimeChannelBins| and |ChannelBins|, respectively.
 
 The BackgroundRates Class
 ==========================
@@ -33,9 +39,10 @@ has most of the same attributes and methods that |TimeEnergyBins| has.
 
 Examples
 --------
-As an example, let's assume we have a segment of a background model.  We need
-the modeled background rate and uncertainty in each channel and each time bin. 
-Of course we also need to know the bin edges and exposures.
+As an example, let's assume we have a segment of a background model of energy 
+calibrated data.  We need the modeled background rate and uncertainty 
+in each channel and each time bin. Of course we also need to know the bin edges 
+and exposures.
 
     >>> from gdt.core.background.primitives import BackgroundRates
     >>> # three energy channels and four time bins
@@ -154,6 +161,22 @@ can the be written to disk:
      time range (1.0, 2.0);
      energy range (10.0, 300.0)>
 
+The BackgroundChannelRates Class
+================================    
+The exact same procedure shown for |BackgroundRates| can be followed for the |BackgroundChannelRates| class
+with the following differences:
+
+#. Instead of arrays **emin** and **emax**, BackgroundChannelRates takes a single 
+    list of channel numbers (**chan_nums**). e.g.:
+
+    >>> chan_nums = [1, 2, 3] 
+    >>> back_rates = BackgroundChannelRates(rates, rate_uncert, tstart, tstop,
+                                                chan_nums, exposure=exposure) 
+
+#. Methods that mention energy will instead mention channel, using the same naming scheme as |TimeChannelBins|.
+#. Due to the lack of energy calibration, |BAK| objects cannot be created from BackgroundChannelRates objects.
+#. When time integrated, the BackgroundChannelRates object will return a |BackgroundChannelSpectrum| object.
+#. There is no rate per keV attribute, as there is no energy calibration.
 
 The BackgroundSpectrum Class
 ============================
@@ -207,6 +230,20 @@ the same energy range and number of channels:
     >>> back_spec_double = BackgroundSpectrum.sum([back_spec, back_spec])
     >>> back_spec_double.counts
     array([300., 460., 140.])
+
+The BackgroundChannelSpectrum Class
+===================================
+Again, the exact same procedure shown for |BackgroundSpectrum| can be followed for the |BackgroundChannelSpectrum| class.
+The only difference in initialization is that BackgroundChannelSpectrum takes a single list of channel numbers (**chan_nums**)
+in place of **emin** and **emax**. e.g.:
+
+    >>> chan_nums = [1, 2, 3] 
+    >>> back_spec = BackgroundChannelSpectrum(rates, rate_uncert, chan_nums, 
+                                            exposure=exposure)
+
+The BackgroundChannelSpectrum object has the same attributes and methods as BackgroundSpectrum, but with the same naming
+conventions as |ChannelBins|.
+
 
 
 Reference/API

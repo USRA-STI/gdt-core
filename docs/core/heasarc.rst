@@ -11,12 +11,30 @@
 HEASARC Data Finders and Catalog Access (:mod:`gdt.core.heasarc`)
 ******************************************************************
 
+.. warning::
+    HEASARC is currently experiencing a high load on their main HTTPS servers.
+    Users experiencing issues should try switching to the AWS protocol described
+    below.
+
+    Note that **only a subset of HEASARC data are available on AWS**. Users can manually
+    check for data availability on AWS by copying a HEASARC directory path from the
+    FTP servers and converting it to an AWS link like so:
+
+    https://heasarc.gsfc.nasa.gov/FTP/fermi/data/gbm/triggers/2025/bn250611560/current
+
+    becomes
+
+    https://nasa-heasarc.s3.amazonaws.com/?list-type=2&prefix=fermi/data/gbm/triggers/2025/bn250611560/current
+
+    which provides the list of available directory files in XML format.
+
 Introduction
 ============
 The High-Energy Astrophysics Science Archive Research Center (HEASARC) is a
 repository for data and catalogs for many high-energy astrophysics
 missions.  Science and auxiliary data files are hosted on FTP and HTTPS servers, while
 a variety of catalogs are accessible via the HEASARC's Browse interface.
+Additionally, a subset of HEASARC data are mirrored on Amazon Web Services.
 
 The GDT provides a base class for accessing and navigating the directories
 of mission data, as well as a base class for interfacing with catalogs on 
@@ -36,8 +54,11 @@ the directory structure may be organized such that navigating it manually is
 a nuisance. By inheriting the BaseFinder and defining one function, we can
 immediately access the data we need and download it for a given mission.
 
-|BaseFinder| offers file access through either HTTPS or FTP protocols. The
-default protocol is HTTPS, which is recommended due to its wider support
+|BaseFinder| offers file access to the main HEASARC servers through either
+HTTPS or FTP protocols. Additionally, an AWS protocol is available for accessing
+the subset of HEASARC data mirrored on Amazon Web Services. Users should take
+care when using the AWS protocol since not all HEASARC data is available through AWS
+at this time. The default protocol is HTTPS, which is recommended due to its wider support
 across secure networks as well as the higher reliability of HEASARC's HTTPS
 servers. If necessary, the protocol type can be selected manually by passing a
 ``protocol`` keyword during initialization of classes derived from BaseFinder.
@@ -123,10 +144,11 @@ different directory, you can do that too:
    'glg_cspec_b1_bn090510016_v00.rsp2',
    ...]
 
-Finally, you can enable file transfer over FTP instead of
+Finally, you can enable file transfer over FTP or AWS instead of
 HTTPS by setting the protocol keyword argument:
 
   >>> finder = MyFinder('170817529', protocol='FTP')
+  >>> finder = MyFinder('170817529', protocol='AWS')
 
 However, it is recommended that you use the default HTTPS setting for
 HEASARC.

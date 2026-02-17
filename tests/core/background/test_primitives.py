@@ -24,12 +24,12 @@
 #
 import os
 import numpy as np
-from unittest import TestCase
+import unittest
 
-from gdt.core.background.primitives import BackgroundRates, BackgroundSpectrum
+from gdt.core.background.primitives import BackgroundRates, BackgroundSpectrum, BackgroundChannelRates, BackgroundChannelSpectrum
 
 
-class TestBackgroundRates(TestCase):
+class TestBackgroundRates(unittest.TestCase):
 
     def setUp(self):
         rates = [[30.0, 50.0, 10.0], [35.0, 55.0, 15.0], 
@@ -268,7 +268,7 @@ class TestBackgroundRates(TestCase):
                             exposure=self.rates.exposure)
 
 
-class TestBackgroundSpectrum(TestCase):
+class TestBackgroundSpectrum(unittest.TestCase):
     
     def setUp(self):
         rates = [20.0, 50.0, 17.0, 3.0, 0.0]
@@ -341,6 +341,301 @@ class TestBackgroundSpectrum(TestCase):
             BackgroundSpectrum(self.bins.rates, self.bins.rate_uncertainty[1:], 
                                self.bins.lo_edges, self.bins.hi_edges, 
                                self.bins.exposure)
+            
+class TestBackgroundChannelRates(unittest.TestCase):
+
+    def setUp(self):
+        rates = [[30.0, 50.0, 10.0], [35.0, 55.0, 15.0], 
+                 [40.0, 60.0, 20.0], [45.0, 65.0, 25.0]]
+        rate_uncert = [[3.0, 5.0, 1.0], [3.5, 5.5, 1.5], 
+                       [4.0, 6.0, 2.0], [4.5, 6.5, 2.5]]
+        tstart = [0.0, 1.0, 3.0, 4.0]
+        tstop = [1.0, 2.0, 4.0, 5.0]
+        exposure = [2.0] * 4
+        chan_nums=[1,2,3]
+        self.rates = BackgroundChannelRates(rates, rate_uncert, tstart, tstop,
+                                            chan_nums, exposure=exposure)
+    
+    def test_counts(self):
+        counts = [[60, 100, 20], [70, 110, 30], [80, 120, 40], [90, 130, 50]]
+        for i in range(4):
+            self.assertListEqual(self.rates.counts[i,:].tolist(), counts[i])
+
+    def test_count_uncertainty(self):
+        uncert = [[6, 10, 2], [7, 11, 3], [8, 12, 4], [9, 13, 5]]
+        for i in range(4):
+            self.assertListEqual(self.rates.count_uncertainty[i,:].tolist(), 
+                                 uncert[i])
+    
+    def test_rates(self):
+        rates = [[30.0, 50.0, 10.0], [35.0, 55.0, 15.0], 
+                 [40.0, 60.0, 20.0], [45.0, 65.0, 25.0]]
+        for i in range(4):
+            self.assertListEqual(self.rates.rates[i,:].tolist(), rates[i])
+    
+    def test_integrate_channels(self):
+        # full range
+        back_lc = self.rates.integrate_channels()
+        self.assertListEqual(back_lc.rates.tolist(), [90.0, 105.0, 120.0, 135.0])
+        uncert = [5.916, 6.690, 7.483, 8.292]
+        for i in range(4):
+            self.assertAlmostEqual(back_lc.rate_uncertainty[i], uncert[i], places=3)
+        self.assertListEqual(back_lc.tstart.tolist(), self.rates.tstart.tolist())
+        self.assertListEqual(back_lc.tstop.tolist(), self.rates.tstop.tolist())
+        self.assertListEqual(back_lc.chan_nums.tolist(), [1])
+        self.assertListEqual(back_lc.exposure.tolist(), self.rates.exposure.tolist())
+
+        # set chan_min
+        back_lc = self.rates.integrate_channels(chan_min=2)
+        self.assertListEqual(back_lc.rates.tolist(), [60.0, 70.0, 80.0, 90.0])
+        uncert = [5.099, 5.701, 6.325, 6.964]
+        for i in range(4):
+            self.assertAlmostEqual(back_lc.rate_uncertainty[i], uncert[i], places=3)
+        self.assertListEqual(back_lc.chan_nums.tolist(), [1])
+
+        # set chan_max
+        back_lc = self.rates.integrate_channels(chan_max=2)
+        self.assertListEqual(back_lc.rates.tolist(), [80.0, 90.0, 100.0, 110.0])
+        uncert = [5.831, 6.519, 7.211, 7.906]
+        for i in range(4):
+            self.assertAlmostEqual(back_lc.rate_uncertainty[i], uncert[i], places=3)
+        self.assertListEqual(back_lc.chan_nums.tolist(), [1])
+
+        # set both emin and emax
+        back_lc = self.rates.integrate_channels(chan_min=2, chan_max=2)
+        self.assertListEqual(back_lc.rates.tolist(), [50.0, 55.0, 60.0, 65.0])
+        uncert = [5.0, 5.5, 6.0, 6.5]
+        for i in range(4):
+            self.assertAlmostEqual(back_lc.rate_uncertainty[i], uncert[i], places=3)
+        self.assertListEqual(back_lc.chan_nums.tolist(), [1])
+
+    def test_integrate_time(self):
+        
+        # full range
+        back_spec = self.rates.integrate_time()
+        self.assertListEqual(back_spec.rates.tolist(), [37.5, 57.5, 17.5])
+        uncert = [1.896, 2.889, 0.919]
+        for i in range(3):
+            self.assertAlmostEqual(back_spec.rate_uncertainty[i], uncert[i], places=3)
+        self.assertListEqual(back_spec.lo_edges.tolist(), [1, 2, 3])
+        self.assertListEqual(back_spec.hi_edges.tolist(), [2, 3, 4])
+        self.assertListEqual(back_spec.exposure.tolist(), [8.0]*3)
+
+        # set tstart
+        back_spec = self.rates.integrate_time(tstart=1.5)
+        self.assertListEqual(back_spec.rates.tolist(), [40.0, 60.0, 20.0])
+        uncert = [2.321, 3.472, 1.179]
+        for i in range(3):
+            self.assertAlmostEqual(back_spec.rate_uncertainty[i], uncert[i], places=3)
+        self.assertListEqual(back_spec.exposure.tolist(), [6.0]*3)
+
+        # set tstop
+        back_spec = self.rates.integrate_time(tstop=3.5)
+        self.assertListEqual(back_spec.rates.tolist(), [35.0, 55.0, 15.0])
+        uncert = [2.034, 3.184, 0.898]
+        for i in range(3):
+            self.assertAlmostEqual(back_spec.rate_uncertainty[i], uncert[i], places=3)
+        self.assertListEqual(back_spec.exposure.tolist(), [6.0]*3)
+
+        # set both tstart amd tstop
+        back_spec = self.rates.integrate_time(tstart=1.5, tstop=3.5)
+        self.assertListEqual(back_spec.rates.tolist(), [37.5, 57.5, 17.5])
+        uncert = [2.658, 4.070, 1.250]
+        for i in range(3):
+            self.assertAlmostEqual(back_spec.rate_uncertainty[i], uncert[i], places=3)
+        self.assertListEqual(back_spec.exposure.tolist(), [4.0]*3)
+
+    def test_rebin_channels(self):
+        with self.assertRaises(NotImplementedError):
+            self.rates.rebin_channels(lambda x:x)       
+
+    def test_rebin_time(self):
+        with self.assertRaises(NotImplementedError):
+            self.rates.rebin_time(lambda x:x)       
+
+    def test_slice_channels(self):
+        # slice on channels       
+        bins2 = self.rates.slice_channels(2, 3)
+        self.assertTupleEqual(bins2.channel_range, (2, 3))
+        
+        # slice below lowest channel
+        bins2 = self.rates.slice_channels(0, 3)
+        self.assertTupleEqual(bins2.channel_range, (1, 3))
+
+        # slice above highest channel
+        bins2 = self.rates.slice_channels(1, 5)
+        self.assertTupleEqual(bins2.channel_range, (1, 3))
+        
+        # slice covering full range
+        bins2 = self.rates.slice_channels(1, 3)
+        self.assertTupleEqual(bins2.channel_range, (1, 3))
+
+        # slice one channel
+        bins2 = self.rates.slice_channels(1, 1)
+        self.assertTupleEqual(bins2.channel_range, (1, 1))
+
+        # slice fully outside range
+        bins2 = self.rates.slice_channels(5, 10)
+        self.assertIsNone(bins2.channel_range)
+
+    def test_slice_time(self):
+        # middle slice       
+        bins2 = self.rates.slice_time(1.5, 3.5)
+        self.assertTupleEqual(bins2.time_range, (1.0, 4.0))
+        
+        # slice below lower boundary
+        bins2 = self.rates.slice_time(-1.0, 3.5)
+        self.assertTupleEqual(bins2.time_range, (0.0, 4.0))
+
+        # slice above upper boundary
+        bins2 = self.rates.slice_time(1.5, 10.0)
+        self.assertTupleEqual(bins2.time_range, (1.0, 5.0))
+        
+        # slice covering full range
+        bins2 = self.rates.slice_time(-1.0, 10.0)
+        self.assertTupleEqual(bins2.time_range, (0.0, 5.0))
+
+        # slice one bin
+        bins2 = self.rates.slice_time(1.5, 1.5)
+        self.assertTupleEqual(bins2.time_range, (1.0, 2.0))
+
+        # slice fully outside range
+        bins2 = self.rates.slice_time(10.0, 20.0)
+        self.assertIsNone(bins2.time_range)
+
+    def test_to_bak(self):
+        with self.assertRaises(NotImplementedError):
+            _ = self.rates.to_bak()
+    
+    def test_merge_time(self):
+        slice1 = self.rates.slice_time(0.5, 1.5)
+        slice2 = self.rates.slice_time(3.5, 4.5)
+        merged = BackgroundChannelRates.merge_time([slice1, slice2])
+        for i in range(4):
+            self.assertListEqual(merged.rates[i,:].tolist(), 
+                                 self.rates.rates[i,:].tolist())
+        for i in range(4):
+            self.assertListEqual(merged.rate_uncertainty[i,:].tolist(), 
+                                 self.rates.rate_uncertainty[i,:].tolist())
+        self.assertListEqual(merged.tstart.tolist(), self.rates.tstart.tolist())
+        self.assertListEqual(merged.tstop.tolist(), self.rates.tstop.tolist())
+        self.assertListEqual(merged.chan_nums.tolist(), self.rates.chan_nums.tolist())
+        self.assertListEqual(merged.exposure.tolist(), self.rates.exposure.tolist())
+
+    def test_sum_time(self):
+        summed = BackgroundChannelRates.sum_time([self.rates, self.rates])
+        for i in range(4):
+            self.assertListEqual(summed.rates[i,:].tolist(), 
+                                 (2.0*self.rates.rates[i,:]).tolist())
+        self.assertListEqual(summed.tstart.tolist(), self.rates.tstart.tolist())
+        self.assertListEqual(summed.tstop.tolist(), self.rates.tstop.tolist())
+        self.assertListEqual(summed.chan_nums.tolist(), self.rates.chan_nums.tolist())
+        self.assertListEqual(summed.exposure.tolist(), self.rates.exposure.tolist())
+
+        slice1 = self.rates.slice_time(1.5, 5.0)
+        with self.assertRaises(AssertionError):
+            BackgroundChannelRates.sum_time([self.rates, slice1])
+    
+    def test_init_errors(self):
+        with self.assertRaises(TypeError):
+            BackgroundChannelRates(0, self.rates.rate_uncertainty, self.rates.tstart,
+                            self.rates.tstop, self.rates.chan_nums,
+                            exposure=self.rates.exposure)
+
+        with self.assertRaises(TypeError):
+            BackgroundChannelRates(self.rates.rates.flatten(), 
+                            self.rates.rate_uncertainty, self.rates.tstart,
+                            self.rates.tstop, self.rates.chan_nums,
+                            exposure=self.rates.exposure)
+
+        with self.assertRaises(TypeError):
+            BackgroundChannelRates(self.rates.rates, 0, self.rates.tstart,
+                            self.rates.tstop, self.rates.chan_nums,
+                            exposure=self.rates.exposure)
+
+        with self.assertRaises(TypeError):
+            BackgroundChannelRates(self.rates.rates, self.rates.rate_uncertainty.flatten(), 
+                            self.rates.tstart, self.rates.tstop, 
+                            self.rates.chan_nums, 
+                            exposure=self.rates.exposure)
+
+        with self.assertRaises(TypeError):
+            BackgroundChannelRates(self.rates.rates, self.rates.rate_uncertainty.T, 
+                            self.rates.tstart, self.rates.tstop, 
+                            self.rates.chan_nums, 
+                            exposure=self.rates.exposure)
+            
+class TestBackgroundChannelSpectrum(unittest.TestCase):
+    
+    def setUp(self):
+        rates = np.asarray([20.0, 50.0, 17.0, 3.0, 0.0])
+        rate_uncertainty = np.asarray([2.0, 5.0, 1.7, 0.3, 0.0])
+        chan_nums = [1, 2, 3, 4, 5]
+        exposure = 2.0
+        self.bins = BackgroundChannelSpectrum(rates, rate_uncertainty, chan_nums, 
+                                       exposure)
+    
+    def test_rates(self):
+        self.assertListEqual(self.bins.rates.tolist(), 
+                             [20.0, 50.0, 17.0, 3.0, 0.0])
+
+    def test_rate_uncertainty(self):
+        self.assertListEqual(self.bins.rate_uncertainty.tolist(), 
+                             [2.0, 5.0, 1.7, 0.3, 0.0])
+
+    def test_counts(self):
+        self.assertListEqual(self.bins.counts.tolist(), 
+                             [40.0, 100.0, 34.0, 6.0, 0.0])
+
+    def test_count_uncertainty(self):
+        self.assertListEqual(self.bins.count_uncertainty.tolist(), 
+                             [4.0, 10.0, 3.4, 0.6, 0.0])
+
+    def test_merge(self):
+        with self.assertRaises(NotImplementedError):
+            self.bins.merge([self.bins, self.bins])
+
+    def test_rebin(self):
+        with self.assertRaises(NotImplementedError):
+            self.bins.rebin(lambda x: x)
+
+    def test_slice(self):
+        sliced = self.bins.slice(2, 4)
+        self.assertListEqual(sliced.rates.tolist(), [50.0, 17.0, 3.0])     
+        self.assertListEqual(sliced.rate_uncertainty.tolist(), [5.0, 1.7, 0.3])     
+        self.assertListEqual(sliced.lo_edges.tolist(), [2 ,3 ,4])     
+        self.assertListEqual(sliced.hi_edges.tolist(), [3, 4, 5])     
+        self.assertListEqual(sliced.exposure.tolist(), [2.0]*3)     
+
+    def test_sum(self):
+        summed = BackgroundChannelSpectrum.sum([self.bins, self.bins])
+        self.assertListEqual(summed.rates.tolist(), [20.0, 50.0, 17.0, 3.0, 0.0])
+        uncert = [1.414, 3.536, 1.202, 0.212, 0.0]
+        for i in range(5):
+            self.assertAlmostEqual(summed.rate_uncertainty[i], uncert[i], places=3)
+
+        self.assertListEqual(summed.lo_edges.tolist(), self.bins.lo_edges.tolist())
+        self.assertListEqual(summed.hi_edges.tolist(), self.bins.hi_edges.tolist())
+        self.assertListEqual(summed.exposure.tolist(), [4.0]*5)
+
+        slice1 = self.bins.slice(2, 4)
+        with self.assertRaises(AssertionError):
+            BackgroundChannelSpectrum.sum([self.bins, slice1])
+
+    def test_init_errors(self):
+        with self.assertRaises(TypeError):
+            BackgroundChannelSpectrum(0.0, self.bins.rate_uncertainty, 
+                               self.bins.lo_edges, self.bins.exposure)
+
+        with self.assertRaises(TypeError):
+            BackgroundChannelSpectrum(self.bins.rates, 0.0, 
+                               self.bins.lo_edges, self.bins.exposure)
+
+        with self.assertRaises(TypeError):
+            BackgroundChannelSpectrum(self.bins.rates, self.bins.rate_uncertainty[1:], 
+                               self.bins.lo_edges, self.bins.exposure)
+  
+
 
      
 if __name__ == '__main__':
