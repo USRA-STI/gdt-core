@@ -642,12 +642,24 @@ class TestChannelBins(unittest.TestCase):
     
     def test_contiguous_bins(self):
         cont_bins = self.bins.contiguous_bins()
+        self.assertEqual(len(cont_bins), 1)
+        self.assertTupleEqual(cont_bins[0].range, (0, 6))
+
+        self.assertEqual(len(cont_bins[0].contiguous_bins()), 1)
+
+    def test_contiguous_bins_continuous_false(self):
+        counts = [20, 50, 17, 3, 0, 3]
+        chan_nums = [0, 1, 3, 4, 5, 6]
+        exposure = 10.0
+        bins = ChannelBins.create(counts, chan_nums, exposure, continuous=False)
+
+        cont_bins = bins.contiguous_bins()
         self.assertEqual(len(cont_bins), 2)
         self.assertTupleEqual(cont_bins[0].range, (0, 1))
         self.assertTupleEqual(cont_bins[1].range, (3, 6))
-        
+
         self.assertEqual(len(cont_bins[0].contiguous_bins()), 1)
-    
+
     def test_rebin(self):
         
         # rebin full range

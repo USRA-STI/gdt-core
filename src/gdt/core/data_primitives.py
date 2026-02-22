@@ -1378,13 +1378,14 @@ class ChannelBins(ExposureBins):
             return self.lo_edges
 
     @classmethod
-    def create(cls, counts, chan_nums, exposure, **kwargs):
+    def create(cls, counts, chan_nums, exposure, continuous=True, **kwargs):
         """Create a :class:`ChannelBins` object from a list of channel numbers.
         
         Args:
             counts (np.array): The array of counts in each bin
             chan_nums (np.array): The energy channel numbers
             exposure (np.array): The exposure of each bin
+            continuous (bool, optional): [Experimental] Whether the bins are continuous (meaning no gaps between channels).
             precalc_good_segments (bool, optional): If True, calculates contiguous
                                                     bin segments on initialization.
                                                     Default is True.
@@ -1399,7 +1400,11 @@ class ChannelBins(ExposureBins):
             exposure = np.full(counts.shape, exposure)
 
         chan_nums = np.asarray(chan_nums)
-        return cls(counts, chan_nums, chan_nums + 1, exposure, **kwargs)
+        if continuous and len(chan_nums) > 1:
+            hi_edges = np.concatenate((chan_nums[1:], [chan_nums[-1] + (chan_nums[1] - chan_nums[0])]))
+        else:
+            hi_edges = chan_nums + 1
+        return cls(counts, chan_nums, hi_edges, exposure, **kwargs)
 
     @property
     def range(self):

@@ -42,7 +42,7 @@ class Lightcurve(GdtPlot):
             The lightcurve data to plot
         background (:class:`~gdt.background.primitives.BackgroundRates`, optional): 
             The background rates to plot
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     def __init__(self, data=None, background=None, canvas=None, ax=None,
                  **kwargs):
@@ -73,24 +73,24 @@ class Lightcurve(GdtPlot):
 
     @property
     def background(self):
-        """(:class:`~gdt.plot.plot.LightcurveBackground`): The background plot 
+        """(:class:`~gdt.core.plot.plot.LightcurveBackground`): The background plot
         element"""
         return self._bkgd
 
     @property
     def errorbars(self):
-        """(:class:`~gdt.plot.plot.HistoErrorbars`): The error bars plot element
+        """(:class:`~gdt.core.plot.plot.HistoErrorbars`): The error bars plot element
         """
         return self._errorbars
 
     @property
     def lightcurve(self):
-        """(:class:`~gdt.plot.plot.Histo`): The lightcurve plot element"""
+        """(:class:`~gdt.core.plot.plot.Histo`): The lightcurve plot element"""
         return self._lc
 
     @property
     def selections(self):
-        """(list of :class:`~gdt.plot.plot.HistoFilled`): The list of selection 
+        """(list of :class:`~gdt.core.plot.plot.HistoFilled`): The list of selection
         plot elements"""
         return self._selections
 
@@ -143,7 +143,7 @@ class Lightcurve(GdtPlot):
         color, alpha, band_alpha, kwargs = self._bkgd_settings()
         self._bkgd = LightcurveBackground(background, self._ax, color=color,
                                           alpha=alpha, band_alpha=band_alpha,
-                                          zorder=1000, **kwargs)
+                                          zorder=kwargs.pop("zorder", 1000), **kwargs)
 
     def set_data(self, data):
         """Set the lightcurve plotting data. If a lightcurve already exists,

@@ -162,8 +162,8 @@ class BackgroundFitter:
                                 self._data_obj.data.chan_nums, exposure=exposure)
         else:
             rates = BackgroundRates(rate, rate_uncert, tstart, tstop,
-                                self._data_obj.data.emin,
-                                self._data_obj.data.emax, exposure=exposure)
+                                self._data_obj.ebounds.low_edges(),
+                                self._data_obj.ebounds.high_edges(), exposure=exposure)
 
         return rates
 

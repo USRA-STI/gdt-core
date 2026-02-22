@@ -50,7 +50,7 @@ class ResponsePlot(GdtPlot):
             integrated effective area as a function of incident energy and 
             recorded energy.
         num_contours (int, optional): Number of contours to plot. Default is 100
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     _background = 'black'
 
@@ -90,7 +90,7 @@ class ResponsePlot(GdtPlot):
     
     @property
     def drm(self):
-        """(:class:`~gdt.plot.plot.Heatmap`): The matrix plot object"""
+        """(:class:`~gdt.core.plot.plot.Heatmap`): The matrix plot object"""
         return self._drm
 
     def set_response(self, drm, **kwargs):
@@ -99,7 +99,7 @@ class ResponsePlot(GdtPlot):
         Args:
             drm (:class:`~gdt.core.data_primitives.ResponseMatrix`): 
                 The response object
-            **kwargs: Arguments to pass to :class:`~gdt.plot.plot.Heatmap`
+            **kwargs: Arguments to pass to :class:`~gdt.core.plot.plot.Heatmap`
         """
         self._drm = Heatmap(drm.photon_bin_centroids, drm.channel_centroids,
                             drm.matrix.T, self.ax, colorbar=self._colorbar, 
@@ -137,7 +137,7 @@ class PhotonEffectiveArea(GdtPlot):
     Parameters:
         drm (:class:`~gdt.core.data_primitives.ResponseMatrix`, optional): 
             The response object
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     def __init__(self, drm=None, canvas=None, ax=None, **kwargs):
         super().__init__(canvas=canvas, ax=ax, **kwargs)
@@ -157,7 +157,7 @@ class PhotonEffectiveArea(GdtPlot):
     
     @property
     def drm(self):
-        """(:class:`~gdt.plot.plot.EffectiveArea`): Effective area plot element
+        """(:class:`~gdt.core.plot.plot.EffectiveArea`): Effective area plot element
         """
         return self._drm
     
@@ -167,7 +167,7 @@ class PhotonEffectiveArea(GdtPlot):
         Args:
             drm (:class:`~gdt.core.data_primitives.ResponseMatrix`): 
                 The response object
-            **kwargs: Arguments to pass to :class:`~gdt.plot.plot.EffectiveArea`
+            **kwargs: Arguments to pass to :class:`~gdt.core.plot.plot.EffectiveArea`
         """
         _color, _alpha, _kwargs = self._settings()
         effarea = drm.photon_effective_area()
@@ -188,9 +188,9 @@ class PhotonEffectiveArea(GdtPlot):
             _alpha = None
             _kwargs = {}
         else:
-            _color = self._data.color
-            _alpha = self._data.alpha
-            _kwargs = self._data._kwargs
+            _color = self._drm.color
+            _alpha = self._drm.alpha
+            _kwargs = self._drm._kwargs
         return (_color, _alpha, _kwargs)
 
 
@@ -200,7 +200,7 @@ class ChannelEffectiveArea(GdtPlot):
     Parameters:
         drm (:class:`~gdt.core.data_primitives.ResponseMatrix`, optional): 
             The response object
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     def __init__(self, drm=None, canvas=None, ax=None, orientation='vertical',
                  **kwargs):
@@ -228,7 +228,7 @@ class ChannelEffectiveArea(GdtPlot):
 
     @property
     def drm(self):
-        """(:class:`~gdt.plot.plot.EffectiveArea`): Effective area plot element
+        """(:class:`~gdt.core.plot.plot.EffectiveArea`): Effective area plot element
         """
         return self._drm
 
@@ -238,7 +238,7 @@ class ChannelEffectiveArea(GdtPlot):
         Args:
             drm (:class:`~gdt.core.data_primitives.ResponseMatrix`): 
                 The response object
-            **kwargs: Arguments to pass to :class:`~gdt.plot.plot.EffectiveArea`
+            **kwargs: Arguments to pass to :class:`~gdt.core.plot.plot.EffectiveArea`
         """
         _color, _alpha, _kwargs = self._settings()
         effarea = drm.photon_effective_area()
@@ -265,7 +265,7 @@ class ChannelEffectiveArea(GdtPlot):
             _alpha = None
             _kwargs = {}
         else:
-            _color = self._data.color
-            _alpha = self._data.alpha
-            _kwargs = self._data._kwargs
+            _color = self._drm.color
+            _alpha = self._drm.alpha
+            _kwargs = self._drm._kwargs
         return (_color, _alpha, _kwargs)
