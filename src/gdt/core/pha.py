@@ -114,11 +114,11 @@ class GtiHeader(Header):
                 _hduvers_card]
 
 class PhaHeaders(FileHeaders):
-    _header_templates = [PrimaryHeader(), EboundsHeader(), PhaSpectrumHeader(), 
+    _header_templates = [PrimaryHeader(), PhaSpectrumHeader(), EboundsHeader(), 
                          GtiHeader()]
 
 class BakHeaders(FileHeaders):
-    _header_templates = [PrimaryHeader(), EboundsHeader(), BakSpectrumHeader(), 
+    _header_templates = [PrimaryHeader(), BakSpectrumHeader(), EboundsHeader(),
                          GtiHeader()]
 
 
@@ -358,42 +358,75 @@ class Pha(FitsFileContextManager):
         """
         obj = super().open(file_path, **kwargs)
         trigtime = None
+        
+        spec_ext = obj.hdu_index_from_name('SPECTRUM')
+        eb_ext = obj.hdu_index_from_name('EBOUNDS')
+        gti_ext = obj.hdu_index_from_name('GTI')
+        if gti_ext is None:
+            gti_ext = obj.hdu_index_from_name('STDGTI')
 
         # get the headers
         hdrs = [hdu.header for hdu in obj.hdulist]
-        if hdrs[2]['HDUCLAS2'] == 'TOTAL':
+        if (hdrs[spec_ext]['HDUCLAS2'] == 'TOTAL') \
+           or (hdrs[spec_ext]['HDUCLAS2'] == 'NET'):
             headers = PhaHeaders.from_headers(hdrs)
-        elif hdrs[2]['HDUCLAS2'] == 'BKG':
+        elif hdrs[spec_ext]['HDUCLAS2'] == 'BKG':
             headers = BakHeaders.from_headers(hdrs)
 
         if 'TRIGTIME' in hdrs[0].keys():
             trigtime = float(headers['PRIMARY']['TRIGTIME'])
             
-        # data
-        exposure = headers['SPECTRUM']['EXPOSURE']            
-        if headers['SPECTRUM']['HDUCLAS3'] == 'COUNT':
-            data = EnergyBins(obj.column(2, 'COUNTS'), obj.column(1, 'E_MIN'),
-                              obj.column(1, 'E_MAX'), exposure)
-        elif headers['SPECTRUM']['HDUCLAS3'] == 'RATE':
-            data = BackgroundSpectrum(obj.column(2, 'RATES'), 
-                                      obj.column(2, 'STAT_ERR'),
-                                      obj.column(1, 'E_MIN'), 
-                                      obj.column(1, 'E_MAX'), exposure)
+        # get the data. 
+        exposure = headers[spec_ext]['EXPOSURE'] 
+        
+        # we need to handle the case where the errors are not Poisson
+        uncerts = None
+        if 'STAT_ERR' in obj.get_column_names(spec_ext):
+            uncerts = obj.column(spec_ext, 'STAT_ERR')
+        
+        # and the case where there are systematic errors
+        frac_sys_err = None
+        if 'SYS_ERR' in obj.get_column_names(spec_ext):
+            frac_sys_err = obj.column(spec_ext, 'SYS_ERR')
+        
+        # data can either be counts...
+        if headers[spec_ext]['HDUCLAS3'] == 'COUNT':
+            counts = obj.column(spec_ext, 'COUNTS')
+            if uncerts is None:
+                uncerts = np.sqrt(counts)
+            if frac_sys_err is not None:
+                uncerts = np.sqrt(uncerts ** 2 + (counts * frac_sys_err) ** 2 )
+            data = EnergyBins(counts, obj.column(eb_ext, 'E_MIN'), 
+                              obj.column(eb_ext, 'E_MAX'), exposure,
+                              count_uncerts=uncerts)
+        # ...or rates...
+        elif headers[spec_ext]['HDUCLAS3'] == 'RATE':
+            rates = obj.column(spec_ext, 'RATE')
+            if uncerts is None:
+                uncerts = np.sqrt(rates * exposure) / exposure
+            if frac_sys_err is not None:
+                uncerts = np.sqrt(uncerts ** 2 + (rates * frac_sys_err) ** 2 )
+            
+            data = EnergyBins.from_rates(rates, uncerts,
+                                         obj.column(eb_ext, 'E_MIN'), 
+                                         obj.column(eb_ext, 'E_MAX'), exposure)
+        
+        # ...otherwise it is not a standard PHA file
         else:
-            raise ValueError('Unable to determin PHA type. Looking for' \
+            raise ValueError('Unable to determine PHA type. Looking for' \
                              '"COUNT" or "RATE" value for HDUCLAS3')
                 
         # Quality flag indicates which channels are valid.
         # Valid: Quality = 0
         # Invalid: Quality = 1 
-        if 'QUALITY' in obj.get_column_names(2):
-            channel_mask = (obj.column(2, 'QUALITY') == 0)
+        if 'QUALITY' in obj.get_column_names(spec_ext):
+            channel_mask = (obj.column(spec_ext, 'QUALITY') == 0)
         else:
             channel_mask = None
             
         # GTI
-        gti_start = obj.column(3, 'START')
-        gti_stop = obj.column(3, 'STOP')
+        gti_start = obj.column(gti_ext, 'START')
+        gti_stop = obj.column(gti_ext, 'STOP')
         if trigtime is not None:
             gti_start -= trigtime
             gti_stop -= trigtime
@@ -406,9 +439,13 @@ class Pha(FitsFileContextManager):
                             filename=obj.filename, 
                             headers=headers, channel_mask=channel_mask)
         
-        
         return obj
 
+    def write(self, directory, filename=None, rates=False, poisson_errs=False,
+              **kwargs):
+        self._hdulist = self._build_hdulist(rates=rates, poisson_errs=poisson_errs)
+        super().write(directory, filename=filename, **kwargs)
+        
     def _assert_range(self, valrange):
         if valrange[0] is None and valrange[1] is None:
             return valrange
@@ -424,16 +461,23 @@ class Pha(FitsFileContextManager):
         range_list = [self._assert_range(r) for r in range_list]
         return range_list
     
-    def _build_hdulist(self):
+    def _build_hdulist(self, rates=False, poisson_errs=False):
         """This builds the HDU list for the FITS file.  
         
         If this class is inherited, this method may be over-written if a 
         non-standard file is being written, or if there is extra header 
         information/data that needs to be written.
         
-        This method should construct each HDU (PRIMARY, EBOUNDS, SPECTRUM, GTI, 
+        This method should construct each HDU (PRIMARY, SPECTRUM, EBOUNDS, GTI, 
         etc.) containing the respective header and data. The HDUs should then 
         be inserted into a HDUList and that list returned
+        
+        Args:
+            rates (bool): Set to True to write out the data as rates instead of
+                          counts. Default is to write counts.
+            poisson_errs (bool): Set to True to write with Poisson errors.  
+                                 Default is to *not* assume Poisson errors and
+                                 create a STAT_ERRS column.
         
         Returns:
             (:class:`astropy.io.fits.HDUList`)
@@ -445,20 +489,20 @@ class Pha(FitsFileContextManager):
             primary_hdu.header[key] = val
         hdulist.append(primary_hdu)
         
+        # the spectrum extension
+        spectrum_hdu = self._spectrum_table(rates, poisson_errs)
+        hdulist.append(spectrum_hdu)        
+
         # the ebounds extension
         ebounds_hdu = self._ebounds_table()
         hdulist.append(ebounds_hdu)
-        
-        # the spectrum extension
-        spectrum_hdu = self._spectrum_table()
-        hdulist.append(spectrum_hdu)        
-        
+                
         # the GTI extension
         gti_hdu = self._gti_table()
         hdulist.append(gti_hdu)
         
         return hdulist
-
+    
     def _build_headers(self, trigtime, tstart, tstop, num_chans):
         """This builds the headers for the FITS file.  
         
@@ -502,20 +546,48 @@ class Pha(FitsFileContextManager):
 
         return hdu
 
-    def _spectrum_table(self):
+    def _spectrum_table(self, use_rates, is_poisson):
+ 
         chan_col = fits.Column(name='CHANNEL', format='1I', 
                                array=np.arange(self.num_chans, dtype=int))
-        counts_col = fits.Column(name='COUNTS', format='J', bzero=32768, 
-                                 bscale=1, unit='count', array=self.data.counts)
+       
+        if use_rates:
+            data_col = fits.Column(name='RATE', format='E', unit='count/s', 
+                                   array=self.data.rates)
+        else:
+            data_col = fits.Column(name='COUNTS', format='J', bzero=32768, 
+                                   bscale=1, unit='count', array=self.data.counts)
+
+        columns = [chan_col, data_col]
+                
+        if not is_poisson:
+            if use_rates:
+                staterr_col = fits.Column(name='STAT_ERR', format='E', 
+                                          unit='count/s', 
+                                          array=self.data.rate_uncertainty)
+            else:
+                staterr_col = fits.Column(name='STAT_ERR', format='E', 
+                                          unit='count', 
+                                          array=self.data.count_uncertainty)
+            columns.append(staterr_col)
+        
+        
         qual_col = fits.Column(name='QUALITY', format='1I', 
                                array=(~self.channel_mask).astype(int))
+        columns.append(qual_col)
         
-        hdu = fits.BinTableHDU.from_columns([chan_col, counts_col, qual_col], 
+        hdu = fits.BinTableHDU.from_columns(columns, 
                                             header=self.headers['SPECTRUM'])
         for key, val in self.headers['SPECTRUM'].items():
             hdu.header[key] = val
-        hdu.header.comments['TZERO2'] = 'offset for unsigned integers'
-        hdu.header.comments['TSCAL2'] = 'data are not scaled'
+        hdu.header['POISERR'] = is_poisson            
+        if not use_rates:
+            hdu.header['HDUCLAS3'] = 'COUNT'
+            hdu.header.comments['TZERO2'] = 'offset for unsigned integers'
+            hdu.header.comments['TSCAL2'] = 'data are not scaled'
+        else:
+            hdu.header['HDUCLAS3'] = 'RATE'
+        
         return hdu
 
     def _gti_table(self):
@@ -589,17 +661,26 @@ class Bak(Pha):
         """Not Implemented"""
         raise NotImplementedError('Function not available for BAK objects')
 
-    def _spectrum_table(self):
+    def _spectrum_table(self, use_rates, is_poisson):
+        
         chan_col = fits.Column(name='CHANNEL', format='1I', 
                                array=np.arange(self.num_chans, dtype=int))
-        rates_col = fits.Column(name='RATES', format='1D', unit='count/s', 
-                                array=self.data.rates)
-        staterr_col = fits.Column(name='STAT_ERR', format='1D', unit='count/s', 
-                                  array=self.data.rate_uncertainty)
-        
-        hdu = fits.BinTableHDU.from_columns([chan_col, rates_col, staterr_col], 
+
+        if use_rates:
+            data_col = fits.Column(name='RATE', format='1D', unit='count/s', 
+                                   array=self.data.rates)
+            staterr_col = fits.Column(name='STAT_ERR', format='E', 
+                                          unit='count/s', 
+                                          array=self.data.rate_uncertainty)
+        else:
+            data_col = fits.Column(name='COUNTS', format='J', bzero=32768, 
+                                   bscale=1, unit='count', array=self.data.counts)
+            staterr_col = fits.Column(name='STAT_ERR', format='E', 
+                                          unit='count', 
+                                          array=self.data.count_uncertainty)        
+       
+        hdu = fits.BinTableHDU.from_columns([chan_col, data_col, staterr_col], 
                                             header=self.headers['SPECTRUM'])
         for key, val in self.headers['SPECTRUM'].items():
             hdu.header[key] = val
         return hdu
-
