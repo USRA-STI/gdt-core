@@ -33,18 +33,20 @@ import warnings
 __all__ = ['combine_by_factor', 'combine_into_one', 'rebin_by_edge',
            'rebin_by_edge_index', 'rebin_by_snr', 'rebin_by_time']
 
-def combine_by_factor(counts, exposure, old_edges, bin_factor):
-    """Rebins binned data to a multiple factor
+def combine_by_factor(counts, count_uncert, exposure, old_edges, bin_factor):
+    """Rebins binned data to a multiple factor.
     
     Args:
         counts (np.array): The counts in each bin
+        count_uncert (np.array): The uncertainty in each bin
         exposure (np.array): The exposure of each bin
         old_edges (np.array): The time edges of each bin
         bin_factor (int): The number of consecutive bins to be combined
     
     Returns:
-        (np.array, np.array, np.array): The counts and exposure in each bin \
-                                        and the new bin edges
+        (np.array, np.array, np.array, np.array): The counts, uncertainty, and
+                                                  exposure in each bin and the 
+                                                  new bin edges
     """
     assert bin_factor >= 1, "bin_factor must be a positive integer"
     bin_factor = int(bin_factor)
@@ -55,43 +57,50 @@ def combine_by_factor(counts, exposure, old_edges, bin_factor):
     # then remove the modulo bins
     if mod != 0:
         counts = counts[:-mod]
+        count_uncert = count_uncert[:-mod]
         exposure = exposure[:-mod]
     # reshape and combine counts and exposure
-    new_counts = np.sum(counts.reshape(-1, bin_factor), axis=1)
-    new_exposure = np.sum(exposure.reshape(-1, bin_factor), axis=1)
-    return new_counts, new_exposure, new_edges
+    new_counts = counts.reshape(-1, bin_factor).sum(axis=1)
+    new_uncert = np.sqrt( (count_uncert ** 2).reshape(-1, bin_factor).sum(axis=1) )
+    new_exposure = exposure.reshape(-1, bin_factor).sum(axis=1)
+    return new_counts, new_uncert, new_exposure, new_edges
 
 
-def combine_into_one(counts, exposure, old_edges):
-    """Combines binned data into a single bin
+def combine_into_one(counts, count_uncert, exposure, old_edges):
+    """Combines binned data into a single bin.
 
     Args:
         counts (np.array): The counts in each bin
+        count_uncert (np.array): The uncertainty in each bin
         exposure (np.array): The exposure of each bin
         old_edges (np.array): The time edges of each bin
     
     Returns:
-        (np.array, np.array, np.array): The counts and exposure in each bin \
-                                        and the new bin edges
+        (np.array, np.array, np.array, np.array): The counts, uncertainty, and
+                                                  exposure in each bin and the 
+                                                  new bin edges
     """
-    new_counts = np.array([np.sum(counts)])
-    new_exposure = np.array([np.sum(exposure)])
+    new_counts = np.asarray(counts.sum()).reshape(1)
+    new_uncert = np.asarray( np.sqrt( (count_uncert ** 2).sum()) ).reshape(1)
+    new_exposure = np.asarray(exposure.sum()).reshape(1)
     new_edges = old_edges[[0, -1]]
-    return new_counts, new_exposure, new_edges
+    return new_counts, new_uncert, new_exposure, new_edges
 
 
-def rebin_by_edge(counts, exposure, old_edges, new_edges):
+def rebin_by_edge(counts, count_uncert, exposure, old_edges, new_edges):
     """Rebins binned data based on an array of bin edge indices
     
     Args:
         counts (np.array): The counts in each bin
+        count_uncert (np.array): The uncertainty in each bin
         exposure (np.array): The exposure of each bin
         old_edges (np.array): The time edges of each bin
         new_edges (np.array): The new edges of the binned data
     
     Returns:
-        (np.array, np.array, np.array): The counts and exposure in each bin \
-                                        and the new bin edges
+        (np.array, np.array, np.array, np.array): The counts, uncertainty, and
+                                                  exposure in each bin and the 
+                                                  new bin edges
     """
     # new edges
     num_bins = new_edges.size - 1
@@ -100,27 +109,31 @@ def rebin_by_edge(counts, exposure, old_edges, new_edges):
     old_edges_list = old_edges.tolist()
     new_exposure = np.zeros(num_bins, dtype=float)
     new_counts = np.zeros(num_bins, dtype=float)
+    new_uncert = np.zeros(num_bins, dtype=float)
     for i in range(num_bins):
         start_idx = old_edges_list.index(new_edges[i])
         end_idx = old_edges_list.index(new_edges[i + 1])
-        new_counts[i] = np.sum(counts[start_idx:end_idx])
-        new_exposure[i] = np.sum(exposure[start_idx:end_idx])
+        new_counts[i] = counts[start_idx:end_idx].sum()
+        new_uncert[i] = np.sqrt((count_uncert[start_idx:end_idx] ** 2).sum())
+        new_exposure[i] = exposure[start_idx:end_idx].sum()
 
-    return new_counts, new_exposure, new_edges
+    return new_counts, new_uncert, new_exposure, new_edges
 
 
-def rebin_by_edge_index(counts, exposure, old_edges, new_edge_index):
+def rebin_by_edge_index(counts, count_uncert, exposure, old_edges, new_edge_index):
     """Rebins binned data based on an array of bin edge indices
 
     Args:
         counts (np.array): The counts in each bin
+        count_uncert (np.array): The uncertainty in each bin
         exposure (np.array): The exposure of each bin
         old_edges (np.array): The time edges of each bin
         new_edge_index (np.array): The edge indices for the new binned data
     
     Returns:
-        (np.array, np.array, np.array): The counts and exposure in each bin \
-                                        and the new bin edges
+        (np.array, np.array, np.array, np.array): The counts, uncertainty, and
+                                                  exposure in each bin and the 
+                                                  new bin edges
     """
     # new edges
     num_bins = new_edge_index.size - 1
@@ -130,28 +143,32 @@ def rebin_by_edge_index(counts, exposure, old_edges, new_edge_index):
     # combine the counts and exposure
     new_exposure = np.zeros(num_bins, dtype=float)
     new_counts = np.zeros(num_bins, dtype=float)
+    new_uncert = np.zeros(num_bins, dtype=float)
     for i in range(num_bins):
         start_idx = new_edge_index[i]
         end_idx = new_edge_index[i + 1]
-        new_counts[i] = np.sum(counts[start_idx:end_idx])
-        new_exposure[i] = np.sum(exposure[start_idx:end_idx])
+        new_counts[i] = counts[start_idx:end_idx].sum()
+        new_uncert[i] = np.sqrt((count_uncert[start_idx:end_idx] ** 2).sum())
+        new_exposure[i] = exposure[start_idx:end_idx].sum()
 
-    return new_counts, new_exposure, new_edges
+    return new_counts, new_uncert, new_exposure, new_edges
 
 
-def rebin_by_snr(counts, exposure, old_edges, background_counts, snr):
+def rebin_by_snr(counts, count_uncert, exposure, old_edges, background_counts, snr):
     """Rebins binned data such that each bin is above a minimum signal-to-noise ratio
     
     Args:
         counts (np.array): The counts in each bin
+        count_uncert (np.array): The uncertainty in each bin
         exposure (np.array): The exposure of each bin
         old_edges (np.array): The time edges of each bin
         background_counts (np.array): The background counts in each bin
         snr (float): The minimum signal-to-ratio threshold
     
     Returns:
-        (np.array, np.array, np.array): The counts and exposure in each bin \
-                                        and the new bin edges
+        (np.array, np.array, np.array, np.array): The counts, uncertainty, and
+                                                  exposure in each bin and the 
+                                                  new bin edges
     """
     num_old_bins = counts.size
     # make sure there is a non-zero background
@@ -181,16 +198,19 @@ def rebin_by_snr(counts, exposure, old_edges, background_counts, snr):
     # create the new rebinned arrays
     new_edges = np.array(new_edges)
     numbins = len(new_edges) - 1
-    new_counts = [np.sum(counts[new_edges[i]:new_edges[i + 1]]) for i in
-                  range(numbins)]
-    new_exposure = [np.sum(exposure[new_edges[i]:new_edges[i + 1]]) for i in
-                    range(numbins)]
+    new_counts = [counts[new_edges[i]:new_edges[i + 1]].sum() \
+                  for i in range(numbins)]
+    new_uncert = [np.sqrt((count_uncert[new_edges[i]:new_edges[i + 1]] ** 2).sum()) \
+                  for i in range(numbins)]
+    new_exposure = [exposure[new_edges[i]:new_edges[i + 1]].sum() \
+                    for i in range(numbins)]
     new_edges = old_edges[new_edges]
 
-    return np.array(new_counts), np.array(new_exposure), new_edges
+    return np.array(new_counts), np.array(new_uncert), np.array(new_exposure), \
+           new_edges
 
 
-def rebin_by_time(counts, exposure, old_edges, dt):
+def rebin_by_time(counts, count_uncert, exposure, old_edges, dt):
     """Rebins binned data to a specified temporal bin width.
     
     If the requested bin width is smaller than some of the original bin widths, 
@@ -204,27 +224,21 @@ def rebin_by_time(counts, exposure, old_edges, dt):
 
     Args:
         counts (np.array): The counts in each bin
+        count_uncert (np.array): The uncertainty in each bin
         exposure (np.array): The exposure of each bin
         old_edges (np.array): The time edges of each bin
         dt (float): The requested temporal bin width in seconds
     
     Returns:
-        (np.array, np.array, np.array): The counts and exposure in each bin \
-                                        and the new bin edges
+        (np.array, np.array, np.array, np.array): The counts, uncertainty, and
+                                                  exposure in each bin and the 
+                                                  new bin edges
     """
     assert dt > 0.0, "Requested bin width must be > 0.0 s"
 
     num_old_bins = counts.size
     dts = old_edges[1:] - old_edges[0:-1]
 
-    # if the requested bin width is a factor of the current bin width for all bins,
-    # call combine_by_factor.  this is an easier task
-    # warnings.filterwarnings("ignore", category=RuntimeWarning)
-    # if np.sum((dt % dts) == 0.0) == num_old_bins:
-    #     return combine_by_factor(counts, exposure, old_edges, int(dt / dts[0]))
-
-    # print('Temporal factor for rebinning is not a perfect multiple of all bin widths.')
-    # print('Bin widths will be approximate to and will not exceed the temporal factor.')
     # cycle through current bins and add up bins until we have approximately reached,
     # but not exceeded, the requested binwidth
     i_edges = [0]
@@ -246,13 +260,13 @@ def rebin_by_time(counts, exposure, old_edges, dt):
     # dividing the iterations by 2 by eliminating the list comprehension
     num_new_cols = bounds_idx.shape[0]
     new_counts = np.zeros(num_new_cols, counts.dtype)
+    new_uncert = np.zeros(num_new_cols, count_uncert.dtype)
     new_exposure = np.zeros(num_new_cols, exposure.dtype)
-    i = 0
-    for b in bounds_idx:
-        new_counts[i] = np.sum(counts[b[0]:b[1]])
-        new_exposure[i] = np.sum(exposure[b[0]:b[1]])
-        i += 1
+
+    for i, b in enumerate(bounds_idx):
+        new_counts[i] = counts[b[0]:b[1]].sum()
+        new_uncert[i] = np.sqrt((count_uncert[b[0]:b[1]] ** 2).sum())
+        new_exposure[i] = exposure[b[0]:b[1]].sum()
     new_edges = old_edges[i_edges]
-    return new_counts, new_exposure, new_edges
-
-
+    
+    return new_counts, new_uncert, new_exposure, new_edges
