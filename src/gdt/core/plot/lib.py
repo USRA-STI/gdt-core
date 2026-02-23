@@ -456,83 +456,209 @@ def circle(center_x, center_y, radius, num_points=100):
     mask = ra > 2.0*np.pi
     ra[mask] = ra[mask] - 2.0*np.pi
     return ra, dec
-    
 
-def split_on_meridian(phi, theta):
-    """Split a set of phi, theta points that span the meridian into contiguous
-    segments.
-    
+
+def clip_polygon(polygon, clip_phi, keep_side):
+    """Clips a polygon against a vertical line using the Sutherland-Hodgman
+    algorithm.
+
     Args:
-        phi (np.array): The azimuthal coordinate, in radians
-        theta (np.array): The polar coordinate, in radians
+        polygon (list): A list of (phi, theta) tuples
+        clip_phi (float): The phi (longitude) of the clipping line
+        keep_side (str): 'right' to keep points where phi >= clip_phi,'left' to
+                          keep points where phi <= clip_phi
 
     Returns:
-        (list of np.array, list of np.array)
+        (list): A list of (phi, theta) tuples for the clipped polygon.
     """
-    # if difference between consecutive phi points is > pi, then the
-    # meridian splits the line/polygon
-    isplit = np.nonzero(np.abs(np.diff(phi, prepend=phi[-1])) > np.pi)[0]
+    output_list = []
+    if not polygon:
+        return output_list
+
+    # ensure the polygon is closed
+    polygon_closed = polygon + [polygon[0]]
+
+    # function to calculate intersection of polygon with line
+    def get_intersection(p1, p2, clip_phi):
+        """Calculates the intersection of a polygon edge with a vertical 
+        clipping line.
     
-    # if only one split is detected, the line/polygon is at the pole
-    if len(isplit) == 1:
-        idx = phi.argsort()
-        phi = phi[idx]
-        theta = theta[idx]
-                    
-        # detect which pole we are wrapping around and assign an array of
-        # thetas to be at that peole. special case (second case) is if we are 
-        # precisely at the equator.
-        if (np.pi/2.0 - theta.max()) < np.abs(-np.pi/2.0 - theta.min()):
-            theta_edges = np.array([np.pi/2.0] * theta.size)
-        elif ( (np.pi/2.0 - theta.max()) / \
-               np.abs(-np.pi/2.0 - theta.min()) ) <=  (1.0 + 1e-3):
-            north_size = int(np.ceil(theta.size/2))
-            south_size = theta.size - north_size
-            north_edges = np.array([np.pi/2.0] * north_size)
-            south_edges = np.array([-np.pi/2.0] * south_size)
-            theta_edges = np.concatenate((north_edges, south_edges))
-        else:
-            theta_edges = np.array([-np.pi/2.0] * theta.size)
-        
-        # assign a reversed array of phi, and set the start and end points to
-        # the meridian
-        phi_edges = phi[::-1]
-        phi_edges[0] = 2.0*np.pi
-        phi_edges[-1] = 0.0
-        
-        phi = [np.concatenate((phi, phi_edges))]
-        theta = [np.concatenate((theta, theta_edges))]
+        Args:
+            p1 (tuple): The first vertex (phi, theta)
+            p2 (tuple): The second vertex (phi, theta)
+            clip_phi (float): The longitude of the clipping line
     
-    # if two splits, the line/polygon is not at the pole
-    elif len(isplit) == 2:
-        # split into two chunks
-        phi = np.split(phi, isplit)
-        theta = np.split(theta, isplit)
-        if phi[0].size < phi[-1].size:
-            phi = phi[1:]
-            theta = theta[1:]
+        Returns:
+            (tuple): The intersection point (phi, theta)
+        """
+        phi1, theta1 = p1
+        phi2, theta2 = p2
+    
+        # Handle vertical edges to avoid division by zero
+        if phi2 == phi1:
+            return (clip_phi, theta1)
+    
+        # Calculate intersection latitude using linear interpolation
+        theta_intersect = np.interp(clip_phi, [phi1, phi2], [theta1, theta2])    
+        return (clip_phi, theta_intersect)
+
+    for i in range(len(polygon_closed) - 1):
+        point1 = polygon_closed[i]
+        point2 = polygon_closed[i+1]
+
+        phi1 = point1[0]
+        phi2 = point2[0]
+
+        # determine if each point is on the same side of the clipping line
+        if keep_side == 'right':
+            point1_inside = phi1 >= clip_phi
+            point2_inside = phi2 >= clip_phi
         else:
-            phi = phi[:-1]
-            theta = theta[:-1]
+            point1_inside = phi1 <= clip_phi
+            point2_inside = phi2 <= clip_phi
+
+        # case 1: both points are on the same (near) side, add point to list
+        if point1_inside and point2_inside:
+            output_list.append(point2)
         
-        for i in range(len(phi)):
-            # detect which side of the meridian the chunk is on and assign an
-            # array of phis to be on that side of the meridian
-            if 2.0*np.pi - phi[i].max() < phi[i].min():
-                phi_edges = np.array([2.0*np.pi] * phi[i].size)
-            else:
-                phi_edges = np.array([0.0] * phi[i].size)
-            
-            # assign a reversed array of theta
-            theta_edges = theta[i][::-1]
-            
-            phi[i] = np.concatenate((phi[i], phi_edges))
-            theta[i] = np.concatenate((theta[i], theta_edges))
+        # case 2: edge goes from near to far side, add intersection to list
+        elif point1_inside and not point2_inside:
+            intersection = get_intersection(point1, point2, clip_phi)
+            output_list.append(intersection)
+        
+        # case 3: edge goes from far side to near side, add intersection and 
+        #         point to list
+        elif not point1_inside and point2_inside:
+            intersection = get_intersection(point1, point2, clip_phi)
+            output_list.append(intersection)
+            output_list.append(point2)
+        
+        # case 4: both points on the far side, add nothing
+        else:
+            pass
+
+    return output_list
+
+
+def split_on_meridian(phis, thetas):
+    """This splits a polygon at the meridian using a simplified version of the
+    Sutherland-Hodgman algorithm.
+    
+    Args:
+        phis (np.array): Array of longitudes
+        thetas (np.array): Array of latitudes
+
+    Returns:
+        (list, list): The list of phi segments and the list of theta segments    
+    """
+    shifted_phis = np.copy(phis)
+    shifted_phis[shifted_phis < 0.0] += 2.0*np.pi
+    original_poly = list(zip(shifted_phis, thetas))
+        
+    # create three tiled versions of the polygon, offset by 360 deg
+    poly_plus_2pi = [(phi + 2*np.pi, theta) for phi, theta in original_poly]
+    poly_minus_2pi = [(phi - 2*np.pi, theta) for phi, theta in original_poly]
+    all_polys = [original_poly, poly_plus_2pi, poly_minus_2pi]
+    
+    final_phis = []
+    final_thetas = []
+    
+    for poly in all_polys:
+        # first, clip against the right boundary of the map (phi <= pi)
+        clipped_left = clip_polygon(poly, np.pi, 'left')
+
+        # then, clip the result against the left boundary (phi >= -pi)
+        clipped_final = clip_polygon(clipped_left, -np.pi, 'right')
+
+        # only keep non-empty polygons
+        if clipped_final:
+            p, t = zip(*clipped_final)
+            final_phis.append(p)
+            final_thetas.append(t)
+    
+    return (final_phis, final_thetas)
+
+
+def prep_polygon_on_map(phis, thetas, tolerance=5.0):
+    """This function prepares a polygon for plotting on a map.  Specifically,
+    it does the following:
+    
+    1. Detects if the polygon wraps a pole
+    2. If it wraps a pole, it identifies the pole and creates a polar cap
+    3. If it crosses the meridian, it splits the polygon
+    4. Otherwise, it returns the original polygon
+    
+    The shoelace formula is used to determine the signed area of the polygon to 
+    determine which pole it wraps, if applicable.  For wrapping at the meridian,
+    a simplified version of the Sutherland-Hodgman algorithm is used to split
+    the polygon at the meridian.
+
+    Args:
+        phis (np.array): Array of longitudes
+        thetas (np.array): Array of latitudes
+        tolerance (float, optional): The tolerance, in degrees, for testing if 
+                                     a polygon extends the full longitude range.
+
+    Returns:
+        (list, list): The list of phi segments and the list of theta segments    
+    """
+    def calculate_signed_area(phi, theta):
+        """
+        Calculates the signed area of a polygon using the Shoelace formula.
+        
+        When vertices are sorted by longitude, the sign indicates which pole is
+        wrapped. A positive value is a CCW winding, indicating a south pole wrap.
+        A negative value is a CW winding, indicating a north pole wrap.
+        """
+        return 0.5 * (phi[:-1] * theta[1:] - phi[1:] * theta[:-1]).sum()
+
+    # shift the longitude to the expected range
+    shifted_phis = np.copy(phis)
+    shifted_phis[shifted_phis < 0.0] += 2.0 * np.pi
+    
+    phi_range = phis.max() - phis.min()   
+    shifted_phi_range = shifted_phis.max() - shifted_phis.min()
+    
+    # if the polygon is near the center of the map and we are plotting in 
+    # galactic or spacecraft coordinates, then the range of phis and shifted 
+    # phis will differ by a large amount.  this tricks us into thinking that the
+    # polygon extends the full phi range.  the solution is to reverse the 
+    # shift.  the cause of this is due to the fact that the center longitude
+    # of the galactic and spacecraft maps is 0, while it is 180 for equatorial. 
+    if (shifted_phi_range - phi_range) > np.pi:
+        phis -= 2.0 * np.pi
+        shifted_phis = np.copy(phis)
+        shifted_phis[shifted_phis < 0.0] += 2.0*np.pi
+        shifted_phi_range = phi_range
+        
+    # a polygon wraps the pole if its longitude range is (nearly) 360 degrees
+    if shifted_phi_range > (2.0*np.pi - np.deg2rad(tolerance)):
+                
+        # use signed area to determine the correct pole.  This requires the
+        # coordinates to be sorted
+        sidx = shifted_phis.argsort()
+        sorted_phis = shifted_phis[sidx]
+        sorted_thetas = thetas[sidx]
+        signed_area = calculate_signed_area(sorted_phis, sorted_thetas)
+        pole_theta = 0.5*np.pi if signed_area < 0 else -0.5*np.pi
+        
+        # now we sort the original coordinates to ensure correct boundary
+        # drawing order
+        sidx = phis.argsort()
+        sorted_phis = phis[sidx]
+        sorted_thetas = thetas[sidx]
+
+        # create a closed polygon from the boundary to the pole
+        boundary_coords = list(zip(sorted_phis, sorted_thetas))
+        cap_poly = boundary_coords + [(sorted_phis[-1], pole_theta), 
+                                      (sorted_phis[0], pole_theta)]
+        
+        final_phis, final_thetas = zip(*cap_poly)
+        return [final_phis], [final_thetas]
+    
     else:
-        phi = [phi]
-        theta = [theta]
-    
-    return (phi, theta)
+        # if not wrapping the pole, check if we need to split on the meridian
+        return split_on_meridian(phis, thetas)
 
 
 def sky_point(x, y, ax, flipped=True, frame='equatorial', **kwargs):
@@ -570,13 +696,15 @@ def sky_point(x, y, ax, flipped=True, frame='equatorial', **kwargs):
     return point
 
 
-def sky_line(x, y, ax, flipped=True, frame='equatorial', **kwargs):
+def sky_line(x, y, ax, flipped=True, frame='equatorial', closed=False, **kwargs):
     """Plot a line on a sky map, wrapping at the meridian.
         
     Args:
         x (float): The azimuthal coordinates, in degrees
         y (float): The polar coordinates, in degrees
         ax (matplotlib.axes): Plot axes object
+        closed (bool, optional): True if line represents a closed polygon. 
+                                 Default is False.
         flipped (bool, optional): If True, the azimuthal axis is flipped, 
                                   following equatorial convention
         frame (str, optional): Either 'equatorial', 'galactic', or 'spacecraft'.
@@ -587,29 +715,35 @@ def sky_line(x, y, ax, flipped=True, frame='equatorial', **kwargs):
         (list of matplotlib.collections.PathCollection)
     """
     theta = np.deg2rad(y)
-    phi = np.deg2rad(x - 180.0)
+    phi = np.deg2rad(x)
+    
     if frame == 'spacecraft':
         flipped = False
-        phi -= np.pi
+        phi -= 2.0 * np.pi
         phi[phi < -np.pi] += 2 * np.pi
     elif frame == 'galactic':
-        phi -= np.pi
+        phi -= 2.0 * np.pi
         phi[phi < -np.pi] += 2 * np.pi   
     else:
-        pass 
+        phi -= np.pi
 
     if flipped:
         phi = -phi
-    seg = np.vstack((phi, theta))
+    
+    if closed:
+        phi, theta = prep_polygon_on_map(phi, theta)
+    else:
+        seg = np.vstack((phi, theta))
+        # here is where we split the segments at the meridian
+        isplit = np.nonzero(np.abs(np.diff(seg[0])) > np.pi)[0]
+        subsegs = np.split(seg, isplit+1, axis=1)
+        phi = [seg[0] for seg in subsegs]
+        theta = [seg[1] for seg in subsegs]
 
-    # here is where we split the segments at the meridian
-    isplit = np.nonzero(np.abs(np.diff(seg[0])) > np.pi)[0]
-    subsegs = np.split(seg, isplit+1, axis=1)
-
-    # plot each path segment
+        
     segrefs = []
-    for seg in subsegs:
-        ref = ax.plot(seg[0], seg[1], **kwargs)
+    for i in range(len(phi)):
+        ref = ax.plot(phi[i], theta[i], **kwargs)
         segrefs.append(ref)
 
     return segrefs
@@ -638,43 +772,20 @@ def sky_circle(center_x, center_y, radius, ax, flipped=True, frame='equatorial',
     Returns:
         (list of matplotlib.patches.Polygon)
     """
-    zen_true = False
     theta = np.deg2rad(90.0 - center_y)
     phi = np.deg2rad(center_x)
-    if frame == 'spacecraft':
-        flipped = False
-        phi -= np.pi
-        if phi < -np.pi:
-            phi += 2 * np.pi
-    elif frame == 'galactic':
-        phi -= np.pi
-        if phi < -np.pi:
-            phi += 2 * np.pi        
-    else:
-        pass
-
     rad = np.deg2rad(radius)
-
-    # The native matplotlib functions don't cut and display the circle polygon
-    # correctly on map projections
     
     num_pts = int(rad * 500.0)
     phi_pts, theta_pts = circle(phi, theta, rad, num_points=num_pts)
-    phi_pts, theta_pts = split_on_meridian(phi_pts, theta_pts)
     
-    # plot each polygon section
-    edge = colorConverter.to_rgba(edge_color, alpha=edge_alpha)
-    face = colorConverter.to_rgba(face_color, alpha=face_alpha)
-    patches = []
-    for i in range(len(phi_pts)):
-        phi_pts[i] -= np.pi
-        if flipped:
-            phi_pts[i] *= -1.0
-        pts = np.vstack((phi_pts[i], theta_pts[i])).T
-        patch = ax.add_patch( plt.Polygon(pts, facecolor=face, edgecolor=edge, \
-                             **kwargs))
-        patches.append(patch)
-    return patches
+    phi_pts = np.rad2deg(phi_pts)
+    theta_pts = np.rad2deg(theta_pts)
+    
+    return sky_polygon(phi_pts, theta_pts, ax, face_color=face_color, 
+                       edge_color=edge_color, face_alpha=face_alpha, 
+                       edge_alpha=edge_alpha,
+                       flipped=flipped, frame=frame, **kwargs)
 
 
 def sky_annulus(center_x, center_y, radius, width, ax, color='black',
@@ -792,62 +903,32 @@ def sky_polygon(x, y, ax, face_color=None, edge_color=None, edge_alpha=1.0,
         (list of matplotlib.lines.Line2D and matplotlib.patches.Polygon)
     """
     refs = sky_line(x, y, ax, color=edge_color, alpha=edge_alpha, frame=frame,
-                    flipped=flipped, **kwargs)
+                    flipped=flipped, closed=True, **kwargs)
 
     theta = np.deg2rad(y)
-    phi = np.deg2rad(x - 180.0)
-    
-    def split_func(phi, theta):
-        # this is needed to determine when contour spans the full x range
-        if (phi.min() == -np.pi) and (phi.max() == np.pi):
-            if theta.mean() > 0.0:  # fill in positive dec
-                theta = np.insert(theta, 0, np.pi / 2.0)
-                theta = np.append(theta, np.pi / 2.0)
-                phi = np.insert(phi, 0, -np.pi)
-                phi = np.append(phi, np.pi)
-            else:  # fill in negative dec
-                theta = np.insert(theta, 0, -np.pi / 2.0)
-                theta = np.append(theta, -np.pi / 2.0)
-                phi = np.insert(phi, 0, np.pi)
-                phi = np.append(phi, -np.pi)
-        return (phi, theta)
+    phi = np.deg2rad(x)
     
     if frame == 'spacecraft':
         flipped = False
-        phi1 = phi - np.pi
-        theta1 = np.copy(theta)
-        phi1, theta1 = split_func(phi1, theta1)
-        f1 = ax.fill(phi1, theta1, color=face_color, alpha=face_alpha, **kwargs)
-
-        phi2 = phi + np.pi
-        theta2 = np.copy(theta)
-        phi2, theta2 = split_func(phi2, theta2)
-        f2 = ax.fill(phi2, theta2, color=face_color, alpha=face_alpha, **kwargs)
-        refs.extend([f1, f2])
-
+        phi -= 2.0 * np.pi
+        phi[phi < -np.pi] += 2 * np.pi
     elif frame == 'galactic':
-        phi1 = phi - np.pi
-        theta1 = np.copy(theta)
-        if flipped:
-            phi1 = -phi1
-        phi1, theta1 = split_func(phi1, theta1)
-        f1 = ax.fill(phi1, theta1, color=face_color, alpha=face_alpha, **kwargs)
-
-        phi2 = phi + np.pi
-        theta2 = np.copy(theta)
-        if flipped:
-            phi2 = -phi2
-        phi2, theta2 = split_func(phi2, theta2)
-        f2 = ax.fill(phi2, theta2, color=face_color, alpha=face_alpha, **kwargs)
-        refs.extend([f1, f2])
-
+        phi -= 2.0 * np.pi
+        phi[phi < -np.pi] += 2 * np.pi   
     else:
-        if flipped:
-            phi = -phi
-        f = ax.fill(phi, theta, color=face_color, alpha=face_alpha, **kwargs)
-        refs.append(f)
+        phi -= np.pi
 
-    return refs
+    if flipped:
+        phi = -phi        
+
+    phi, theta = prep_polygon_on_map(phi, theta)
+    for i in range(len(phi)):
+        pts = np.vstack((phi[i], theta[i])).T
+        patch = ax.add_patch( plt.Polygon(pts, color=face_color, \
+                                          alpha=face_alpha, **kwargs))
+        refs.append(patch)
+
+    return refs[::-1]
 
 
 def galactic_plane(ax, flipped=True, frame='equatorial', zen=True, 
@@ -899,7 +980,6 @@ def galactic_plane(ax, flipped=True, frame='equatorial', zen=True,
     else:
         raise TypeError('If frame is not a str, it must be a ' \
                         'SpacecraftFrame')
-        
         
     line1 = sky_line(x, y, ax, color=outer_color, linewidth=3,
                      alpha=line_alpha, flipped=flipped, frame=frame)
