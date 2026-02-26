@@ -73,7 +73,7 @@ class BackgroundRates(TimeEnergyBins):
 
         counts = np.squeeze(rates * exposure[:, np.newaxis])
         if counts.ndim == 1:
-            counts = counts.reshape(tstart.size, emin.size)
+            counts = counts.reshape(len(tstart), len(emin))
         super().__init__(counts, tstart, tstop, exposure, emin, emax)
         self._count_uncertainty = np.squeeze(rate_uncertainty * exposure[:, np.newaxis])
         self._rates = rates.squeeze()
