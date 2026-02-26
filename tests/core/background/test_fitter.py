@@ -97,7 +97,16 @@ class TestBinnedFitter(unittest.TestCase):
 
         self.assertTrue(os.path.exists(filepath))
         os.remove(filepath)
-
+    
+    def test_single_channel(self):
+        # unit test to confirm fitter.interpolate does not raise an exception
+        # when interpolating the background for single-channel data
+        phaii = self.phaii.slice_energy((12.0, 15.0))
+        fitter = BackgroundFitter.from_phaii(phaii, Polynomial)
+        fitter.fit(order=1)
+        rates = fitter.interpolate_bins(phaii.data.tstart, 
+                                             phaii.data.tstop)
+            
     def test_errors(self):
         with self.assertRaises(TypeError):
             BackgroundFitter.from_phaii(0.0, Polynomial)
@@ -110,6 +119,7 @@ class TestBinnedFitter(unittest.TestCase):
         
         with self.assertRaises(TypeError):
             BackgroundFitter.from_phaii(self.phaii, Polynomial, time_ranges=0.0)
+
 
 class TestBinnedFitterUncalibrated(unittest.TestCase):
 
