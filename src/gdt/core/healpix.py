@@ -665,33 +665,33 @@ class HealPixLocalization(HealPix):
         Return:
             (:class:`HealPixLocalization`)
         """
-        if isinstance(sigma, float):
-            sigma = list(sigma)
         try:
             center_ra = float(center_ra)
             center_dec = float(center_dec)
             radius = float(radius)
-            sigma = [float(s) for s in sigma]
         except:
-            raise TypeError('center_ra, center_dec, radius, and sigma must be floats')
+            raise TypeError('center_ra, center_dec, and radius must be floats')
+        try:
+            sigma = np.asarray(sigma, dtype=float)
+        except:
+            raise TypeError("sigma must be a float or list of floats")
 
         center_ra = center_ra % 360.0
         if center_dec < -90.0 or center_dec > 90.0:
             raise ValueError('center_dec must be between -90 and 90')
         if radius < 0:
             raise ValueError('radius must be positive')
-        if len(sigma) > 2:
+        if sigma.size > 2:
             raise ValueError('sigma must have only 1 or 2 elements')
-        for s in sigma:
-            if s < 0:
-                raise ValueError('sigma must be positive')
+        if not np.all(sigma > 0):
+            raise ValueError('sigma must be positive')
 
         # Automatically calculate appropriate nside by taking the closest nside
         # with an average resolution that matches 0.2*sigma
         if nside is None:
             nsides = 2**np.arange(15)
             pix_res = hp.nside2resol(nsides, True)/60.0
-            idx = np.abs(pix_res-sigma/5.0).argmin()
+            idx = np.abs(pix_res-np.min(sigma)/5.0).argmin()
             nside = nsides[idx]
 
         # get everything in the right units

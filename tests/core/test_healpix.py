@@ -220,7 +220,7 @@ class TestHealPixLocalization(unittest.TestCase):
 
     def test_from_annulus(self):
         hpx = HealPixLocalization.from_annulus(0.0, 0.0, 50.0, 5.0)
-        hpx2 = HealPixLocalization.from_annulus(0.0, 0.0, 50.0, [5.0, 5.0])
+        hpx2 = HealPixLocalization.from_annulus(0.0, 0.0, 50.0, [5.0, 3.0])
         
         with self.assertRaises(TypeError):
             HealPixLocalization.from_annulus('', 0.0, 50.0, 5.0)
