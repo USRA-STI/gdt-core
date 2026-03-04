@@ -220,6 +220,7 @@ class TestHealPixLocalization(unittest.TestCase):
 
     def test_from_annulus(self):
         hpx = HealPixLocalization.from_annulus(0.0, 0.0, 50.0, 5.0)
+        hpx2 = HealPixLocalization.from_annulus(0.0, 0.0, 50.0, [5.0, 5.0])
         
         with self.assertRaises(TypeError):
             HealPixLocalization.from_annulus('', 0.0, 50.0, 5.0)
@@ -229,6 +230,10 @@ class TestHealPixLocalization(unittest.TestCase):
             HealPixLocalization.from_annulus(0.0, 0.0, '', 5.0)
         with self.assertRaises(TypeError):
             HealPixLocalization.from_annulus(0.0, 0.0, 50.0, '')
+        with self.assertRaises(TypeError):
+            HealPixLocalization.from_annulus(0.0, 0.0, 50.0, [5.0, ''])
+        with self.assertRaises(TypeError):
+            HealPixLocalization.from_annulus(0.0, 0.0, 50.0, ['', 5.0])
         
         with self.assertRaises(ValueError):
             HealPixLocalization.from_annulus(0.0, 100.0, 50.0, 5.0)
@@ -236,6 +241,10 @@ class TestHealPixLocalization(unittest.TestCase):
             HealPixLocalization.from_annulus(0.0, 0.0, -50.0, 5.0)
         with self.assertRaises(ValueError):
             HealPixLocalization.from_annulus(0.0, 0.0, 50.0, -5.0)
+        with self.assertRaises(ValueError):
+            HealPixLocalization.from_annulus(0.0, 0.0, 50.0, [5.0, -5.0])
+        with self.assertRaises(ValueError):
+            HealPixLocalization.from_annulus(0.0, 0.0, 50.0, [-5.0, 5.0])    
 
     def test_from_data(self):
         hpx = HealPixLocalization.from_data(self.hpx.prob) 
