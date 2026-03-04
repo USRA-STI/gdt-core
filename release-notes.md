@@ -1,4 +1,13 @@
 # Release Notes for Gamma-ray Data Tools: Core Library
+## Version 2.2.2 (Released Jan 6, 2026)
+
+This release included the following updates from pull requests:  
+
+- Fixed an issue discovered in testing by creating an experimental continuous flag for ChannelBins
+- Fixed a bug preventing a copy of Headers by accepting cards like fits.Header [#10](https://github.com/USRA-STI/gdt-core/pull/10)[#110](https://github.com/USRA-STI/gdt-core/pull/110)
+- Use ebounds for energy bin edges because it works for binned and unbinned fits [#112](https://github.com/USRA-STI/gdt-core/pull/112)
+- Speed optimizations for unbinned NaivePoisson background fit [#109](https://github.com/USRA-STI/gdt-core/pull/109)
+
 ## Version 2.2.1 (Released Nov 19, 2025)
 
 This release included the following updates from pull requests:  

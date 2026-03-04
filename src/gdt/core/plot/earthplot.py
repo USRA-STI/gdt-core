@@ -54,7 +54,7 @@ class EarthPlot(GdtPlot):
             The longitude range of the plot. Default value is (-180, 180).
         saa (:class:`~gdt.core.geomagnetic.SouthAtlanticAnomaly`, optional): 
             If set, displays the SAA polygon.
-        **kwargs: Options to pass to :class:`~gdt.plot.plot.GdtPlot`        
+        **kwargs: Options to pass to :class:`~gdt.core.plot.plot.GdtPlot`
     """
     def __init__(self, lat_range=None, lon_range=None, saa=None, **kwargs):
         if lat_range is None:
@@ -105,17 +105,17 @@ class EarthPlot(GdtPlot):
 
     @property
     def orbit(self):
-        """(:class:`~gdt.plot.plot.EarthLine`): The orbital path"""
+        """(:class:`~gdt.core.plot.plot.EarthLine`): The orbital path"""
         return self._orbit
 
     @property
     def saa(self):
-        """(:class:`~gdt.plot.plot.SAA`): The SAA polygon"""
+        """(:class:`~gdt.core.plot.plot.SAA`): The SAA polygon"""
         return self._saa
 
     @property
     def spacecraft(self):
-        """(:class:`~gdt.plot.plot.EarthPoints`): A plot point representing the
+        """(:class:`~gdt.core.plot.plot.EarthPoints`): A plot point representing the
         spacecraft position"""
         return self._sc
 
@@ -140,11 +140,11 @@ class EarthPlot(GdtPlot):
                 int/float representing the number of seconds. Default is 1.0
             trigtime (astropy.time.Time):
                 Set to a particular time of interest to plot the location.
-            icon (:class:`~gdt.plot.plot.EarthPoints`): 
+            icon (:class:`~gdt.core.plot.plot.EarthPoints`):
                 A subclass of EarthPoints that defines a specialized spacecraft
                 icon.  If not set, will default to standard matplotlib markers.
             **kwargs: Arguments to be passed to 
-                :class:`~gdt.plot.plot.EarthPoints` if ``icon`` is not set.
+                :class:`~gdt.core.plot.plot.EarthPoints` if ``icon`` is not set.
         """
         if tstart is None:
             tstart = frame.obstime[0]
