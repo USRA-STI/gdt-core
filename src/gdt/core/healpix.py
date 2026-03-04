@@ -653,8 +653,8 @@ class HealPixLocalization(HealPix):
             center_dec (float): The Dec of the center of the annulus
             radius (float): The radius of the annulus, in degrees, measured to
                             the center of the of the annulus
-            sigma (float): The Gaussian standard deviation width of the annulus,
-                           in degrees
+            sigma (float or list of floats): The Gaussian standard deviation 
+                            width/s of the annulus, in degrees
             nside (int, optional): The nside of the HEALPix to make. By default,
                                    the nside is automatically determined by the
                                    ``sigma`` width.  Set this argument to
@@ -665,16 +665,15 @@ class HealPixLocalization(HealPix):
         Return:
             (:class:`HealPixLocalization`)
         """
+        if isinstance(sigma, float):
+            sigma = list(sigma)
         try:
             center_ra = float(center_ra)
             center_dec = float(center_dec)
             radius = float(radius)
-        except:
-            raise TypeError('center_ra, center_dec, and radius sigma must be floats')
-        try:
             sigma = [float(s) for s in sigma]
-        except
-            raise TypeError('sigma must be a list or numpy array')
+        except:
+            raise TypeError('center_ra, center_dec, radius, and sigma must be floats')
 
         center_ra = center_ra % 360.0
         if center_dec < -90.0 or center_dec > 90.0:
@@ -685,7 +684,7 @@ class HealPixLocalization(HealPix):
             raise ValueError('sigma must have only 1 or 2 elements')
         for s in sigma:
             if s < 0:
-                raise ValueError('all elements in sigma must be positive')
+                raise ValueError('sigma must be positive')
 
         # Automatically calculate appropriate nside by taking the closest nside
         # with an average resolution that matches 0.2*sigma
