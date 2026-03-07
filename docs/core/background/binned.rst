@@ -107,6 +107,69 @@ Finally, we can interpolate the rate and rate uncertainty at any point:
            [0.05867081]])
 
 
+The RoboLowess Algorithm
+========================
+The :class:`~gdt.core.background.binned.RoboLowess` algorithm provides a
+non-parametric background fit using LOWESS smoothing with iterative
+sigma-clipping.  It operates in two passes: first, a summed lightcurve across
+channels is used to identify background-dominated bins; second, each channel is
+refit only on those background bins.  The resulting background is then
+interpolated to the full time grid using a cubic spline.  An optional
+refinement step models the residual distribution with a Gaussian+Exponential
+mixture to further exclude signal-like bins.
+
+Parameters include:
+
+* ``win_size``: LOWESS window fraction (0–1).  If None, it is auto-computed
+    using the ``temporal_resolution`` and the ``data range``.
+* ``lowess_iter``: Robustness iterations for LOWESS.
+* ``first_pass_chan_range``: channel range used in Pass 1 to
+    build the background mask.
+
+Note
+------------------------------------------
+The closed-form expression used when ``win_size`` is not provided was derived
+empirically.  First, a numerical optimization was run over a grid of data ranges 
+and temporal resolutions by minimizing a background‑fit error metric, and the 
+resulting optimal values were then fit with a simple power‑law using 
+scipy.optimize.curve_fit, yielding the closed‑form expression used when win_size 
+is not specified.
+
+
+Examples
+--------
+Using the same binned data from the polynomial example above:
+
+        >>> from gdt.core.background.binned import RoboLowess
+        >>> lowess_bg = RoboLowess(counts, edges[:-1], edges[1:], exposure)
+        >>> removed_times, removed_bkg, diagnostics = lowess_bg.fit(
+        ...     temporal_resolution=10.0, lowess_iter=5)
+
+The full background model for all bins and channels is stored on the
+``_backgrounds`` attribute (shape ``(num_times, num_chans)``):
+
+        >>> backgrounds = lowess_bg._backgrounds
+        >>> print("backgrounds (first 5 rows):\n", backgrounds[:5])
+        backgrounds (first 5 rows):
+        [[0.89283038]
+        [0.89564201]
+        [0.89846908]
+        [0.90132245]
+        [0.9042037 ]]
+
+We can retrieve the fit statistic and degrees-of-freedom:
+
+        >>> lowess_bg.statistic
+        [94.13079775]
+        >>> lowess_bg.dof
+        [100.]
+
+You can also restrict Pass 1 to a subset of channels if we want to avoid some
+channels. For a single energy channel example, the default is sufficient and no
+``first_pass_chan_range`` is needed. In multi-channel data, we can specify a
+range such as ``(0, 3)`` to limit the summed lightcurve.
+
+
 .. _background_binned_plugins:
 
 For Developers:
