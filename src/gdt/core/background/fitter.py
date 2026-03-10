@@ -30,7 +30,7 @@
 __all__ = ['BackgroundFitter']
 
 import numpy as np
-from gdt.core.data_primitives import EventList, TimeEnergyBins, TimeChannelBins
+from gdt.core.data_primitives import EventList, TimeEnergyBins, TimeChannelBins, Gti
 from gdt.core.phaii import Phaii
 from gdt.core.tte import PhotonList
 from .primitives import BackgroundRates, BackgroundChannelRates
@@ -194,6 +194,31 @@ class BackgroundFitter:
                                 self._data_obj.ebounds.high_edges())
 
         return rates
+    
+    def to_bak(self, time_range=None, **kwargs):
+        """Integrate over the time axis and produce a BAK object
+        
+        Args:
+            time_range ((float, float)): 
+                The time range to integrate over
+            **kwargs: Options to pass to Bak.from_data()
+        
+        Returns:
+            (:class:`~gdt.core.pha.Bak`)
+        """
+        from gdt.core.pha import Bak
+        bkgd = self.interpolate_bins(self._data_obj.data.tstart, self._data_obj.data.tstop)
+
+        if time_range is None:
+            time_range = bkgd.time_range
+        back_spec = bkgd.integrate_time(*time_range)
+        gti = Gti.from_list([time_range])
+        
+        kwargs = {}
+        for key, value in self._data_obj.headers['SPECTRUM'].items():
+            kwargs[key] = value
+        bak = Bak.from_data(back_spec, gti=gti, **kwargs)
+        return bak
 
     @classmethod
     def from_phaii(cls, phaii, method, time_ranges=None):
