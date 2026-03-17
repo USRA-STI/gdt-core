@@ -303,7 +303,8 @@ class SkyPlot(GdtPlot):
                 plot the posterior as color-filled confidence regions.
             clevels (list of float, optional):
                 The confidence levels to plot contours. Default plots at the 
-                1, 2, and 3 sigma level.
+                1, 2, and 3 sigma level.  If no contours are desired, pass an 
+                empty list: []
             detectors ('all' or list):
                 A list of detectors or "all" to plot the pointings on the sky
             earth (bool, optional): If True, plot the Earth. Default is True.
