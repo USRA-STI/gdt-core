@@ -45,6 +45,8 @@ _filter_card = ('FILTER', '', 'The instrument filter in use (if any)')
 _hduclass_card = ('HDUCLASS', 'OGIP', 'Conforms to OGIP standard indicated in HDUCLAS1')
 _hduvers_card = ('HDUVERS', '1.2.1', 'Version of HDUCLAS1 format in use')
 _trigtime_card = ('TRIGTIME', 0.0, 'Trigger time')
+_telescope_card = ('TELESCOP', '', 'Name of mission/satellite')
+_instrument_card = ('INSTRUME', '', 'Specific instrument used for observation')
 
 class PrimaryHeader(Header):
     name = 'PRIMARY'
@@ -67,7 +69,7 @@ class EboundsHeader(Header):
 
 class PhaSpectrumHeader(Header):
     name = 'SPECTRUM'
-    keywords = [_extname_card, _filter_card,
+    keywords = [_extname_card, _filter_card, _telescope_card, _instrument_card,
             ('AREASCAL', 1., 'No special scaling of effective area by channel'),
             ('BACKFILE', '', 'Name of corresponding background file (if any)'),
             ('BACKSCAL', 1., 'background file scaling factor'),
@@ -88,7 +90,7 @@ class PhaSpectrumHeader(Header):
 
 class BakSpectrumHeader(Header):
     name = 'SPECTRUM'
-    keywords = [_extname_card, _filter_card,
+    keywords = [_extname_card, _filter_card, _telescope_card, _instrument_card,
             ('AREASCAL', 1., 'No special scaling of effective area by channel'),
             ('BACKFILE', '', 'Name of corresponding background file (if any)'),
             ('BACKSCAL', 1., 'background file scaling factor'),
@@ -310,6 +312,12 @@ class Pha(FitsFileContextManager):
             obj._headers['SPECTRUM']['DETCHANS'] = data.size
         obj._headers['PRIMARY']['TRIGTIME'] = trigger_time
         obj._headers['SPECTRUM']['EXPOSURE'] = obj._data.exposure[0]
+
+        if obj._headers != None:
+            for key in obj._headers['SPECTRUM'].keys():
+                if obj._headers['SPECTRUM'][key] =='':
+                    if key in kwargs.keys():
+                        obj._headers['SPECTRUM'][key] = kwargs[key]
         
         # set the channel mask
         if channel_mask is None:

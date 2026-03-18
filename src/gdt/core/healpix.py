@@ -653,8 +653,8 @@ class HealPixLocalization(HealPix):
             center_dec (float): The Dec of the center of the annulus
             radius (float): The radius of the annulus, in degrees, measured to
                             the center of the of the annulus
-            sigma (float): The Gaussian standard deviation width of the annulus,
-                           in degrees
+            sigma (float or list of floats): The Gaussian standard deviation 
+                            width/s of the annulus, in degrees
             nside (int, optional): The nside of the HEALPix to make. By default,
                                    the nside is automatically determined by the
                                    ``sigma`` width.  Set this argument to
@@ -669,16 +669,21 @@ class HealPixLocalization(HealPix):
             center_ra = float(center_ra)
             center_dec = float(center_dec)
             radius = float(radius)
-            sigma = float(sigma)
         except:
-            raise TypeError('center_ra, center_dec, radius, and sigma must be' \
-                            ' floats')
+            raise TypeError('center_ra, center_dec, and radius must be floats')
+        try:
+            sigma = np.asarray(sigma, dtype=float)
+        except:
+            raise TypeError("sigma must be a float or list of floats")
+
         center_ra = center_ra % 360.0
         if center_dec < -90.0 or center_dec > 90.0:
             raise ValueError('center_dec must be between -90 and 90')
         if radius < 0:
             raise ValueError('radius must be positive')
-        if sigma < 0:
+        if sigma.size > 2:
+            raise ValueError('sigma must have only 1 or 2 elements')
+        if not np.all(sigma > 0):
             raise ValueError('sigma must be positive')
 
         # Automatically calculate appropriate nside by taking the closest nside
@@ -686,7 +691,7 @@ class HealPixLocalization(HealPix):
         if nside is None:
             nsides = 2**np.arange(15)
             pix_res = hp.nside2resol(nsides, True)/60.0
-            idx = np.abs(pix_res-sigma/5.0).argmin()
+            idx = np.abs(pix_res-np.min(sigma)/5.0).argmin()
             nside = nsides[idx]
 
         # get everything in the right units
@@ -701,8 +706,17 @@ class HealPixLocalization(HealPix):
 
         # calculate normal distribution about annulus radius with sigma width
         x = np.linspace(0.0, np.pi, int(10.0*np.pi/res))
-        pdf = norm.pdf(x, loc=radius_rad, scale=sigma_rad)
-
+        if isinstance(sigma_rad, float) or len(sigma) == 1:
+            pdf = norm.pdf(x, loc=radius_rad, scale=sigma_rad)
+        else:
+            mask_lo = x <= radius_rad
+            mask_hi = x > radius_rad
+            pdf_lo = norm.pdf(x[mask_lo], loc=radius_rad, scale=sigma_rad[0])
+            pdf_hi = norm.pdf(x[mask_hi], loc=radius_rad, scale=sigma_rad[1])
+            pdf_lo /= max(pdf_lo)
+            pdf_hi /= max(pdf_hi)
+            pdf = np.array(list(pdf_lo) + list(pdf_hi))
+            
         # cycle through annuli of radii from 0 to 180 degree with the
         # appropriate amplitude and fill the probability map
         probmap = np.zeros(hp.nside2npix(nside))
