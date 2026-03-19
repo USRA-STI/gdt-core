@@ -744,4 +744,4 @@ class RoboLowess:
                                          dtype=bool)
         signal_mask_full[mask] = signal_mask
 
-        return full_mask, signal_mask_fulls
+        return full_mask, signal_mask_full
