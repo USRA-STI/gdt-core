@@ -151,18 +151,39 @@ The full background model for all bins and channels is stored on the
         >>> backgrounds = lowess_bg._backgrounds
         >>> print("backgrounds (first 5 rows):\n", backgrounds[:5])
         backgrounds (first 5 rows):
-        [[0.89283038]
-        [0.89564201]
-        [0.89846908]
-        [0.90132245]
-        [0.9042037 ]]
+        [[1.02127623]
+        [1.02033087]
+        [1.01935709]
+        [1.01836799]
+        [1.0173858 ]]
 
 We can retrieve the fit statistic and degrees-of-freedom:
 
         >>> lowess_bg.statistic
-        [94.13079775]
+        [118.28368989]
         >>> lowess_bg.dof
         [100.]
+
+Finally, we can interpolate the background rate and uncertainty at any binning:
+
+    >>> interp_edges = np.linspace(2.0, 10.0, 6)
+    >>> model_interp, uncert_interp = lowess_bg.interpolate(
+    ...     interp_edges[:-1], interp_edges[1:])
+    >>> model_interp
+    array([[1.02111197],
+           [1.02124269],
+           [1.02127556],
+           [1.0212273],
+           [1.02111464]])
+    >>> uncert_interp
+    array([[1.14591544e-04],
+           [9.78592007e-05],
+           [8.11268576e-05],
+           [6.43945146e-05],
+           [4.76621715e-05]])
+.. Note:: 
+    The fit step does not include model uncertainty. The uncertainty is estimated only during interpolation, 
+    using how strongly the spline bends with time (its local curvature), with a very small minimum floor value.
 
 You can also restrict Pass 1 to a subset of channels if we want to avoid some
 channels. For a single energy channel example, the default is sufficient and no

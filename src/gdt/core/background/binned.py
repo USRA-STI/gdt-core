@@ -325,7 +325,7 @@ class RoboLowess:
 
 
     def fit(self, win_size=None, temporal_resolution=None,
-            min_win=0.4, max_win=0.95, spline_bc_type='clamped', lowess_iter=5):
+        min_win=0.4, max_win=0.95, spline_bc_type='clamped', lowess_iter=5):
         """Fit background model using two-pass LOWESS with sigma-clipping.
         
         Args:
@@ -466,6 +466,62 @@ class RoboLowess:
         return (removed_bins_times, interp_back,
                 self._last_iteration_data)
 
+    def interpolate(self, tstart, tstop, exposure=None, channel_range=None):
+        """Interpolate the background model at given bin edges.
+
+        Args:
+            tstart (np.ndarray): Bin start edges.
+            tstop (np.ndarray): Bin stop edges.
+            channel_range (tuple, optional): (chan_min, chan_max) inclusive.
+
+        Returns:
+            (np.ndarray, np.ndarray): The interpolated model value and model 
+            uncertainty in each bin with shape (num_bins, num_channels).
+        """
+
+        tstart = np.asarray(tstart, dtype=float)
+        tstop = np.asarray(tstop, dtype=float)
+
+        centroids = 0.5 * (tstart + tstop)
+        base_times = np.asarray(self._data.time_centroids, dtype=float)
+
+        num_channels = self._backgrounds.shape[1]
+        if channel_range is None:
+            chan_slice = slice(0, num_channels)
+        else:
+            a, b = channel_range
+            i_min = int(max(0, min(a, b)))
+            i_max = int(min(num_channels - 1, max(a, b)))
+            chan_slice = slice(i_min, i_max + 1)
+
+        selected = self._backgrounds[:, chan_slice]
+        model_rates = np.zeros((centroids.size, selected.shape[1]), dtype=float)
+        model_uncert = np.zeros_like(model_rates)
+
+        # Uncertainty estimation
+        dt = np.median(tstop - tstart) if tstart.size else 1.0
+        dt = float(dt) if np.isfinite(dt) and dt > 0 else 1.0
+        sigma_floor = 1e-20
+
+        for idx in range(selected.shape[1]):
+            y = np.asarray(selected[:, idx], dtype=float)
+
+            if base_times.size < 2 or np.all(~np.isfinite(y)):
+                const = float(np.nanmean(y)) if np.isfinite(np.nanmean(y)) else 0.0
+                model_rates[:, idx] = np.full_like(centroids, const, dtype=float)
+                model_uncert[:, idx] = sigma_floor
+
+            else:
+                spline = CubicSpline(base_times, y, bc_type='clamped', extrapolate=True)
+                r = spline(centroids)
+                model_rates[:, idx] = r
+
+                # derivative-based uncertainty (without extra scale factor)
+                b2 = spline(centroids, 2)
+                model_uncert[:, idx] = np.maximum(np.abs(b2) * (dt ** 2), sigma_floor)
+
+        return model_rates, model_uncert
+    
     def _compute_statistics(self, bg_mask):
         num_times, num_channels = self._data.rates.shape
         counts = self._data.rates * self._data.exposure[:, None]
@@ -688,4 +744,4 @@ class RoboLowess:
                                          dtype=bool)
         signal_mask_full[mask] = signal_mask
 
-        return full_mask, signal_mask_full
+        return full_mask, signal_mask_fulls
