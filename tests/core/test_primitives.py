@@ -1775,6 +1775,24 @@ class TestTimeChannelBins(unittest.TestCase):
                            self.bins.chan_nums, quality=[0, 0])
 
 
+class TestTimeChannelBinsSingleChannel(unittest.TestCase):
+    
+    def setUp(self):
+        counts = [0,  0,  2,  1,  2,  0]
+        tstart = [0.0000, 0.0039, 0.0640, 0.1280, 0.1920, 0.2560]
+        tstop = [0.0039, 0.0640, 0.1280, 0.1920, 0.2560, 0.320]
+        exposure = [0.0038, 0.0598, 0.0638, 0.0638, 0.0638, 0.0638]
+        chan_nums = [0]
+
+        self.bins = TimeChannelBins(counts, tstart, tstop, exposure, chan_nums)
+    
+    def test_num_chans(self):
+        assert self.bins.num_chans == 1
+    
+    def test_num_times(self):
+        assert self.bins.num_times == 6
+
+
 class TestTimeChannelBinsWithCountUncerts(unittest.TestCase):
     
     def setUp(self):
@@ -2294,7 +2312,7 @@ class TestTimeEnergyBins(unittest.TestCase):
                            self.bins.exposure, self.bins.emin, self.bins.emax)
 
         with self.assertRaises(TypeError):
-            TimeEnergyBins(self.bins.counts[:,0], self.bins.tstart, 
+            TimeEnergyBins(self.bins.counts.reshape(2, 2, 3), self.bins.tstart, 
                            self.bins.tstop, self.bins.exposure, self.bins.emin,
                            self.bins.emax)
         
@@ -2352,6 +2370,25 @@ class TestTimeEnergyBins(unittest.TestCase):
             TimeEnergyBins(self.bins.counts, self.bins.tstart, 
                            self.bins.tstop, self.bins.exposure, 
                            self.bins.emin, self.bins.emax, quality=[0, 0])
+
+
+class TestTimeEnergyBinsSingleChannel(unittest.TestCase):
+    
+    def setUp(self):
+        counts = [0,  0,  2,  1,  2,  0]
+        tstart = [0.0000, 0.0039, 0.0640, 0.1280, 0.1920, 0.2560]
+        tstop = [0.0039, 0.0640, 0.1280, 0.1920, 0.2560, 0.320]
+        exposure = [0.0038, 0.0598, 0.0638, 0.0638, 0.0638, 0.0638]
+        emin = [50.0]
+        emax = [300.0]
+
+        self.bins = TimeEnergyBins(counts, tstart, tstop, exposure, emin, emax)
+    
+    def test_num_chans(self):
+        assert self.bins.num_chans == 1
+    
+    def test_num_times(self):
+        assert self.bins.num_times == 6
 
 
 class TestTimeEnergyBinsWithCountUncerts(unittest.TestCase):
