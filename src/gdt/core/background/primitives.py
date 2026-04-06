@@ -73,7 +73,7 @@ class BackgroundRates(TimeEnergyBins):
 
         counts = np.squeeze(rates * exposure[:, np.newaxis])
         if counts.ndim == 1:
-            counts = counts.reshape(tstart.size, emin.size)
+            counts = counts.reshape(len(tstart), len(emin))
         super().__init__(counts, tstart, tstop, exposure, emin, emax)
         self._count_uncertainty = np.squeeze(rate_uncertainty * exposure[:, np.newaxis])
         self._rates = rates.squeeze()
@@ -269,8 +269,14 @@ class BackgroundRates(TimeEnergyBins):
         exposure = np.mean([bkgd.exposure for bkgd in bkgds], axis=0)
         tstart = np.mean([bkgd.tstart for bkgd in bkgds], axis=0)
         tstop = np.mean([bkgd.tstop for bkgd in bkgds], axis=0)
-        emin = ebounds.low_edges()
-        emax = ebounds.high_edges()
+        emin = np.array(ebounds.low_edges())
+        emax = np.array(ebounds.high_edges())
+        
+        # ensure that the rates array has 2 dimensions (time, energy)
+        if rates.ndim == 1:
+            rates = rates.reshape(-1, 1)
+            rates_var = rates_var.reshape(-1, 1)
+                
         sum_bkgd = cls(rates, np.sqrt(rates_var), tstart, tstop, emin, emax,
                        exposure=exposure)
         return sum_bkgd
