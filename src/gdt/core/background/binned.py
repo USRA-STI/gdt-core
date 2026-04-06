@@ -275,6 +275,10 @@ class Polynomial():
 
 class RoboLowess:
     """Background fitting using LOWESS with iterative sigma-clipping.
+
+    Users may want to provide ``temporal_resolution`` when the binned light
+    curve has very fine time bins (e.g., 64 ms). In that case, using a coarser 
+    temporal resolution can reduce runtime and give a better background fit.
     
     Args:
         counts (np.ndarray): Count array, shape (num_times, num_channels)
