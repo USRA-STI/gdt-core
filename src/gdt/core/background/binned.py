@@ -332,6 +332,8 @@ class RoboLowess:
             win_size (float, optional): LOWESS window fraction (0-1). 
                                        Auto-calculated if None.
             temporal_resolution (float, optional): Time resolution in seconds.
+                If None and ``win_size`` is auto-computed, uses a single
+                positive bin width from the input times or defaults to 1.0s if not available.
             min_win (float): Minimum window fraction (default 0.4)
             max_win (float): Maximum window fraction (default 0.95)
             spline_bc_type (str): Spline boundary condition (default 'clamped')
@@ -344,6 +346,18 @@ class RoboLowess:
         """
         # compute win_size
         if win_size is None:
+            if temporal_resolution is None:
+                if self._data.tstart.size and self._data.tstop.size:
+                    first_width = float(self._data.tstop[0] - self._data.tstart[0])
+                    temporal_resolution = first_width if np.isfinite(first_width) and first_width > 0.0 else 1.0
+                else:
+                    temporal_resolution = 1.0
+            else:
+                temporal_resolution = float(temporal_resolution)
+
+            if (not np.isfinite(temporal_resolution)) or (temporal_resolution <= 0.0):
+                temporal_resolution = 1.0
+
             data_range = float(self._data.tstop[-1] - self._data.tstart[0])
             raw = 1.1 * (data_range ** -0.12) * (temporal_resolution ** -0.15) + 0.15
             win_size = min(max(min_win, raw), max_win)
