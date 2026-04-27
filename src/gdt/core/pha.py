@@ -372,7 +372,15 @@ class Pha(FitsFileContextManager):
         gti_ext = obj.hdu_index_from_name('GTI')
         if gti_ext is None:
             gti_ext = obj.hdu_index_from_name('STDGTI')
-
+            
+        # in the event the SPECTRUM and EBOUNDS extensions are swapped
+        if (eb_ext == 1) and (spec_ext == 2):
+            PhaHeaders._header_templates = [PrimaryHeader(), EboundsHeader(), 
+                                            PhaSpectrumHeader(), GtiHeader()]
+        else:
+            PhaHeaders._header_templates = [PrimaryHeader(), PhaSpectrumHeader(),
+                                            EboundsHeader(), GtiHeader()]
+            
         # get the headers
         hdrs = [hdu.header for hdu in obj.hdulist]
         if (hdrs[spec_ext]['HDUCLAS2'] == 'TOTAL') \
