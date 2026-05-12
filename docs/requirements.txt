@@ -11,3 +11,4 @@ astropy-sphinx-theme
 nbsphinx
 sphinx-automodapi
 ipython
+statsmodels

@@ -1763,7 +1763,9 @@ class TimeChannelBins():
             self._counts = np.asarray(counts)
         except:
             raise TypeError('counts must be an iterable')
-        if self._counts.ndim != 2:
+        if self._counts.ndim == 1:
+            self._counts = self._counts.reshape(-1, 1)  
+        elif self._counts.ndim > 2:
             raise TypeError('counts must be a 2-dimensional array')
 
         try:
@@ -1811,7 +1813,7 @@ class TimeChannelBins():
             self._quality = np.zeros_like(self._tstart)
 
         if count_uncerts is None:
-            count_uncerts = np.sqrt(counts)
+            count_uncerts = np.sqrt(self._counts)
         try:
             iter(count_uncerts)
             self._count_uncerts = np.asarray(count_uncerts)
@@ -2543,7 +2545,9 @@ class TimeEnergyBins():
             self._counts = np.asarray(counts)
         except:
             raise TypeError('counts must be an iterable')
-        if self._counts.ndim != 2:
+        if self._counts.ndim == 1:
+            self._counts = self._counts.reshape(-1, 1)  
+        elif self._counts.ndim > 2:
             raise TypeError('counts must be a 2-dimensional array')
 
         try:
@@ -2599,7 +2603,7 @@ class TimeEnergyBins():
             self._quality = np.zeros_like(self._tstart)
 
         if count_uncerts is None:
-            count_uncerts = np.sqrt(counts)
+            count_uncerts = np.sqrt(self._counts)
         try:
             iter(count_uncerts)
             self._count_uncerts = np.asarray(count_uncerts)

@@ -34,6 +34,10 @@ The following mission packages are currently part of the GDT family:
 * `gdt-rxte <https://astro-gdt-rxte.readthedocs.io>`_ (ASM)
 * `gdt-swift <https://astro-gdt-swift.readthedocs.io>`_ (BAT)
 
+Externally Managed:
+
+* `gdt-gifts <https://gifts-6u.github.io/gdt-gifts-docs/>`_ (GIFTS)
+
 .. rubric:: Citing
 
 If you use the GDT Core package to develop your own mission our instrument
