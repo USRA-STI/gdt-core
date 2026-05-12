@@ -802,11 +802,14 @@ class FileDownloader(AbstractContextManager):
             dest_dir (str, Path): The directory where the file will be written
             verbose (bool, optional): If True, will output the download status.
                                       Default is True.
+
+        Returns:
+            (Path)
         """
         if url.startswith('ftp'):
-            self._ftp.download_url(url, dest_dir, verbose)
+            return self._ftp.download_url(url, dest_dir, verbose)
         elif url.startswith('http'):
-            self._http.download_url(url, dest_dir, verbose)
+            return self._http.download_url(url, dest_dir, verbose)
         else:
             raise ValueError('url must begin with ftp://, http://, or https://')
 
@@ -818,10 +821,14 @@ class FileDownloader(AbstractContextManager):
             dest_dir (str, Path): The directory where the file will be written
             verbose (bool, optional): If True, will output the download status.
                                       Default is True.
-        """
-        for url in urls:
-            self.download_url(url, dest_dir, verbose)
 
+        Returns:
+            (list): File path list
+        """
+        files = []
+        for url in urls:
+            files.append(self.download_url(url, dest_dir, verbose))
+        return files
 
 class BrowseCatalog:
     """A class that interfaces with the HEASARC Browse API.  This can be
