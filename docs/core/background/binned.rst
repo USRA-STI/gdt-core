@@ -121,7 +121,7 @@ mixture to further exclude signal-like bins.
 Parameters include:
 
 * ``win_size``: LOWESS window fraction (0–1).  If None, it is auto-computed
-    using the ``temporal_resolution`` and the ``data range``.
+    using the median bin width of the input data and the data range.
 * ``lowess_iter``: Robustness iterations for LOWESS.
 * ``first_pass_chan_range``: channel range used in Pass 1 to
     build the background mask.
@@ -142,8 +142,7 @@ Using the same binned data from the polynomial example above:
 
         >>> from gdt.core.background.binned import RoboLowess
         >>> lowess_bg = RoboLowess(counts, edges[:-1], edges[1:], exposure)
-        >>> removed_times, removed_bkg, diagnostics = lowess_bg.fit(
-        ...     temporal_resolution=10.0, lowess_iter=5)
+        >>> removed_times, removed_bkg, diagnostics = lowess_bg.fit(lowess_iter=5)
 
 The full background model for all bins and channels is stored on the
 ``_backgrounds`` attribute (shape ``(num_times, num_chans)``):
