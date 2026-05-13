@@ -95,7 +95,7 @@ class TestRoboLowessBackground(TestCase):
 
     def test_fit(self):
         bkgd = RoboLowess(self.counts, self.tstart, self.tstop, self.exposure)
-        bkgd.fit(lowess_iter=1)
+        bkgd.fit()
 
         self.assertEqual(bkgd.statistic_name, 'chisq')
         self.assertEqual(bkgd.dof.shape, (1,))
@@ -104,7 +104,7 @@ class TestRoboLowessBackground(TestCase):
 
     def test_interpolate(self):
         bkgd = RoboLowess(self.counts, self.tstart, self.tstop, self.exposure)
-        bkgd.fit(lowess_iter=1)
+        bkgd.fit()
 
         rates, rate_uncert = bkgd.interpolate(self.tstart, self.tstop)
         self.assertEqual(rates.shape, self.counts.shape)

@@ -26,6 +26,7 @@
 # implied. See the License for the specific language governing permissions and limitations under the
 # License.
 #
+import warnings
 import numpy as np
 from scipy.interpolate import CubicSpline
 from scipy.stats import norm
@@ -329,8 +330,10 @@ class RoboLowess:
         """Fit background model using two-pass LOWESS with sigma-clipping.
         
         Args:
-            win_size (float, optional): LOWESS window fraction (0-1). 
-                                       Auto-calculated if None.
+            win_size (float, optional): Absolute smoothing window in seconds.
+                Converted internally to a LOWESS fraction via
+                ``frac = win_size / data_range``. If not provided, the
+                fraction is auto-computed from the data.
             min_win (float): Minimum window fraction (default 0.4)
             max_win (float): Maximum window fraction (default 0.95)
             spline_bc_type (str): Spline boundary condition (default 'clamped')
@@ -341,15 +344,27 @@ class RoboLowess:
                                            background at removed times, 
                                            iteration diagnostics
         """
-        # compute win_size
-        if win_size is None:
+        data_range = float(self._data.tstop[-1] - self._data.tstart[0])
+        if win_size is not None:
+            frac = float(win_size) / data_range
+            if frac < min_win:
+                warnings.warn(
+                    f"win_size={win_size} s yields a LOWESS fraction of "
+                    f"{frac:.3f}, which is below the recommended minimum of "
+                    f"{min_win}. The fit may be unstable.",
+                    stacklevel=2)
+            elif frac > max_win:
+                warnings.warn(
+                    f"win_size={win_size} s yields a LOWESS fraction of "
+                    f"{frac:.3f}, which is above the recommended maximum of "
+                    f"{max_win}. The data may be over-smoothed.",
+                    stacklevel=2)
+        else:
             temporal_resolution = float(np.median(self._data.tstop - self._data.tstart))
             if (not np.isfinite(temporal_resolution)) or (temporal_resolution <= 0.0):
                 temporal_resolution = 1.024
-
-            data_range = float(self._data.tstop[-1] - self._data.tstart[0])
             raw = 1.1 * (data_range ** -0.12) * (temporal_resolution ** -0.15) + 0.15
-            win_size = min(max(min_win, raw), max_win)
+            frac = min(max(min_win, raw), max_win)
 
         num_channels = self._data.rates.shape[1]
         backgrounds = np.zeros_like(self._data.rates)
@@ -368,7 +383,7 @@ class RoboLowess:
                  time_summed_all,
                  rate_summed_all,
                  exp_summed,
-                 win_size=win_size,
+                 frac=frac,
                  lowess_iter=lowess_iter,
                  sigma_thresh=3.0,
                  return_mask=True,
@@ -408,7 +423,7 @@ class RoboLowess:
                                                 bg_times_chan,
                                                 ch_rates,
                                                 bg_exp_chan,
-                                                win_size=win_size,
+                                                frac=frac,
                                                 lowess_iter=lowess_iter,
                                                 sigma_thresh=3.0,
                                                 return_mask=False,
@@ -541,7 +556,7 @@ class RoboLowess:
 
 
     def _residual_fit(self, time_all, rate_all, exposure_all,
-                      win_size=0.5, lowess_iter=1, sigma_thresh=3.0,
+                      frac=0.5, lowess_iter=1, sigma_thresh=3.0,
                       core_snr_max=2.0, min_core_points=5,
                       return_mask=False, use_pre_mask=False, max_iter=10):
         """LOWESS with iterative sigma-clipping.
@@ -550,7 +565,7 @@ class RoboLowess:
             time_all (np.ndarray): Time values
             rate_all (np.ndarray): Count rates
             exposure_all (np.ndarray): Exposure values
-            win_size (float): LOWESS window fraction (default 0.5)
+            frac (float): LOWESS window fraction (default 0.5)
             lowess_iter (int): LOWESS iterations (default 1)
             sigma_thresh (float): Threshold for outlier removal (default 3.0)
             core_snr_max (float): Max SNR for core distribution (default 2.0)
@@ -596,7 +611,7 @@ class RoboLowess:
 
             # LOWESS on rates
             lowess_result = lowess(masked_rates, masked_times,
-                                   frac=win_size, it=lowess_iter)
+                                   frac=frac, it=lowess_iter)
             bg_rates_local = lowess_result[:, 1]
 
             # Residuals in counts space
@@ -646,7 +661,7 @@ class RoboLowess:
 
         # Final Lowess on the background subset
         lowess_result_final = lowess(bg_rates_input, bg_times,
-                                     frac=win_size, it=lowess_iter)
+                                     frac=frac, it=lowess_iter)
         bg_rates = lowess_result_final[:, 1]
 
         if return_mask:
@@ -655,14 +670,14 @@ class RoboLowess:
             return bg_times, bg_rates
     
     def _refit_with_residual_model(self, residuals, threshold=0.7,
-                                   win_size=0.5, spline_bc_type='clamped',
+                                   win_size=None, spline_bc_type='clamped',
                                    lowess_iter=1, first_pass_mask=None):
         """Refine background mask using Gaussian+Exponential model.
         
         Args:
             residuals (np.array): Residuals from Pass 1 fit
             threshold (float): Signal probability threshold (default 0.7)
-            win_size (float): LOWESS window fraction (default 0.5)
+            win_size (float, optional): Absolute smoothing window in seconds
             spline_bc_type (str): Spline BC (default 'clamped')
             lowess_iter (int): LOWESS iterations (default 1)
             first_pass_mask (np.array): Initial background mask

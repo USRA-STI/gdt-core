@@ -120,8 +120,17 @@ mixture to further exclude signal-like bins.
 
 Parameters include:
 
-* ``win_size``: LOWESS window fraction (0–1).  If None, it is auto-computed
-    using the median bin width of the input data and the data range.
+* ``win_size``: Absolute smoothing window in seconds.  Internally converted to
+    a LOWESS fraction via ``frac = win_size / data_range``.  If ``None``
+    (default), the fraction is auto-computed from the median bin width and the
+    data range.  A warning is issued if the resulting fraction falls outside
+    ``[min_win, max_win]``, but the supplied value is still used.
+* ``min_win``: Minimum allowed LOWESS fraction (default 0.4).  When
+    ``win_size`` is ``None`` the auto-computed fraction is clamped to this
+    floor.  When ``win_size`` is provided, this value is only used as the
+    lower bound of the warning check.
+* ``max_win``: Maximum allowed LOWESS fraction (default 0.95).  Same role as
+    ``min_win`` but as a ceiling.
 * ``lowess_iter``: Robustness iterations for LOWESS.
 * ``first_pass_chan_range``: channel range used in Pass 1 to
     build the background mask.
