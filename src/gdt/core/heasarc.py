@@ -236,6 +236,7 @@ class BaseProtocol(AbstractContextManager, ABC, ProgressMixin):
         """(bool): True if the protocol has been initialized"""
         pass
 
+
 class Ftp(BaseProtocol):
     """A class for FTP interactions with a remote archive.
     
@@ -595,6 +596,11 @@ class Aws(Http):
 
         super().__init__(url, start_key, end_key, table_key, progress, context, timeout)
 
+    def _cd(self, path: str):
+        super()._cd(path)
+        if len(self._ls(path)) == 0:
+            raise ValueError(f'{path} is not a valid path')
+    
     def _ls(self, path: str):
         """List the directory contents of an AWS directory associated with
         a data set.
@@ -829,6 +835,7 @@ class FileDownloader(AbstractContextManager):
         for url in urls:
             files.append(self.download_url(url, dest_dir, verbose))
         return files
+
 
 class BrowseCatalog:
     """A class that interfaces with the HEASARC Browse API.  This can be
