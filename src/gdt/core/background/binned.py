@@ -326,7 +326,7 @@ class RoboLowess:
 
 
     def fit(self, win_size=None,
-        min_win=0.4, max_win=0.95, spline_bc_type='clamped', lowess_iter=5):
+        min_frac=0.4, max_frac=0.95, spline_bc_type='clamped', lowess_iter=5):
         """Fit background model using two-pass LOWESS with sigma-clipping.
         
         Args:
@@ -334,8 +334,8 @@ class RoboLowess:
                 Converted internally to a LOWESS fraction via
                 ``frac = win_size / data_range``. If not provided, the
                 fraction is auto-computed from the data.
-            min_win (float): Minimum window fraction (default 0.4)
-            max_win (float): Maximum window fraction (default 0.95)
+            min_frac (float): Minimum window fraction (default 0.4)
+            max_frac (float): Maximum window fraction (default 0.95)
             spline_bc_type (str): Spline boundary condition (default 'clamped')
             lowess_iter (int): LOWESS robustness iterations (default 5)
         
@@ -346,25 +346,31 @@ class RoboLowess:
         """
         data_range = float(self._data.tstop[-1] - self._data.tstart[0])
         if win_size is not None:
-            frac = float(win_size) / data_range
-            if frac < min_win:
+            win_size = float(win_size)
+            if win_size > data_range:
+                raise ValueError(
+                    "win_size must not exceed the available time range for "
+                    "the background fit "
+                    f"(win_size={win_size}, available_range={data_range}).")
+            frac = win_size / data_range
+            if frac < min_frac:
                 warnings.warn(
                     f"win_size={win_size} s yields a LOWESS fraction of "
                     f"{frac:.3f}, which is below the recommended minimum of "
-                    f"{min_win}. The fit may be unstable.",
+                    f"{min_frac}. The fit may be unstable.",
                     stacklevel=2)
-            elif frac > max_win:
+            elif frac > max_frac:
                 warnings.warn(
                     f"win_size={win_size} s yields a LOWESS fraction of "
                     f"{frac:.3f}, which is above the recommended maximum of "
-                    f"{max_win}. The data may be over-smoothed.",
+                    f"{max_frac}. The data may be over-smoothed.",
                     stacklevel=2)
         else:
             temporal_resolution = float(np.median(self._data.tstop - self._data.tstart))
             if (not np.isfinite(temporal_resolution)) or (temporal_resolution <= 0.0):
                 temporal_resolution = 1.024
             raw = 1.1 * (data_range ** -0.12) * (temporal_resolution ** -0.15) + 0.15
-            frac = min(max(min_win, raw), max_win)
+            frac = min(max(min_frac, raw), max_frac)
 
         num_channels = self._data.rates.shape[1]
         backgrounds = np.zeros_like(self._data.rates)

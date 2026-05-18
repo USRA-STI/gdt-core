@@ -124,13 +124,13 @@ Parameters include:
     a LOWESS fraction via ``frac = win_size / data_range``.  If ``None``
     (default), the fraction is auto-computed from the median bin width and the
     data range.  A warning is issued if the resulting fraction falls outside
-    ``[min_win, max_win]``, but the supplied value is still used.
-* ``min_win``: Minimum allowed LOWESS fraction (default 0.4).  When
+    ``[min_frac, max_frac]``, but the supplied value is still used.
+* ``min_frac``: Minimum allowed LOWESS fraction (default 0.4).  When
     ``win_size`` is ``None`` the auto-computed fraction is clamped to this
     floor.  When ``win_size`` is provided, this value is only used as the
     lower bound of the warning check.
-* ``max_win``: Maximum allowed LOWESS fraction (default 0.95).  Same role as
-    ``min_win`` but as a ceiling.
+* ``max_frac``: Maximum allowed LOWESS fraction (default 0.95).  Same role as
+    ``min_frac`` but as a ceiling.
 * ``lowess_iter``: Robustness iterations for LOWESS.
 * ``first_pass_chan_range``: channel range used in Pass 1 to
     build the background mask.
