@@ -174,24 +174,23 @@ We can retrieve the fit statistic and degrees-of-freedom:
 
 Finally, we can interpolate the background rate and uncertainty at any binning:
 
-    >>> interp_edges = np.linspace(2.0, 10.0, 6)
-    >>> model_interp, uncert_interp = lowess_bg.interpolate(
-    ...     interp_edges[:-1], interp_edges[1:])
-    >>> model_interp
-    array([[1.02111197],
-           [1.02124269],
-           [1.02127556],
-           [1.0212273],
-           [1.02111464]])
-    >>> uncert_interp
-    array([[1.14591544e-04],
-           [9.78592007e-05],
-           [8.11268576e-05],
-           [6.43945146e-05],
-           [4.76621715e-05]])
-.. Note:: 
-    The fit step does not include model uncertainty. The uncertainty is estimated only during interpolation, 
-    using how strongly the spline bends with time (its local curvature), with a very small minimum floor value.
+        >>> interp_edges = np.linspace(2.0, 10.0, 6)
+        >>> model_interp, uncert_interp = lowess_bg.interpolate(
+        ...     interp_edges[:-1], interp_edges[1:])
+        >>> model_interp
+        array([[1.02111197],
+            [1.02124269],
+            [1.02127556],
+            [1.0212273],
+            [1.02111464]])
+        >>> uncert_interp
+        array([[0.],
+            [0.],
+            [0.],
+            [0.],
+            [0.]])
+    .. Note::
+        The RoboLowess fit and interpolation do not provide model uncertainty. The uncertainty output is always zero.
 
 You can also restrict Pass 1 to a subset of channels if we want to avoid some
 channels. For a single energy channel example, the default is sufficient and no

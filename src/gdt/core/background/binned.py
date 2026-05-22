@@ -520,31 +520,16 @@ class RoboLowess:
 
         selected = self._backgrounds[:, chan_slice]
         model_rates = np.zeros((centroids.size, selected.shape[1]), dtype=float)
-        model_uncert = np.zeros_like(model_rates)
-
-        # Uncertainty estimation
-        dt = np.median(tstop - tstart) if tstart.size else 1.0
-        dt = float(dt) if np.isfinite(dt) and dt > 0 else 1.0
-        sigma_floor = 1e-20
-
         for idx in range(selected.shape[1]):
             y = np.asarray(selected[:, idx], dtype=float)
-
             if base_times.size < 2 or np.all(~np.isfinite(y)):
                 const = float(np.nanmean(y)) if np.isfinite(np.nanmean(y)) else 0.0
                 model_rates[:, idx] = np.full_like(centroids, const, dtype=float)
-                model_uncert[:, idx] = sigma_floor
-
             else:
                 spline = CubicSpline(base_times, y, bc_type='clamped', extrapolate=True)
-                r = spline(centroids)
-                model_rates[:, idx] = r
-
-                # derivative-based uncertainty (without extra scale factor)
-                b2 = spline(centroids, 2)
-                model_uncert[:, idx] = np.maximum(np.abs(b2) * (dt ** 2), sigma_floor)
-
-        return model_rates, model_uncert
+                model_rates[:, idx] = spline(centroids)
+        # Uncertainty is always zero
+        return model_rates, np.zeros_like(model_rates)
     
     def _compute_statistics(self, bg_mask):
         num_times, num_channels = self._data.rates.shape

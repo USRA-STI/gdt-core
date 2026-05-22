@@ -110,9 +110,7 @@ class TestRoboLowessBackground(TestCase):
         self.assertEqual(rates.shape, self.counts.shape)
         self.assertEqual(rate_uncert.shape, self.counts.shape)
         self.assertTrue(np.allclose(rates, bkgd._backgrounds, rtol=1e-6, atol=1e-6))
-        self.assertTrue(np.all(np.isfinite(rate_uncert)))
-        self.assertTrue(np.all(rate_uncert >= 0.0))
-        self.assertTrue(np.any(rate_uncert > 0.0))
+        self.assertTrue(np.all(rate_uncert == 0.0))
 if __name__ == '__main__':
     unittest.main()
       
