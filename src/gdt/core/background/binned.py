@@ -326,7 +326,8 @@ class RoboLowess:
 
 
     def fit(self, win_size=None,
-        min_frac=0.4, max_frac=0.95, spline_bc_type='clamped', lowess_iter=5):
+        min_frac=0.4, max_frac=0.95, spline_bc_type='clamped', lowess_iter=5,
+        refit_after_clipping=True):
         """Fit background model using two-pass LOWESS with sigma-clipping.
         
         Args:
@@ -338,12 +339,18 @@ class RoboLowess:
             max_frac (float): Maximum window fraction (default 0.95)
             spline_bc_type (str): Spline boundary condition (default 'clamped')
             lowess_iter (int): LOWESS robustness iterations (default 5)
-        
+            refit_after_clipping (bool): If True, runs a final LOWESS fit on the retained
+                background bins after iterative clipping. For high-time-resolution TTE data, 
+                such as 64 ms TTE binning, set to False to skip this final refit.
         Returns:
             (np.ndarray, np.ndarray, list): Removed bin times, interpolated 
                                            background at removed times, 
                                            iteration diagnostics
         """
+        warnings.warn(
+        "The uncertainty output is untested and always zero. "
+        "Do not use it for scientific interpretation.", UserWarning, stacklevel=2)
+        
         data_range = float(self._data.tstop[-1] - self._data.tstart[0])
         if win_size is not None:
             win_size = float(win_size)
@@ -393,7 +400,8 @@ class RoboLowess:
                  lowess_iter=lowess_iter,
                  sigma_thresh=3.0,
                  return_mask=True,
-                 use_pre_mask=True)
+                 use_pre_mask=True,
+                 refit_after_clipping=refit_after_clipping)
 
             # Background model on all summed times
             spline = CubicSpline(times, bg_rates,
@@ -433,7 +441,8 @@ class RoboLowess:
                                                 lowess_iter=lowess_iter,
                                                 sigma_thresh=3.0,
                                                 return_mask=False,
-                                                use_pre_mask=False)
+                                                use_pre_mask=False,
+                                                refit_after_clipping=refit_after_clipping)
 
                 # Spline to full time grid
                 spline_channel = CubicSpline(
@@ -473,7 +482,8 @@ class RoboLowess:
                                             win_size=win_size,
                                             spline_bc_type=spline_bc_type,
                                             lowess_iter=lowess_iter,
-                                            first_pass_mask=bg_mask)
+                                            first_pass_mask=bg_mask,
+                                            refit_after_clipping=refit_after_clipping)
                                                                     
             if refined_mask is None:
                 self._refit_applied = False
@@ -549,7 +559,8 @@ class RoboLowess:
     def _residual_fit(self, time_all, rate_all, exposure_all,
                       frac=0.5, lowess_iter=1, sigma_thresh=3.0,
                       core_snr_max=2.0, min_core_points=5,
-                      return_mask=False, use_pre_mask=False, max_iter=10):
+                      return_mask=False, use_pre_mask=False, max_iter=10,
+                      refit_after_clipping=True):
         """LOWESS with iterative sigma-clipping.
         
         Args:
@@ -564,7 +575,9 @@ class RoboLowess:
             return_mask (bool): Return background mask (default False)
             use_pre_mask (bool): Use pre-computed mask (default False)
             max_iter (int): Max iterations (default 10)
-        
+            refit_after_clipping (bool): If True, runs a final LOWESS fit on the
+                retained background bins after iterative clipping. If False, 
+                skips this final refit.
         Returns:
             If return_mask=False: (times, rates)
             If return_mask=True: (times, rates, mask)
@@ -589,6 +602,10 @@ class RoboLowess:
         else:
             background_mask = np.ones(num_bins, dtype=bool)
 
+        # This is the model returned when refit_after_clipping=False.
+        initial_times = None
+        initial_bg_rates = None
+
         for _ in range(max_iter):
             masked_times = time_all[background_mask]
             masked_rates = rate_all[background_mask]
@@ -604,6 +621,10 @@ class RoboLowess:
             lowess_result = lowess(masked_rates, masked_times,
                                    frac=frac, it=lowess_iter)
             bg_rates_local = lowess_result[:, 1]
+
+            if initial_times is None:
+                initial_times = masked_times.copy()
+                initial_bg_rates = bg_rates_local.copy()
 
             # Residuals in counts space
             numerator = (masked_rates - bg_rates_local) * masked_exposure
@@ -645,15 +666,26 @@ class RoboLowess:
                 return (time_all.copy(),
                         np.full_like(rate_all, mean_rate,
                                      dtype=float))
-
-        bg_rates_input = rate_all[background_mask]
         bg_times = np.asarray(bg_times).ravel()
-        bg_rates_input = np.asarray(bg_rates_input).ravel()
 
-        # Final Lowess on the background subset
-        lowess_result_final = lowess(bg_rates_input, bg_times,
-                                     frac=frac, it=lowess_iter)
-        bg_rates = lowess_result_final[:, 1]
+        if refit_after_clipping:
+            bg_rates_input = rate_all[background_mask]
+            bg_rates_input = np.asarray(bg_rates_input).ravel()
+
+            # Final LOWESS on the retained/background subset.
+            lowess_result_final = lowess(bg_rates_input, bg_times,
+                                         frac=frac, it=lowess_iter)
+            bg_rates = lowess_result_final[:, 1]
+        else:
+            # Keep the initial LOWESS model.
+            # This avoids refitting on a biased-low retained subset.
+            if initial_times is None or initial_bg_rates is None:
+                mean_rate = np.nanmean(rate_all)
+                bg_times = time_all.copy()
+                bg_rates = np.full_like(rate_all, mean_rate, dtype=float)
+            else:
+                bg_times = np.asarray(initial_times).ravel()
+                bg_rates = np.asarray(initial_bg_rates).ravel()
 
         if return_mask:
             return bg_times, bg_rates, background_mask
@@ -662,7 +694,8 @@ class RoboLowess:
     
     def _refit_with_residual_model(self, residuals, threshold=0.7,
                                    win_size=None, spline_bc_type='clamped',
-                                   lowess_iter=1, first_pass_mask=None):
+                                   lowess_iter=1, first_pass_mask=None,
+                                   refit_after_clipping=True):
         """Refine background mask using Gaussian+Exponential model.
         
         Args:
@@ -672,6 +705,7 @@ class RoboLowess:
             spline_bc_type (str): Spline BC (default 'clamped')
             lowess_iter (int): LOWESS iterations (default 1)
             first_pass_mask (np.array): Initial background mask
+            refit_after_clipping (bool): Propagated into the recursive fit.
         
         Returns:
             (np.array, np.array): Refined mask, full signal mask
@@ -742,7 +776,8 @@ class RoboLowess:
 
         try:
             self.fit(win_size=win_size, spline_bc_type=spline_bc_type,
-                     lowess_iter=lowess_iter)
+                     lowess_iter=lowess_iter,
+                     refit_after_clipping=refit_after_clipping)
         finally:
             # Clear flags so future fits are normal
             self._suppress_auto_refine = False

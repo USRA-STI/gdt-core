@@ -134,6 +134,9 @@ Parameters include:
 * ``lowess_iter``: Robustness iterations for LOWESS.
 * ``first_pass_chan_range``: channel range used in Pass 1 to
     build the background mask.
+* ``refit_after_clipping``: If ``True`` (default), the algorithm performs a
+    final LOWESS refit with residual clipping. For high-time-resolution TTE data, 
+    such as 64/256 ms binning, set ``refit_after_clipping=False`` to skip this final refit.
 
 Note
 ------------------------------------------
@@ -197,6 +200,11 @@ channels. For a single energy channel example, the default is sufficient and no
 ``first_pass_chan_range`` is needed. In multi-channel data, we can specify a
 range such as ``(0, 3)`` to limit the summed lightcurve.
 
+**Recommended Settings for 64 ms TTE Data**
+
+For high time binning of 64 ms TTE data, a recommended starting configuration is
+``lowess_iter=0`` and ``refit_after_clipping=False``. Choose ``win_size`` to be roughly 0.25–0.5 of the fitted time range 
+(e.g., 30–60 s for a 120 s window), then inspect the fit.
 
 .. _background_binned_plugins:
 
