@@ -120,11 +120,23 @@ mixture to further exclude signal-like bins.
 
 Parameters include:
 
-* ``win_size``: LOWESS window fraction (0–1).  If None, it is auto-computed
-    using the ``temporal_resolution`` and the ``data range``.
+* ``win_size``: Absolute smoothing window in seconds.  Internally converted to
+    a LOWESS fraction via ``frac = win_size / data_range``.  If ``None``
+    (default), the fraction is auto-computed from the median bin width and the
+    data range.  A warning is issued if the resulting fraction falls outside
+    ``[min_frac, max_frac]``, but the supplied value is still used.
+* ``min_frac``: Minimum allowed LOWESS fraction (default 0.4).  When
+    ``win_size`` is ``None`` the auto-computed fraction is clamped to this
+    floor.  When ``win_size`` is provided, this value is only used as the
+    lower bound of the warning check.
+* ``max_frac``: Maximum allowed LOWESS fraction (default 0.95).  Same role as
+    ``min_frac`` but as a ceiling.
 * ``lowess_iter``: Robustness iterations for LOWESS.
 * ``first_pass_chan_range``: channel range used in Pass 1 to
     build the background mask.
+* ``refit_after_clipping``: If ``True`` (default), the algorithm performs a
+    final LOWESS refit with residual clipping. For high-time-resolution TTE data, 
+    such as 64/256 ms binning, set ``refit_after_clipping=False`` to skip this final refit.
 
 Note
 ------------------------------------------
@@ -142,8 +154,7 @@ Using the same binned data from the polynomial example above:
 
         >>> from gdt.core.background.binned import RoboLowess
         >>> lowess_bg = RoboLowess(counts, edges[:-1], edges[1:], exposure)
-        >>> removed_times, removed_bkg, diagnostics = lowess_bg.fit(
-        ...     temporal_resolution=10.0, lowess_iter=5)
+        >>> removed_times, removed_bkg, diagnostics = lowess_bg.fit(lowess_iter=5)
 
 The full background model for all bins and channels is stored on the
 ``_backgrounds`` attribute (shape ``(num_times, num_chans)``):
@@ -166,30 +177,34 @@ We can retrieve the fit statistic and degrees-of-freedom:
 
 Finally, we can interpolate the background rate and uncertainty at any binning:
 
-    >>> interp_edges = np.linspace(2.0, 10.0, 6)
-    >>> model_interp, uncert_interp = lowess_bg.interpolate(
-    ...     interp_edges[:-1], interp_edges[1:])
-    >>> model_interp
-    array([[1.02111197],
-           [1.02124269],
-           [1.02127556],
-           [1.0212273],
-           [1.02111464]])
-    >>> uncert_interp
-    array([[1.14591544e-04],
-           [9.78592007e-05],
-           [8.11268576e-05],
-           [6.43945146e-05],
-           [4.76621715e-05]])
-.. Note:: 
-    The fit step does not include model uncertainty. The uncertainty is estimated only during interpolation, 
-    using how strongly the spline bends with time (its local curvature), with a very small minimum floor value.
+        >>> interp_edges = np.linspace(2.0, 10.0, 6)
+        >>> model_interp, uncert_interp = lowess_bg.interpolate(
+        ...     interp_edges[:-1], interp_edges[1:])
+        >>> model_interp
+        array([[1.02111197],
+            [1.02124269],
+            [1.02127556],
+            [1.0212273],
+            [1.02111464]])
+        >>> uncert_interp
+        array([[0.],
+            [0.],
+            [0.],
+            [0.],
+            [0.]])
+    .. Note::
+        The RoboLowess fit and interpolation do not provide model uncertainty. The uncertainty output is always zero.
 
 You can also restrict Pass 1 to a subset of channels if we want to avoid some
 channels. For a single energy channel example, the default is sufficient and no
 ``first_pass_chan_range`` is needed. In multi-channel data, we can specify a
 range such as ``(0, 3)`` to limit the summed lightcurve.
 
+**Recommended Settings for 64 ms TTE Data**
+
+For high time binning of 64 ms TTE data, a recommended starting configuration is
+``lowess_iter=0`` and ``refit_after_clipping=False``. Choose ``win_size`` to be roughly 0.25–0.5 of the fitted time range 
+(e.g., 30–60 s for a 120 s window), then inspect the fit.
 
 .. _background_binned_plugins:
 

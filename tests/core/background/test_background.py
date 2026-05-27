@@ -95,7 +95,7 @@ class TestRoboLowessBackground(TestCase):
 
     def test_fit(self):
         bkgd = RoboLowess(self.counts, self.tstart, self.tstop, self.exposure)
-        bkgd.fit(temporal_resolution=1.0, lowess_iter=1)
+        bkgd.fit()
 
         self.assertEqual(bkgd.statistic_name, 'chisq')
         self.assertEqual(bkgd.dof.shape, (1,))
@@ -104,15 +104,13 @@ class TestRoboLowessBackground(TestCase):
 
     def test_interpolate(self):
         bkgd = RoboLowess(self.counts, self.tstart, self.tstop, self.exposure)
-        bkgd.fit(temporal_resolution=1.0, lowess_iter=1)
+        bkgd.fit()
 
         rates, rate_uncert = bkgd.interpolate(self.tstart, self.tstop)
         self.assertEqual(rates.shape, self.counts.shape)
         self.assertEqual(rate_uncert.shape, self.counts.shape)
         self.assertTrue(np.allclose(rates, bkgd._backgrounds, rtol=1e-6, atol=1e-6))
-        self.assertTrue(np.all(np.isfinite(rate_uncert)))
-        self.assertTrue(np.all(rate_uncert >= 0.0))
-        self.assertTrue(np.any(rate_uncert > 0.0))
+        self.assertTrue(np.all(rate_uncert == 0.0))
 if __name__ == '__main__':
     unittest.main()
       
