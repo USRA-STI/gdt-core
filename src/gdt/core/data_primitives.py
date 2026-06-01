@@ -286,14 +286,14 @@ class Intervals():
 
     def index(self, value):
         """Return the index of the interval that contains the value.
-        
+
         Note :
             If the value is precisely on the boundary of two intervals, the
             first interval index will be returned.
-        
+
         Args:
             value (float): The input value
-        
+
         Returns:
             (int)
         """
@@ -668,7 +668,7 @@ class EventList():
         overflow_counts = counts[:, -1]
         deadtime = counts.sum(axis=1) * event_deadtime + \
                    overflow_counts * (overflow_deadtime - event_deadtime)
-        exposure = (hi_edges - lo_edges) - deadtime
+        exposure = (np.minimum(hi_edges, tstop) - np.maximum(lo_edges, tstart)) - deadtime
 
         if self.ebounds is None:
             bins = TimeChannelBins(counts, lo_edges, hi_edges, exposure,
