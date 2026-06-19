@@ -480,6 +480,11 @@ class Phaii(FitsFileContextManager):
             if trigger_time < 0.0:
                 raise ValueError('trigger_time must be non-negative')
             obj._trigtime = trigger_time
+            obj._data._tstart -= trigger_time 
+            obj._data._tstop -= trigger_time
+            time_range = [(data.time_range[0] - trigger_time, 
+                           data.time_range[1] - trigger_time)]
+            obj._gti = Gti.from_list(time_range)
         
         # set headers
         if headers is not None:
