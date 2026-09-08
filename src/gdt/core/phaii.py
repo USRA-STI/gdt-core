@@ -436,7 +436,7 @@ class Phaii(FitsFileContextManager):
     
     @classmethod
     def from_data(cls, data, gti=None, trigger_time=None, filename=None,
-                  headers=None, **kwargs):
+                  headers=None, shift=False, **kwargs):
         """Create a PHAII object from a 
         :class:`~.data_primitives.TimeEnergyBins` data object.
         
@@ -446,8 +446,10 @@ class Phaii(FitsFileContextManager):
                 The Good Time Intervals object. If omitted, the GTI spans 
                 (tstart, tstop) 
             trigger_time (float, optional): 
-                The trigger time, if applicable. If provided, the data times 
-                will be shifted relative to the trigger time.
+                The trigger time, if applicable.
+            shift (Boolean, optional):
+                If provided, the data times will be shifted relative
+                to the trigger time.
             filename (str, optional): The name of the file
             headers (:class:`~.headers.FileHeaders`): The file headers
                  
@@ -475,11 +477,19 @@ class Phaii(FitsFileContextManager):
             gti = Gti.from_list([data.time_range])
         obj._gti = gti
                 
-        # update times to be relative to trigger time
+        # update trigger time
         if trigger_time is not None:
             if trigger_time < 0.0:
                 raise ValueError('trigger_time must be non-negative')
             obj._trigtime = trigger_time
+
+            # update times to be relative to trigger time
+            if shift:
+                obj._data._tstart -= trigger_time
+                obj._data._tstop -= trigger_time
+                time_range = [(data.time_range[0] - trigger_time,
+                            data.time_range[1] - trigger_time)]
+                obj._gti = Gti.from_list(time_range)
         
         # set headers
         if headers is not None:
