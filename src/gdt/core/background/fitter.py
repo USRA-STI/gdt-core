@@ -135,7 +135,7 @@ class BackgroundFitter:
         self._parameters = kwargs
         self._method.fit(**kwargs)
 
-    def interpolate_bins(self, tstart, tstop, **kwargs):
+    def interpolate_bins(self, tstart, tstop, scale=False, **kwargs):
         """Interpolate the fitted background model over a set of bins.
         The exposure is calculated for each bin of the background model 
         in case the background model counts is needed.
@@ -143,6 +143,10 @@ class BackgroundFitter:
         Args:
             tstart (np.array): The starting times
             tstop (np.array): The ending times
+            scale (bool, optional):
+                If True and the time ranges don't match up with the data binning,
+                will scale the exposure based on the requested time range.
+                Default is False.
             **kwargs: Options to be passed as parameters to the interpolation 
                       method 
         
@@ -154,8 +158,8 @@ class BackgroundFitter:
         rate, rate_uncert = self._method.interpolate(tstart, tstop, **kwargs)
         # get the exposure
         numtimes = tstart.shape[0]
-        exposure = np.array([self._data_obj.get_exposure((tstart[i], tstop[i])) \
-                             for i in range(numtimes)])
+        exposure = np.array([self._data_obj.get_exposure((tstart[i], tstop[i]), \
+                             scale=scale) for i in range(numtimes)])
         # create the rates object
         if isinstance(self._data_obj.data, TimeChannelBins):
             rates = BackgroundChannelRates(rate, rate_uncert, tstart, tstop,
