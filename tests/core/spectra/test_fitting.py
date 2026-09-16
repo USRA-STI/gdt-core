@@ -61,6 +61,17 @@ def make_second_pha():
     return pha
 
 
+def make_third_pha():
+    counts = [245, 278, 220, 23]
+    emin = [4.6, 27.3, 102., 538.]
+    emax = [27.3, 102., 538., 2000.]
+    exposure = 0.256
+    data = EnergyBins(counts, emin, emax, exposure)
+    gti = Gti.from_list([(0.0, 0.256)])
+    pha = Pha.from_data(data, gti=gti)
+    return pha
+
+
 def make_pha_short_exp():
     counts = [4, 4, 3, 0]
     emin = [4.6, 27.3, 102., 538.]
@@ -86,6 +97,18 @@ def make_first_bak():
 
 def make_second_bak():
     rates = [40.61084827, 55.21141574, 19.38057642, 33.97849876]
+    uncert = [1.896, 2.889, 0.919, 1.66]
+    emin = [4.6, 27.3, 102., 538.]
+    emax = [27.3, 102., 538., 2000.]
+    exposure = 0.256
+    data = BackgroundSpectrum(rates, uncert, emin, emax, exposure)
+    gti = Gti.from_list([(0.0, 0.256)])
+    bak = Bak.from_data(data, gti=gti)
+    return bak
+
+
+def make_third_bak():
+    rates = [49.83893276, 54.28721201, 17.01587394, 32.72903013]
     uncert = [1.896, 2.889, 0.919, 1.66]
     emin = [4.6, 27.3, 102., 538.]
     emax = [27.3, 102., 538., 2000.]
@@ -146,6 +169,10 @@ class TestChisq(unittest.TestCase):
                   self.mod_rates, self.exposure)
         self.assertAlmostEqual(f, -38.423, places=3)
 
+        # no background
+        f2 = chisq(self.obs_counts, None, None, 
+                   self.mod_rates, self.exposure)
+        self.assertAlmostEqual(f, -71.04, places=3)
 
 class TestCstat(unittest.TestCase):
 
@@ -941,6 +968,31 @@ class TestSpectralFitterPgstat(unittest.TestCase):
     def test_success(self):
         self.assertTrue(self.fitter.success)
 
+class TestSpectralFitterJoint(unittest.TestCase):
+
+    def setUp(self):
+        self.pha1 = make_first_pha()
+        self.bak1 = make_first_bak()
+        self.pha2 = make_second_pha()
+        self.bak2 = make_second_bak()
+        self.pha3 = make_third_pha()
+        self.bak3 = make_third_bak()
+        self.rsp1 = make_rsp('det0')
+        self.rsp2 = make_rsp('det1')
+        self.rsp3 = make_rsp('det2')
+
+        fitter1 = SpectralFitterPgstat([self.pha1, self.pha2],
+                                       [self.bak1.data, self.bak2.data],
+                                       [self.rsp1, self.rsp2])
+        fitter2 = SpectralFitterChisq([self.pha3], [self.bak3.data], [self.rsp3])
+        self.fitter = SpectralFitterJoint([fitter1, fitter2], method='Nelder-Mead')
+
+        pl = PowerLaw()
+        pl.max_values[1] = 10.0
+        self.fitter.fit(pl)
+    
+    def test_success(self):
+        self.assertTrue(self.fitter.success)
 
 class TestFitTwoComponents(unittest.TestCase):
     def setUp(self):
@@ -1101,3 +1153,23 @@ class TestFixedParameter(unittest.TestCase):
     def test_success(self):
         self.assertTrue(self.fitter.success)
 
+
+class TestNoBackground(unittest.TestCase):
+    """This test is to demonstrate that the 
+    """
+    def setUp(self):
+        self.pha1 = make_first_pha()
+        self.bak1 = make_second_bak()
+        self.pha2 = make_second_pha()
+        self.bak2 = make_second_bak()
+        self.rsp1 = make_rsp('det0')
+        self.rsp2 = make_rsp('det1')
+
+    def test_chi2(self):
+        self.fitter = SpectralFitterChisq([self.pha1], rsp_list=[self.rsp1], method='TNC')
+        self.fitter(PowerLaw())
+                                        
+    def test_chi2_plus(self):
+        self.fitter = SpectralFitterChisq([self.pha1, self.pha2],
+                                          [None, self.bak2.data],
+                                          [self.rsp1, self.rsp2], method='TNC')

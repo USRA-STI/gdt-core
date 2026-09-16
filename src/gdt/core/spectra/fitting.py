@@ -41,8 +41,8 @@ from gdt.core.data_primitives import EnergyBins
 from gdt.core.pha import Bak
 
 __all__ = ['SpectralFitter', 'SpectralFitterChisq', 'SpectralFitterCstat',
-           'SpectralFitterPgstat', 'SpectralFitterPstat', 'chisq', 'cstat',
-           'pgstat', 'pstat']
+           'SpectralFitterPgstat', 'SpectralFitterPstat', 'SpectralFitterJoint',
+           'chisq', 'cstat', 'pgstat', 'pstat']
 
 
 class SpectralFitter:
@@ -65,7 +65,7 @@ class SpectralFitter:
             The PHA objects containg the count spectrum for each detector
         bkgd_list (list of :class:`~gdt.background.primitives.BackgroundRates`, \
                    list of :class:`~gdt.background.primitives.BackgroundSpectrum`, \
-                   or list of :class:`~gdt.core.pha.Bak`): 
+                   or list of :class:`~gdt.core.pha.Bak`, optional):
             The background rates object, background spectrum, or Bak object
             for each detector.  If given the background rates object, the times
             in the corresponding PHA object will be used for the limits of
@@ -94,14 +94,16 @@ class SpectralFitter:
         rng (Generator, optional): The RNG object
     """
 
-    def __init__(self, pha_list, bkgd_list, rsp_list, statistic,
+    def __init__(self, pha_list, bkgd_list=None, rsp_list=None, statistic=None,
                  channel_masks=None, method='SLSQP', rng=None):
         # check that we have the right numbers of data, backgrounds, responses,
         # and fit masks
         self._num_sets = len(pha_list)
-        if (len(bkgd_list) != self._num_sets) or (
-                len(rsp_list) != self._num_sets):
-            raise ValueError('Number of datasets, backgrounds, and responses must be the same')
+        if len(rsp_list) != self._num_sets:
+            raise ValueError('Number of datasets and responses must be the same')
+        if bkgd_list is not None:
+            if (len(bkgd_list) != self._num_sets):
+                raise ValueError('Number of datasets and backgrounds must be the same')
 
         # set the energy channel masks
         if channel_masks is not None:
@@ -126,18 +128,13 @@ class SpectralFitter:
         self._back_rates = []
         self._back_var = []
         for bkgd, pha in zip(bkgd_list, pha_list):
-            if isinstance(bkgd, BackgroundRates):
-                bkgd_spec = bkgd.integrate_time(*pha.time_range)
-            elif isinstance(bkgd, BackgroundSpectrum):
-                bkgd_spec = bkgd
-            elif isinstance(bkgd, Bak):
-                bkgd_spec = bkgd.data
+            bkgd_spec = self._get_background_spectrum(bkgd, pha)
+            if bkgd_spec is None:
+                self._back_rates.append(None)
+                self._back_var.append(None)
             else:
-                raise ValueError('Unknown Background object')
-            self._back_rates.append(bkgd_spec.rates)
-            self._back_var.append(bkgd_spec.rate_uncertainty ** 2)
-        self._back_rates = self._apply_masks(self._back_rates)
-        self._back_var = self._apply_masks(self._back_var)
+                self._back_rates.append(bkgd_spec.rates)
+                self._back_var.append(bkgd_spec.rate_uncertainty**2)
 
         # fitter/function info
         self._stat = statistic
@@ -425,7 +422,11 @@ class SpectralFitter:
         src_spectra = []
         ulmasks = []
         for i in range(self.num_sets):
-            src_counts = (self._data[i] - self._back_rates[i] * self._exposure[i]) / (self._exposure[i] * chanwidths[i])
+            if self._back_rates[i] is not None:
+                src_counts = (self._data[i] - self._back_rates[i] * self._exposure[i]) \
+                           / (self._exposure[i] * chanwidths[i])
+            else:
+                src_counts = self._data[i] / (self._exposure[i] * chanwidths[i])
 
             ulmask = src_counts < upper_limits_sigma * np.sqrt(mvar[i])
             src_counts[ulmask] = upper_limits_sigma * np.sqrt(mvar[i])[ulmask]
@@ -513,9 +514,13 @@ class SpectralFitter:
             rates = self._rsp[i].drm.fold_spectrum(self._function.fit_eval, self.parameters)
             model_rate = rates[self._chan_masks[i]]
             model_rate[model_rate < 0.0] = 0.0
-            mvar.append(self._back_var[i] / (chanwidths[i]) ** 2
-                        + (model_rate / chanwidths[i] + self._back_rates[i] / chanwidths[i])
-                        / (np.abs(self._exposure[i]) * chanwidths[i]))
+
+            if self._back_rates[i] is not None:
+                mvar.append(self._back_var[i] / (chanwidths[i]) ** 2
+                            + (model_rate / chanwidths[i] + self._back_rates[i] / chanwidths[i])
+                            / (np.abs(self._exposure[i]) * chanwidths[i]))
+            else:
+                mvar.append((model_rate / chanwidths[i]) / (np.abs(self._exposure[i]) * chanwidths[i]))
 
         return mvar
 
@@ -548,9 +553,12 @@ class SpectralFitter:
         # differential source counts above background
         resid = []
         for i in range(self.num_sets):
-            back_rates = self._back_rates[i] / chanwidths[i]
             rates = self._data[i] / (self._exposure[i] * chanwidths[i])
-            resid.append((rates - back_rates) - model[i].rates_per_kev)
+            if self._back_rates[i] is not None:
+                back_rates = self._back_rates[i] / chanwidths[i]
+                resid.append((rates - back_rates) - model[i].rates_per_kev)
+            else:
+                resid.append(rates - model[i].rates_per_kev)
 
         # can calculate the residuals as a function of the model uncertainty
         model_var = self.model_variance()
@@ -733,7 +741,7 @@ class SpectralFitter:
         Returns:
             (list of np.array)
         """
-        return [np.asarray(one_list)[one_mask] for one_list, one_mask in zip(a_list, self._chan_masks)]
+        return [np.asarray(one_list)[one_mask] for one_list, one_mask in zip(a_list, self._chan_masks) if one_list is not None]
 
     def _eval_stat(self, set_num, src_model):
         """Evaluate the statistic for a single set. This must be defined by the
@@ -787,6 +795,31 @@ class SpectralFitter:
             stat[i] = self._eval_stat(i, model)
 
         return stat.sum()
+
+    def _get_background_spectrum(self, bkgd, pha):
+        """Get the background spectrum in the correct format
+
+        Args:
+            bkgd (:class:`~gdt.background.primitives.BackgroundRates`, \
+                :class:`~gdt.background.primitives.BackgroundSpectrum`, \
+                :class:`~gdt.core.pha.Bak`, or None):
+                The background rates object, background spectrum, or Bak object
+                for a detector.
+            pha (:class:`~gdt.core.pha.Pha`): 
+                The PHA objects containg the count spectrum for each detector
+        
+        Returns: 
+            (:class:`~gdt.background.primitives.BackgroundSpectrum` or None)
+        """
+        if bkgd is None:
+            return None
+        if isinstance(bkgd, BackgroundRates):
+            return bkgd.integrate_time(*pha.time_range)
+        if isinstance(bkgd, BackgroundSpectrum):
+            return bkgd
+        if isinstance(bkgd, Bak):
+            return bkgd.data
+        raise ValueError('Unknown Background object')
 
     def _hessian(self, params, function):
         """Calculate the Hessian of the fit statistic as a function of the 
@@ -933,7 +966,7 @@ class SpectralFitterChisq(SpectralFitter):
                 are supported at this time.          
     """
 
-    def __init__(self, pha_list, bkgd_list, rsp_list, **kwargs):
+    def __init__(self, pha_list, bkgd_list=None, rsp_list=None, **kwargs):
         super().__init__(pha_list, bkgd_list, rsp_list, chisq, **kwargs)
 
     def _eval_stat(self, set_num, src_model):
@@ -1088,6 +1121,73 @@ class SpectralFitterPstat(SpectralFitter):
                           self._exposure[set_num], self._back_rates[set_num])
 
 
+class SpectralFitterJoint(SpectralFitter):
+    """Class for jointly fitting spectra with multiple detectors
+    from different instruments.
+
+    Parameters:
+        specfitters (list of :class:`~gdt.core.spectra.SpectralFitter`):
+            The initialized spectralfit method for each instrument
+
+        method (str, optional):
+            The fitting algorithm, which should be one of the options for
+            scipy.optimize.minimize.
+
+            Note:
+                All solvers, with the exception of 'dogleg' and 'trust-exact',
+                are supported at this time.
+        rng (Generator, optional): The RNG object
+    """
+    def __init__(self, specfitters, method='Nelder-Mead', rng=None):
+        self._specfitters = specfitters
+        self._detectors = [det for s in specfitters for det in s.detectors]
+        self._num_sets = len(self._detectors)
+
+        self._data = [data for s in specfitters for data in s._data]
+        self._rsp = [rsp for s in specfitters for rsp in s._rsp]
+        self._back_rates = [bk_rate for s in specfitters for bk_rate in s._back_rates]
+        self._back_var = [bk_var for s in specfitters for bk_var in s._back_var]
+        self._chan_masks = [chan_mask for s in specfitters for chan_mask in s._chan_masks]
+        self._exposure = [exp for s in specfitters for exp in s._exposure]
+
+        self._function = None
+        self._method = method
+        self._rng = rng or np.random.default_rng()
+        return
+
+
+    def _fold_model(self, function, params):
+        """Folds the model throught the spectrum and calculates the fit
+        statistic
+
+        Note:
+            This is an empty function in the base class, and the inherited class
+            must define this.
+
+        Args:
+            function (:class:`~.functions.Function`): The function object to use
+            params (list): The parameters values
+
+        Returns:
+            (float)
+        """
+        stat = np.zeros(self.num_sets)
+
+        num_set = 0
+        for i in range(len(self._specfitters)):
+            for j in range(len(self._specfitters[i].detectors)):
+
+                # fold model through response and convert to raw model counts
+                rsp = self._specfitters[i]._rsp[j]
+                chan_mask = self._specfitters[i]._chan_masks[j]
+                model = rsp.drm.fold_spectrum(function, params, channel_mask=chan_mask)
+
+                # perform likelihood calculation for one dataset
+                stat[num_set] = self._specfitters[i]._eval_stat(j, model)
+                num_set += 1
+
+        return stat.sum()
+
 # --------------------------------------------------------------------------
 # FIT STATISTICS
 
@@ -1104,6 +1204,11 @@ def chisq(obs_counts, back_rates, back_var, mod_rates, exposure):
     Returns:    
         (float)
     """
+    if back_rates is None:
+        back_rates = np.zeros_like(obs_counts)
+    if back_var is None:
+        back_var = np.zeros_like(obs_counts)
+
     mask = (obs_counts - back_rates * exposure) > 0
     like = (((obs_counts[mask] - back_rates[mask] * exposure) - mod_rates[mask] * exposure) ** 2
             / (obs_counts[mask] + back_var[mask] * exposure ** 2))
