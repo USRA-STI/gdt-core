@@ -172,7 +172,7 @@ class TestChisq(unittest.TestCase):
         # no background
         f2 = chisq(self.obs_counts, None, None, 
                    self.mod_rates, self.exposure)
-        self.assertAlmostEqual(f, -71.04, places=3)
+        self.assertAlmostEqual(f2, -71.04, places=3)
 
 class TestCstat(unittest.TestCase):
 
@@ -1167,7 +1167,7 @@ class TestNoBackground(unittest.TestCase):
 
     def test_chi2(self):
         self.fitter = SpectralFitterChisq([self.pha1], rsp_list=[self.rsp1], method='TNC')
-        self.fitter(PowerLaw())
+        self.fitter.fit(PowerLaw())
                                         
     def test_chi2_plus(self):
         self.fitter = SpectralFitterChisq([self.pha1, self.pha2],
