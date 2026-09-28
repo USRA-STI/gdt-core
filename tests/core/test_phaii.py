@@ -99,6 +99,19 @@ class TestPhaii(unittest.TestCase):
                                                                     (0.2, 0.3)]),
                                0.255)
     
+    def test_get_exposure_scaled(self):
+        # scaled exposure
+        exposure = self.phaii.get_exposure(time_ranges=(0.0, 0.1), scale=True)
+
+        # expected exposure over first three bins from the phaii file above
+        expected = (
+            0.0038 +
+            0.0598 +
+            0.0638 * ((0.1 - 0.064) / (0.128 - 0.064))
+        )
+
+        self.assertAlmostEqual(exposure, expected, places=4)
+
     def test_rebin_energy(self):
         # full range
         rebinned_phaii = self.phaii.rebin_energy(combine_by_factor, 2)

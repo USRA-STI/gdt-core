@@ -86,6 +86,21 @@ class TestBinnedFitter(unittest.TestCase):
                                              self.phaii.data.tstop)
         self.assertTupleEqual(rates.size, (6, 8))
 
+    def test_interpolate_bins_scaled_exposure(self):
+        # define new time range over which to interpolate bkgd
+        tstart = np.array([0.0])
+        tstop = np.array([0.1])
+
+        # the un-scaled bkgd rate
+        rates_unscaled = self.fitter.interpolate_bins(tstart, tstop, scale=False)
+        # the scaled bkgd rate                                       
+        rates_scaled = self.fitter.interpolate_bins(tstart, tstop, scale=True)
+        
+        # compare the exposures
+        self.assertNotEqual(rates_unscaled.exposure[0], rates_scaled.exposure[0])
+        # check that the scaled exposure equals the expected exposure
+        self.assertLessEqual(rates_scaled.exposure[0], 0.1)
+
     def test_write(self):
 
         filepath = os.path.join(this_dir, 'test.bak')

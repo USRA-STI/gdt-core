@@ -86,13 +86,17 @@ class Phaii(FitsFileContextManager):
         """(float): The trigger time of the data, if available."""
         return self._trigtime
 
-    def get_exposure(self, time_ranges=None):
+    def get_exposure(self, time_ranges=None, scale=False):
         """Calculate the total exposure of a time range or time ranges of data.
 
         Args:
             time_ranges ([(float, float), ...], optional): 
                 The time range or time ranges over which to calculate the 
                 exposure. If omitted, calculates the total exposure of the data.
+            scale (bool, optional):
+                If True and the time ranges don't match up with the data binning,
+                will scale the exposure based on the requested time range.
+                Default is False.
         
         Returns:        
             (float)
@@ -100,7 +104,7 @@ class Phaii(FitsFileContextManager):
         if time_ranges is None:
             time_ranges = self.time_range
         time_ranges = self._assert_range_list(time_ranges)
-        exposure = self._data.get_exposure(time_ranges=time_ranges)
+        exposure = self._data.get_exposure(time_ranges=time_ranges, scale=scale)
         return exposure
 
     def rebin_energy(self, method, *args, energy_range=(None, None), **kwargs):
