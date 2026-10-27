@@ -105,7 +105,7 @@ class SpectralFitter:
             if (len(bkgd_list) != self._num_sets):
                 raise ValueError('Number of datasets and backgrounds must be the same')
         else:
-            bkgd_list = [None]
+            bkgd_list = [None] * self._num_sets
  
         # set the energy channel masks
         if channel_masks is not None:
@@ -138,8 +138,11 @@ class SpectralFitter:
                 bkgd_spec = None
                 self._back_rates.append(None)
                 self._back_var.append(None)
-        self._back_rates = self._apply_masks(self._back_rates)
-        self._back_var = self._apply_masks(self._back_var)
+
+        # if the background rates are all not None, apply masks
+        if not all(b is None for b in self._back_rates):
+            self._back_rates = self._apply_masks(self._back_rates)
+            self._back_var = self._apply_masks(self._back_var)
 
         # fitter/function info
         self._stat = statistic

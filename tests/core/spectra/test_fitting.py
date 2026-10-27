@@ -534,6 +534,28 @@ class TestSpectralFitterTwo(unittest.TestCase):
         for i in range(4):
             self.assertAlmostEqual(errs[1][i], test_vals[i], places=3)
 
+    def test_channel_masks_applied_to_background(self):
+        chan_masks = [np.array([True, True, True, True]),
+                      np.array([False, True, True, False])]
+
+        fitter = SpectralFitterChisq([self.pha1, self.pha2],
+                                     [self.bak1.data, self.bak2.data],
+                                     [self.rsp1, self.rsp2],
+                                     channel_masks=chan_masks, method='TNC')
+
+        # Background rates should contain only the selected channels.
+        npt.assert_allclose(fitter._back_rates[0],
+            self.bak1.data.rates[chan_masks[0]])
+        npt.assert_allclose(fitter._back_rates[1],
+            self.bak2.data.rates[chan_masks[1]])
+
+        # Background variances should have the same masks applied.
+        npt.assert_allclose(fitter._back_var[0],
+            self.bak1.data.rate_uncertainty[chan_masks[0]] ** 2)
+        npt.assert_allclose(fitter._back_var[1],
+            self.bak2.data.rate_uncertainty[chan_masks[1]] ** 2)
+
+
     def test_model_count_spectrum(self):
         spec = self.fitter.model_count_spectrum()
         self.assertListEqual(spec[0].lo_edges.tolist(), self.pha1.data.lo_edges.tolist())
@@ -990,6 +1012,16 @@ class TestSpectralFitterJoint(unittest.TestCase):
         pl = PowerLaw()
         pl.max_values[1] = 10.0
         self.fitter.fit(pl)
+
+    def test_one_dataset_without_background(self):
+        fitter1 = SpectralFitterPgstat([self.pha1, self.pha2],
+                                       [self.bak1.data, self.bak2.data],
+                                       [self.rsp1, self.rsp2])
+        fitter2 = SpectralFitterChisq([self.pha3], rsp_list=[self.rsp3])
+        self.fitter = SpectralFitterJoint([fitter1, fitter2], method='Nelder-Mead')
+        pl = PowerLaw()
+        pl.max_values[1] = 10.0
+        self.fitter.fit(pl)
     
     def test_success(self):
         self.assertTrue(self.fitter.success)
@@ -1168,8 +1200,5 @@ class TestNoBackground(unittest.TestCase):
     def test_chi2(self):
         self.fitter = SpectralFitterChisq([self.pha1], rsp_list=[self.rsp1], method='TNC')
         self.fitter.fit(PowerLaw())
-                                        
-    def test_chi2_plus(self):
-        self.fitter = SpectralFitterChisq([self.pha1, self.pha2],
-                                          [None, self.bak2.data],
-                                          [self.rsp1, self.rsp2], method='TNC')
+        self.assertTrue(self.fitter.success)
+    
