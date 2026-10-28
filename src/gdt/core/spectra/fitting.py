@@ -105,7 +105,7 @@ class SpectralFitter:
             if (len(bkgd_list) != self._num_sets):
                 raise ValueError('Number of datasets and backgrounds must be the same')
         else:
-            bkgd_list = [None]
+            bkgd_list = [None] * self._num_sets
  
         # set the energy channel masks
         if channel_masks is not None:
@@ -132,14 +132,17 @@ class SpectralFitter:
         for bkgd, pha in zip(bkgd_list, pha_list):
             if bkgd is not None:
                 bkgd_spec = self._get_background_spectrum(bkgd, pha)
-            else:
-                bkgd_spec = None
-            if bkgd_spec is None:
-                self._back_rates.append(None)
-                self._back_var.append(None)
-            else:
                 self._back_rates.append(bkgd_spec.rates)
                 self._back_var.append(bkgd_spec.rate_uncertainty**2)
+            else:
+                bkgd_spec = None
+                self._back_rates.append(None)
+                self._back_var.append(None)
+
+        # if the background rates are all not None, apply masks
+        if not all(b is None for b in self._back_rates):
+            self._back_rates = self._apply_masks(self._back_rates)
+            self._back_var = self._apply_masks(self._back_var)
 
         # fitter/function info
         self._stat = statistic
@@ -816,8 +819,6 @@ class SpectralFitter:
         Returns: 
             (:class:`~gdt.background.primitives.BackgroundSpectrum` or None)
         """
-        if bkgd is None:
-            return None
         if isinstance(bkgd, BackgroundRates):
             return bkgd.integrate_time(*pha.time_range)
         if isinstance(bkgd, BackgroundSpectrum):
