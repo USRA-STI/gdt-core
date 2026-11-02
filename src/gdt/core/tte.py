@@ -94,7 +94,7 @@ class PhotonList(FitsFileContextManager):
         """(float): The trigger time of the data, if available."""
         return self._trigtime
 
-    def get_exposure(self, time_ranges=None):
+    def get_exposure(self, time_ranges=None, **kwargs):
         """Calculate the total exposure of a time range or time ranges of data.
 
         Args:

@@ -277,7 +277,7 @@ class EventList():
         return self.channel_slice(chan_nums[0], chan_nums[-1])
 
     def get_exposure(self, time_ranges=None, event_deadtime=0.0,
-                     overflow_deadtime=0.0):
+                     overflow_deadtime=0.0, **kwargs):
         """Calculate the total exposure, in seconds, of a time range or time 
         ranges of data.
         
